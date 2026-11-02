@@ -2,11 +2,14 @@ package com.otium.audio.playback
 
 import android.app.PendingIntent
 import android.content.ContentUris
+import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.media.audiofx.AudioEffect
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
+import android.util.Log
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -33,6 +36,7 @@ class PlaybackService : MediaSessionService() {
     companion object {
         const val NOTIFICATION_CHANNEL_ID = "otium_playback_channel"
         const val NOTIFICATION_ID = 1001
+        private const val TAG = "PlaybackService"
     }
 
     @OptIn(UnstableApi::class)
@@ -61,17 +65,37 @@ class PlaybackService : MediaSessionService() {
             )
             .build()
 
+        // Generate audio session ID immediately so AudioEffects bind before playback
+        val audioManager = getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+        val generatedSessionId = audioManager?.generateAudioSessionId() ?: AudioManager.ERROR
+
         player = ExoPlayer.Builder(this, renderersFactory)
             .setAudioAttributes(audioAttributes, /* handleAudioFocus = */ true)
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_LOCAL)
             .setLoadControl(loadControl)
+            .apply {
+                if (generatedSessionId != AudioManager.ERROR && generatedSessionId > 0) {
+                    setAudioSessionId(generatedSessionId)
+                }
+            }
             .build()
             .apply {
                 repeatMode = Player.REPEAT_MODE_OFF
                 shuffleModeEnabled = false
                 addListener(PlayerEventListener())
             }
+
+        // Bind initial audio session immediately
+        val initialSessionId = if (generatedSessionId != AudioManager.ERROR && generatedSessionId > 0) {
+            generatedSessionId
+        } else {
+            player.audioSessionId
+        }
+
+        if (initialSessionId > 0 && initialSessionId != C.AUDIO_SESSION_ID_UNSET) {
+            openSystemAudioEffectSession(initialSessionId)
+        }
     }
 
     private fun initializeMediaSession() {
@@ -185,50 +209,78 @@ class PlaybackService : MediaSessionService() {
         if (audioSessionId <= 0 || audioSessionId == C.AUDIO_SESSION_ID_UNSET) return
         activeAudioSessionId = audioSessionId
 
-        // Bind our internal Equalizer engine
+        Log.i(TAG, "Opening AudioEffect session: $audioSessionId")
+
+        // 1. Bind internal Equalizer engine
         (application as? com.otium.audio.OtiumApplication)?.equalizerController?.bindAudioSession(audioSessionId)
 
-        // Broadcast to system-level DSP (Dolby Atmos, Dirac, etc.)
-        val intent = Intent(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION).apply {
-            putExtra(AudioEffect.EXTRA_AUDIO_SESSION, audioSessionId)
-            putExtra(AudioEffect.EXTRA_PACKAGE_NAME, packageName)
-            putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC)
+        // 2. Broadcast to system DSP (Dolby Atmos, Dirac, Sony Sound, etc.)
+        try {
+            val intent = Intent(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION).apply {
+                putExtra(AudioEffect.EXTRA_AUDIO_SESSION, audioSessionId)
+                putExtra(AudioEffect.EXTRA_PACKAGE_NAME, packageName)
+                putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC)
+            }
+            sendBroadcast(intent)
+        } catch (e: Exception) {
+            Log.w(TAG, "Error broadcasting ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION", e)
         }
-        sendBroadcast(intent)
     }
 
     private fun closeSystemAudioEffectSession(audioSessionId: Int) {
         if (audioSessionId == C.AUDIO_SESSION_ID_UNSET) return
 
-        val intent = Intent(AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION).apply {
-            putExtra(AudioEffect.EXTRA_AUDIO_SESSION, audioSessionId)
-            putExtra(AudioEffect.EXTRA_PACKAGE_NAME, packageName)
+        try {
+            val intent = Intent(AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION).apply {
+                putExtra(AudioEffect.EXTRA_AUDIO_SESSION, audioSessionId)
+                putExtra(AudioEffect.EXTRA_PACKAGE_NAME, packageName)
+            }
+            sendBroadcast(intent)
+        } catch (e: Exception) {
+            Log.w(TAG, "Error broadcasting ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION", e)
         }
-        sendBroadcast(intent)
         activeAudioSessionId = C.AUDIO_SESSION_ID_UNSET
     }
 
     private inner class PlayerEventListener : Player.Listener {
         override fun onAudioSessionIdChanged(audioSessionId: Int) {
-            if (activeAudioSessionId != C.AUDIO_SESSION_ID_UNSET && activeAudioSessionId != audioSessionId) {
-                closeSystemAudioEffectSession(activeAudioSessionId)
+            if (audioSessionId > 0 && audioSessionId != C.AUDIO_SESSION_ID_UNSET) {
+                if (activeAudioSessionId != audioSessionId) {
+                    closeSystemAudioEffectSession(activeAudioSessionId)
+                }
+                openSystemAudioEffectSession(audioSessionId)
             }
-            openSystemAudioEffectSession(audioSessionId)
+        }
+
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            super.onPlaybackStateChanged(playbackState)
+            val currentId = player.audioSessionId
+            if (currentId > 0 && currentId != C.AUDIO_SESSION_ID_UNSET && currentId != activeAudioSessionId) {
+                openSystemAudioEffectSession(currentId)
+            }
         }
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             super.onIsPlayingChanged(isPlaying)
             updateWidgetState()
+            val currentId = player.audioSessionId
+            if (currentId > 0 && currentId != C.AUDIO_SESSION_ID_UNSET && currentId != activeAudioSessionId) {
+                openSystemAudioEffectSession(currentId)
+            }
         }
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             super.onMediaItemTransition(mediaItem, reason)
             updateWidgetState()
+            val currentId = player.audioSessionId
+            if (currentId > 0 && currentId != C.AUDIO_SESSION_ID_UNSET && currentId != activeAudioSessionId) {
+                openSystemAudioEffectSession(currentId)
+            }
         }
 
         override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
             super.onPlayerError(error)
-            android.util.Log.e("PlaybackService", "ExoPlayer error: ${error.errorCodeName}", error)
+            Log.e(TAG, "ExoPlayer error: ${error.errorCodeName}", error)
             player.pause()
         }
     }

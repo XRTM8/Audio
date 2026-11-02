@@ -1,8 +1,8 @@
 package com.otium.audio.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Equalizer
@@ -36,10 +37,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.otium.audio.playback.EqualizerState
+import com.otium.audio.ui.theme.AccentCyan
 import com.otium.audio.ui.theme.AccentGold
 import com.otium.audio.ui.theme.DarkCardBorder
 import com.otium.audio.ui.theme.DarkSurface
@@ -98,11 +100,30 @@ fun EqualizerSheet(
                         )
                     }
                     Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = "Audio Equalizer",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        color = TextPrimary
-                    )
+                    Column {
+                        Text(
+                            text = "Audio Equalizer",
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                            color = TextPrimary
+                        )
+                        // Status indicator
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(
+                                    if (state.isEnabled) AccentGold.copy(alpha = 0.2f)
+                                    else TextSecondary.copy(alpha = 0.15f)
+                                )
+                                .padding(horizontal = 6.dp, vertical = 1.dp)
+                        ) {
+                            Text(
+                                text = if (state.isEnabled) "ACTIVE (مفعّل)" else "BYPASS (معطّل)",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (state.isEnabled) AccentGold else TextSecondary
+                            )
+                        }
+                    }
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -116,6 +137,7 @@ fun EqualizerSheet(
                             uncheckedTrackColor = DarkSurfaceVariant
                         )
                     )
+                    Spacer(modifier = Modifier.width(4.dp))
                     IconButton(onClick = onDismiss) {
                         Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = TextSecondary)
                     }
@@ -156,9 +178,9 @@ fun EqualizerSheet(
 
             // Bands Sliders
             Text(
-                text = "FREQUENCY BANDS",
+                text = "FREQUENCY BANDS (نطاقات التردد)",
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                color = TextSecondary
+                color = AccentGold
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -180,7 +202,7 @@ fun EqualizerSheet(
                         text = freqLabel,
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                         color = TextPrimary,
-                        modifier = Modifier.width(60.dp)
+                        modifier = Modifier.width(62.dp)
                     )
 
                     val safeMin = if (band.minDb < band.maxDb) band.minDb else -15f
@@ -190,22 +212,20 @@ fun EqualizerSheet(
                         value = band.levelDb.coerceIn(safeMin, safeMax),
                         onValueChange = { onBandLevelChange(band.bandIndex, it) },
                         valueRange = safeMin..safeMax,
-                        enabled = state.isEnabled,
+                        enabled = true, // Always responsive, auto-enables on touch
                         colors = SliderDefaults.colors(
-                            thumbColor = AccentGold,
-                            activeTrackColor = AccentGold,
-                            inactiveTrackColor = DarkCardBorder,
-                            disabledThumbColor = TextSecondary.copy(alpha = 0.4f),
-                            disabledActiveTrackColor = TextSecondary.copy(alpha = 0.2f)
+                            thumbColor = if (state.isEnabled) AccentGold else TextSecondary,
+                            activeTrackColor = if (state.isEnabled) AccentGold else TextSecondary.copy(alpha = 0.4f),
+                            inactiveTrackColor = DarkCardBorder
                         ),
                         modifier = Modifier.weight(1f)
                     )
 
                     Text(
                         text = String.format(Locale.getDefault(), "%+.1fdB", band.levelDb),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TextSecondary,
-                        modifier = Modifier.width(52.dp)
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = if (state.isEnabled && band.levelDb != 0f) AccentGold else TextSecondary,
+                        modifier = Modifier.width(56.dp)
                     )
                 }
             }
@@ -219,19 +239,27 @@ fun EqualizerSheet(
             ) {
                 // Bass Boost
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "BASS BOOST (${state.bassBoostStrength / 10}%)",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = TextSecondary
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "BASS BOOST",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = AccentGold
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "${state.bassBoostStrength / 10}%",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextSecondary
+                        )
+                    }
                     Slider(
                         value = state.bassBoostStrength.toFloat(),
                         onValueChange = { onBassBoostChange(it.toInt()) },
                         valueRange = 0f..1000f,
-                        enabled = state.isEnabled,
+                        enabled = true,
                         colors = SliderDefaults.colors(
-                            thumbColor = AccentGold,
-                            activeTrackColor = AccentGold,
+                            thumbColor = if (state.isEnabled) AccentGold else TextSecondary,
+                            activeTrackColor = if (state.isEnabled) AccentGold else TextSecondary.copy(alpha = 0.4f),
                             inactiveTrackColor = DarkCardBorder
                         )
                     )
@@ -239,19 +267,27 @@ fun EqualizerSheet(
 
                 // 3D Virtualizer
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "3D VIRTUALIZER (${state.virtualizerStrength / 10}%)",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = TextSecondary
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "3D VIRTUALIZER",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = AccentCyan
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "${state.virtualizerStrength / 10}%",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextSecondary
+                        )
+                    }
                     Slider(
                         value = state.virtualizerStrength.toFloat(),
                         onValueChange = { onVirtualizerChange(it.toInt()) },
                         valueRange = 0f..1000f,
-                        enabled = state.isEnabled,
+                        enabled = true,
                         colors = SliderDefaults.colors(
-                            thumbColor = AccentGold,
-                            activeTrackColor = AccentGold,
+                            thumbColor = if (state.isEnabled) AccentCyan else TextSecondary,
+                            activeTrackColor = if (state.isEnabled) AccentCyan else TextSecondary.copy(alpha = 0.4f),
                             inactiveTrackColor = DarkCardBorder
                         )
                     )

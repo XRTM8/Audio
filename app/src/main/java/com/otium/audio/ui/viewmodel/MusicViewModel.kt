@@ -50,7 +50,7 @@ class MusicViewModel(
 
     fun checkForUpdates() {
         viewModelScope.launch {
-            val update = com.otium.audio.data.update.UpdateChecker.checkLatestRelease("1.3.0")
+            val update = com.otium.audio.data.update.UpdateChecker.checkLatestRelease("1.4.1")
             if (update != null) {
                 _uiState.update { it.copy(availableUpdate = update) }
             }
