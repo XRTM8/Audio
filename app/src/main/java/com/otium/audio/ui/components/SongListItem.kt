@@ -131,7 +131,7 @@ fun SongListItem(
                         text = song.title,
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = if (isCurrentSong) FontWeight.Bold else FontWeight.SemiBold,
-                            textDirection = TextDirection.ContentOrLtrs
+                            textDirection = TextDirection.ContentOrLtr
                         ),
                         color = if (isCurrentSong) AccentGold else TextPrimary,
                         maxLines = 1,
@@ -143,7 +143,7 @@ fun SongListItem(
                     Text(
                         text = "${song.artist} • ${song.formattedDuration}",
                         style = MaterialTheme.typography.bodySmall.copy(
-                            textDirection = TextDirection.ContentOrLtrs
+                            textDirection = TextDirection.ContentOrLtr
                         ),
                         color = TextSecondary,
                         maxLines = 1,

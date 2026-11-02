@@ -137,7 +137,7 @@ fun MiniPlayer(
                             text = currentSong.title,
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
-                                textDirection = TextDirection.ContentOrLtrs
+                                textDirection = TextDirection.ContentOrLtr
                             ),
                             color = TextPrimary,
                             maxLines = 1,
@@ -147,7 +147,7 @@ fun MiniPlayer(
                         Text(
                             text = currentSong.artist,
                             style = MaterialTheme.typography.bodySmall.copy(
-                                textDirection = TextDirection.ContentOrLtrs
+                                textDirection = TextDirection.ContentOrLtr
                             ),
                             color = TextSecondary,
                             maxLines = 1,
