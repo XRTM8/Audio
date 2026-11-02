@@ -19,9 +19,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import com.otium.audio.OtiumApplication
+import com.otium.audio.ui.components.EqualizerSheet
 import com.otium.audio.ui.screens.HomeScreen
 import com.otium.audio.ui.screens.NowPlayingScreen
 import com.otium.audio.ui.screens.PermissionScreen
@@ -51,6 +55,7 @@ class MainActivity : ComponentActivity() {
                     color = DarkSurface
                 ) {
                     val uiState by viewModel.uiState.collectAsState()
+                    var showHomeEqualizer by remember { mutableStateOf(false) }
 
                     LaunchedEffect(Unit) {
                         if (hasRequiredAudioPermission(this@MainActivity)) {
@@ -77,8 +82,21 @@ class MainActivity : ComponentActivity() {
                             onDeletePlaylist = viewModel::deletePlaylist,
                             onPlayPause = viewModel::togglePlayPause,
                             onSkipNext = viewModel::skipToNext,
-                            onOpenNowPlaying = { viewModel.setNowPlayingExpanded(true) }
+                            onOpenNowPlaying = { viewModel.setNowPlayingExpanded(true) },
+                            onOpenEqualizer = { showHomeEqualizer = true }
                         )
+
+                        if (showHomeEqualizer) {
+                            EqualizerSheet(
+                                state = uiState.equalizerState,
+                                onToggleEnabled = viewModel::toggleEqualizer,
+                                onBandLevelChange = viewModel::setEqualizerBandLevel,
+                                onBassBoostChange = viewModel::setBassBoost,
+                                onVirtualizerChange = viewModel::setVirtualizer,
+                                onPresetSelected = viewModel::applyEqualizerPreset,
+                                onDismiss = { showHomeEqualizer = false }
+                            )
+                        }
 
                         // Smooth modal expansion for NowPlayingScreen
                         val currentSong = uiState.playbackState.currentSong

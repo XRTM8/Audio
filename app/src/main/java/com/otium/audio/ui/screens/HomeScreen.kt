@@ -89,6 +89,7 @@ fun HomeScreen(
     onPlayPause: () -> Unit,
     onSkipNext: () -> Unit,
     onOpenNowPlaying: () -> Unit,
+    onOpenEqualizer: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -122,11 +123,27 @@ fun HomeScreen(
                         tint = AccentGold,
                         modifier = Modifier.size(28.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Otium Audio",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        color = TextPrimary
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = "Otium Audio",
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                            color = TextPrimary
+                        )
+                        Text(
+                            text = "${uiState.songs.size} tracks offline",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextSecondary
+                        )
+                    }
+                }
+
+                IconButton(onClick = onOpenEqualizer) {
+                    Icon(
+                        imageVector = Icons.Default.Equalizer,
+                        contentDescription = "Equalizer",
+                        tint = if (uiState.equalizerState.isEnabled) AccentGold else TextSecondary,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }

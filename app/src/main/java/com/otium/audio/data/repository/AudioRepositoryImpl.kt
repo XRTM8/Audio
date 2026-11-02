@@ -129,13 +129,15 @@ class AudioRepositoryImpl(
         }.flowOn(ioDispatcher)
     }
 
+    private val cachedSongs = java.util.concurrent.CopyOnWriteArrayList<Song>()
+
     override fun searchSongs(query: String): Flow<List<Song>> {
         return flow {
-            val all = querySongsFromMediaStore()
+            val list = if (cachedSongs.isNotEmpty()) cachedSongs else querySongsFromMediaStore()
             val filtered = if (query.isBlank()) {
-                all
+                list
             } else {
-                all.filter {
+                list.filter {
                     it.title.contains(query, ignoreCase = true) ||
                     it.artist.contains(query, ignoreCase = true) ||
                     it.album.contains(query, ignoreCase = true)
@@ -163,11 +165,7 @@ class AudioRepositoryImpl(
             MediaStore.Audio.Media.ALBUM_ID,
             MediaStore.Audio.Media.DURATION,
             MediaStore.Audio.Media.SIZE,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                MediaStore.Audio.Media.RELATIVE_PATH
-            } else {
-                MediaStore.Audio.Media.DATA
-            },
+            MediaStore.Audio.Media.DATA,
             MediaStore.Audio.Media.DATE_ADDED
         )
 
@@ -183,11 +181,7 @@ class AudioRepositoryImpl(
             val albumIdCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
             val durationCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
             val sizeCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
-            val pathCol = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.RELATIVE_PATH)
-            } else {
-                cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
-            }
+            val pathCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
             val dateAddedCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
 
             while (cursor.moveToNext()) {
@@ -204,22 +198,23 @@ class AudioRepositoryImpl(
                 val contentUri = ContentUris.withAppendedId(collection, id)
                 val albumArtUri = ContentUris.withAppendedId(ALBUM_ART_URI, albumId)
 
-                songs.add(
-                    Song(
-                        id = id,
-                        title = title,
-                        artist = artist,
-                        album = album,
-                        durationMs = duration,
-                        contentUri = contentUri,
-                        albumArtUri = albumArtUri,
-                        size = size,
-                        relativePath = path,
-                        dateAdded = dateAdded
-                    )
+                val song = Song(
+                    id = id,
+                    title = title,
+                    artist = artist,
+                    album = album,
+                    durationMs = duration,
+                    contentUri = contentUri,
+                    albumArtUri = albumArtUri,
+                    size = size,
+                    relativePath = path,
+                    dateAdded = dateAdded
                 )
+                songs.add(song)
             }
         }
+        cachedSongs.clear()
+        cachedSongs.addAll(songs)
         return songs
     }
 }

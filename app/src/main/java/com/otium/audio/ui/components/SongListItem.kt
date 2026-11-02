@@ -1,13 +1,19 @@
 package com.otium.audio.ui.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -75,12 +81,17 @@ fun SongListItem(
                 modifier = Modifier.matchParentSize(),
                 error = null
             )
-            Icon(
-                imageVector = Icons.Default.MusicNote,
-                contentDescription = null,
-                tint = if (isCurrentSong) AccentGold else TextSecondary,
-                modifier = Modifier.size(24.dp)
-            )
+
+            if (isCurrentSong) {
+                MiniPlayingIndicator()
+            } else {
+                Icon(
+                    imageVector = Icons.Default.MusicNote,
+                    contentDescription = null,
+                    tint = TextSecondary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.width(14.dp))
@@ -118,5 +129,38 @@ fun SongListItem(
                 modifier = Modifier.size(22.dp)
             )
         }
+    }
+}
+
+@Composable
+private fun MiniPlayingIndicator() {
+    val infiniteTransition = rememberInfiniteTransition(label = "mini_eq")
+    val bar1 by infiniteTransition.animateFloat(
+        initialValue = 0.2f, targetValue = 0.95f,
+        animationSpec = infiniteRepeatable(tween(350), RepeatMode.Reverse),
+        label = "b1"
+    )
+    val bar2 by infiniteTransition.animateFloat(
+        initialValue = 0.45f, targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(tween(480), RepeatMode.Reverse),
+        label = "b2"
+    )
+    val bar3 by infiniteTransition.animateFloat(
+        initialValue = 0.15f, targetValue = 0.85f,
+        animationSpec = infiniteRepeatable(tween(320), RepeatMode.Reverse),
+        label = "b3"
+    )
+
+    Row(
+        modifier = Modifier
+            .size(26.dp)
+            .background(DarkSurfaceVariant.copy(alpha = 0.85f), RoundedCornerShape(4.dp))
+            .padding(horizontal = 4.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.5.dp),
+        verticalAlignment = Alignment.Bottom
+    ) {
+        Box(modifier = Modifier.weight(1f).fillMaxHeight(bar1).background(AccentGold, RoundedCornerShape(1.dp)))
+        Box(modifier = Modifier.weight(1f).fillMaxHeight(bar2).background(AccentGold, RoundedCornerShape(1.dp)))
+        Box(modifier = Modifier.weight(1f).fillMaxHeight(bar3).background(AccentGold, RoundedCornerShape(1.dp)))
     }
 }

@@ -68,7 +68,7 @@ fun LyricsSheet(
     val listState = rememberLazyListState()
 
     LaunchedEffect(activeIndex) {
-        if (activeIndex >= 0) {
+        if (activeIndex >= 0 && !listState.isScrollInProgress) {
             val targetScroll = (activeIndex - 2).coerceAtLeast(0)
             listState.animateScrollToItem(targetScroll)
         }

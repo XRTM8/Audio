@@ -2,6 +2,7 @@ package com.otium.audio.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -72,6 +73,7 @@ fun EqualizerSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 12.dp)
         ) {
             // Header Row
@@ -181,10 +183,13 @@ fun EqualizerSheet(
                         modifier = Modifier.width(60.dp)
                     )
 
+                    val safeMin = if (band.minDb < band.maxDb) band.minDb else -15f
+                    val safeMax = if (band.minDb < band.maxDb) band.maxDb else 15f
+
                     Slider(
-                        value = band.levelDb,
+                        value = band.levelDb.coerceIn(safeMin, safeMax),
                         onValueChange = { onBandLevelChange(band.bandIndex, it) },
-                        valueRange = band.minDb..band.maxDb,
+                        valueRange = safeMin..safeMax,
                         enabled = state.isEnabled,
                         colors = SliderDefaults.colors(
                             thumbColor = AccentGold,
