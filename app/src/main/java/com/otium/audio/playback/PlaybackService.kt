@@ -65,20 +65,11 @@ class PlaybackService : MediaSessionService() {
             )
             .build()
 
-        // Generate audio session ID immediately so AudioEffects bind before playback
-        val audioManager = getSystemService(Context.AUDIO_SERVICE) as? AudioManager
-        val generatedSessionId = audioManager?.generateAudioSessionId() ?: AudioManager.ERROR
-
         player = ExoPlayer.Builder(this, renderersFactory)
             .setAudioAttributes(audioAttributes, /* handleAudioFocus = */ true)
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_LOCAL)
             .setLoadControl(loadControl)
-            .apply {
-                if (generatedSessionId != AudioManager.ERROR && generatedSessionId > 0) {
-                    setAudioSessionId(generatedSessionId)
-                }
-            }
             .build()
             .apply {
                 repeatMode = Player.REPEAT_MODE_OFF
@@ -86,13 +77,8 @@ class PlaybackService : MediaSessionService() {
                 addListener(PlayerEventListener())
             }
 
-        // Bind initial audio session immediately
-        val initialSessionId = if (generatedSessionId != AudioManager.ERROR && generatedSessionId > 0) {
-            generatedSessionId
-        } else {
-            player.audioSessionId
-        }
-
+        // Bind initial audio session immediately if already available
+        val initialSessionId = player.audioSessionId
         if (initialSessionId > 0 && initialSessionId != C.AUDIO_SESSION_ID_UNSET) {
             openSystemAudioEffectSession(initialSessionId)
         }
