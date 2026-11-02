@@ -50,6 +50,21 @@
             </intent-filter>
         </service>
 
+        <!-- Material Home Screen Widget -->
+        <receiver
+            android:name=".ui.widget.OtiumAppWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.otium.audio.ACTION_PLAY_PAUSE" />
+                <action android:name="com.otium.audio.ACTION_SKIP_NEXT" />
+                <action android:name="com.otium.audio.ACTION_SKIP_PREVIOUS" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_otium_info" />
+        </receiver>
+
     </application>
 
 </manifest>

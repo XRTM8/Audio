@@ -48,10 +48,13 @@ interface AudioDao {
     @Query("DELETE FROM playlist_songs WHERE playlistId = :playlistId")
     suspend fun clearPlaylistSongs(playlistId: Long)
 
-    // --- History ---
+    // --- History & Analytics ---
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun recordHistory(history: HistoryEntity)
 
     @Query("SELECT songId FROM playback_history ORDER BY playedAt DESC LIMIT :limit")
     fun getRecentHistorySongIdsFlow(limit: Int = 50): Flow<List<Long>>
+
+    @Query("SELECT songId FROM playback_history GROUP BY songId ORDER BY COUNT(historyId) DESC LIMIT :limit")
+    fun getMostPlayedSongIdsFlow(limit: Int = 50): Flow<List<Long>>
 }

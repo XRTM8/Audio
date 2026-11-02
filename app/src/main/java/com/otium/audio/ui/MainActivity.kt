@@ -86,7 +86,10 @@ class MainActivity : ComponentActivity() {
                             onPlayPause = viewModel::togglePlayPause,
                             onSkipNext = viewModel::skipToNext,
                             onOpenNowPlaying = { viewModel.setNowPlayingExpanded(true) },
-                            onOpenEqualizer = { showHomeEqualizer = true }
+                            onOpenEqualizer = { showHomeEqualizer = true },
+                            onEditTagClick = viewModel::openTagEditor,
+                            onSaveMetadata = viewModel::saveSongMetadata,
+                            onDismissTagEditor = { viewModel.openTagEditor(null) }
                         )
 
                         if (showHomeEqualizer) {
@@ -151,7 +154,8 @@ class MainActivity : ComponentActivity() {
                                     onMoveQueueItem = viewModel::moveQueueItem,
                                     onStartSleepTimer = viewModel::startSleepTimer,
                                     onStartSleepEndOfTrack = viewModel::startSleepEndOfTrack,
-                                    onCancelSleepTimer = viewModel::cancelSleepTimer
+                                    onCancelSleepTimer = viewModel::cancelSleepTimer,
+                                    onEditTagClick = { viewModel.openTagEditor(currentSong) }
                                 )
                             }
                         }

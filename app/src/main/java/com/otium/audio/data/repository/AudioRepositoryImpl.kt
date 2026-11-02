@@ -2,6 +2,7 @@ package com.otium.audio.data.repository
 
 import android.content.ContentResolver
 import android.content.ContentUris
+import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
 import android.os.Build
@@ -141,6 +142,44 @@ class AudioRepositoryImpl(
             val songMap = songs.associateBy { it.id }
             historyIds.mapNotNull { songMap[it] }
         }.flowOn(ioDispatcher)
+    }
+
+    override fun getMostPlayedFlow(limit: Int): Flow<List<Song>> {
+        return combine(getAllSongsFlow(), audioDao.getMostPlayedSongIdsFlow(limit)) { songs, mostPlayedIds ->
+            val songMap = songs.associateBy { it.id }
+            mostPlayedIds.mapNotNull { songMap[it] }
+        }.flowOn(ioDispatcher)
+    }
+
+    override fun getRecentlyAddedFlow(): Flow<List<Song>> {
+        return getAllSongsFlow().map { songs ->
+            songs.sortedByDescending { it.dateAdded }.take(50)
+        }.flowOn(ioDispatcher)
+    }
+
+    override suspend fun updateSongMetadata(
+        songId: Long,
+        title: String,
+        artist: String,
+        album: String
+    ): Boolean = withContext(ioDispatcher) {
+        try {
+            val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+            } else {
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+            }
+            val uri = ContentUris.withAppendedId(collection, songId)
+            val values = ContentValues().apply {
+                put(MediaStore.Audio.Media.TITLE, title)
+                put(MediaStore.Audio.Media.ARTIST, artist)
+                put(MediaStore.Audio.Media.ALBUM, album)
+            }
+            val count = context.contentResolver.update(uri, values, null, null)
+            count > 0
+        } catch (_: Exception) {
+            false
+        }
     }
 
     private val cachedSongs = java.util.concurrent.CopyOnWriteArrayList<Song>()

@@ -22,8 +22,21 @@ data class EqualizerState(
     val bands: List<EqualizerBand> = emptyList(),
     val bassBoostStrength: Int = 0, // 0 to 1000
     val virtualizerStrength: Int = 0, // 0 to 1000
-    val currentPreset: String = "Custom",
-    val presets: List<String> = listOf("Flat", "Bass Boost", "Rock", "Pop", "Jazz", "Electronic", "Acoustic", "Custom")
+    val currentPreset: String = "Flat",
+    val presets: List<String> = listOf(
+        "Flat",
+        "Harman Target (Audiophile)",
+        "Sennheiser HD-Series",
+        "Sony WH-1000XM Series",
+        "AirPods Pro Reference",
+        "Bass Boost Extreme",
+        "Acoustic & Vocals",
+        "Rock",
+        "Electronic Club",
+        "Pop",
+        "Jazz",
+        "Custom"
+    )
 )
 
 class EqualizerController {
@@ -139,12 +152,16 @@ class EqualizerController {
 
         val levels = when (presetName) {
             "Flat" -> List(bands.size) { 0f }
-            "Bass Boost" -> listOf(6f, 4f, 1f, 0f, 0f)
+            "Harman Target (Audiophile)" -> listOf(5.5f, 2.0f, -0.5f, 3.0f, 2.5f)
+            "Sennheiser HD-Series" -> listOf(2.5f, 1.0f, 0.0f, 1.5f, 2.0f)
+            "Sony WH-1000XM Series" -> listOf(-1.5f, -2.5f, 2.0f, 3.5f, 4.0f)
+            "AirPods Pro Reference" -> listOf(2.5f, 0.5f, 0.0f, 1.0f, 1.5f)
+            "Bass Boost Extreme" -> listOf(7.5f, 5.0f, 1.0f, 0.0f, 0.0f)
+            "Acoustic & Vocals" -> listOf(-1.0f, 1.5f, 4.0f, 3.5f, 2.5f)
             "Rock" -> listOf(5f, 3f, -1f, 2f, 5f)
+            "Electronic Club" -> listOf(6f, 4f, 0f, 3f, 6f)
             "Pop" -> listOf(-1f, 2f, 5f, 3f, -1f)
             "Jazz" -> listOf(4f, 2f, -1f, 2f, 4f)
-            "Electronic" -> listOf(5f, 4f, 0f, 3f, 5f)
-            "Acoustic" -> listOf(4f, 2f, 1f, 3f, 2f)
             else -> return
         }
 

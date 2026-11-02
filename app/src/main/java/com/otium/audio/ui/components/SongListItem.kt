@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -51,6 +52,7 @@ fun SongListItem(
     isCurrentSong: Boolean,
     onSongClick: () -> Unit,
     onFavoriteClick: () -> Unit,
+    onEditTagClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val backgroundColor by animateColorAsState(
@@ -117,6 +119,20 @@ fun SongListItem(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+        }
+
+        if (onEditTagClick != null) {
+            IconButton(
+                onClick = onEditTagClick,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.EditNote,
+                    contentDescription = "Edit Tags",
+                    tint = TextSecondary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
 
         IconButton(

@@ -82,6 +82,18 @@ class MusicViewModel(
                 _uiState.update { it.copy(history = history) }
             }
         }
+
+        viewModelScope.launch {
+            repository.getMostPlayedFlow().collectLatest { mostPlayed ->
+                _uiState.update { it.copy(mostPlayed = mostPlayed) }
+            }
+        }
+
+        viewModelScope.launch {
+            repository.getRecentlyAddedFlow().collectLatest { recentlyAdded ->
+                _uiState.update { it.copy(recentlyAdded = recentlyAdded) }
+            }
+        }
     }
 
     private fun observePlaybackState() {
@@ -247,6 +259,17 @@ class MusicViewModel(
 
     fun applyEqualizerPreset(preset: String) {
         equalizerController.applyPreset(preset)
+    }
+
+    fun openTagEditor(song: Song?) {
+        _uiState.update { it.copy(songToEdit = song) }
+    }
+
+    fun saveSongMetadata(songId: Long, title: String, artist: String, album: String) {
+        viewModelScope.launch {
+            repository.updateSongMetadata(songId, title, artist, album)
+            _uiState.update { it.copy(songToEdit = null) }
+        }
     }
 
     // --- Sleep Timer ---

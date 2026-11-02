@@ -21,5 +21,8 @@ interface AudioRepository {
 
     suspend fun recordHistory(songId: Long)
     fun getRecentlyPlayedFlow(): Flow<List<Song>>
+    fun getMostPlayedFlow(limit: Int = 50): Flow<List<Song>>
+    fun getRecentlyAddedFlow(): Flow<List<Song>>
     fun searchSongs(query: String): Flow<List<Song>>
+    suspend fun updateSongMetadata(songId: Long, title: String, artist: String, album: String): Boolean
 }

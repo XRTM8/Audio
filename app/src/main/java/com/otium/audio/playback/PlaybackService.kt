@@ -135,6 +135,41 @@ class PlaybackService : MediaSessionService() {
         return mediaSession
     }
 
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        when (intent?.action) {
+            com.otium.audio.ui.widget.OtiumAppWidgetProvider.ACTION_PLAY_PAUSE -> {
+                if (player.isPlaying) player.pause() else player.play()
+            }
+            com.otium.audio.ui.widget.OtiumAppWidgetProvider.ACTION_SKIP_NEXT -> {
+                if (player.hasNextMediaItem()) player.seekToNextMediaItem()
+            }
+            com.otium.audio.ui.widget.OtiumAppWidgetProvider.ACTION_SKIP_PREVIOUS -> {
+                if (player.hasPreviousMediaItem()) player.seekToPreviousMediaItem()
+            }
+        }
+        return super.onStartCommand(intent, flags, startId)
+    }
+
+    private fun updateWidgetState() {
+        val currentMediaItem = player.currentMediaItem
+        val song = currentMediaItem?.let { item ->
+            val metadata = item.mediaMetadata
+            com.otium.audio.data.model.Song(
+                id = item.mediaId.toLongOrNull() ?: 0L,
+                title = metadata.title?.toString() ?: "Unknown Track",
+                artist = metadata.artist?.toString() ?: "Unknown Artist",
+                album = metadata.albumTitle?.toString() ?: "Unknown Album",
+                durationMs = player.duration.coerceAtLeast(0L),
+                contentUri = item.requestMetadata.mediaUri ?: android.net.Uri.EMPTY,
+                albumArtUri = metadata.artworkUri ?: android.net.Uri.EMPTY,
+                size = 0L,
+                relativePath = "",
+                dateAdded = 0L
+            )
+        }
+        com.otium.audio.ui.widget.OtiumAppWidgetProvider.updateWidget(this, song, player.isPlaying)
+    }
+
     override fun onTaskRemoved(rootIntent: Intent?) {
         val activePlayer = mediaSession?.player
         if (activePlayer == null || !activePlayer.playWhenReady || activePlayer.mediaItemCount == 0) {
@@ -185,6 +220,16 @@ class PlaybackService : MediaSessionService() {
                 closeSystemAudioEffectSession(activeAudioSessionId)
             }
             openSystemAudioEffectSession(audioSessionId)
+        }
+
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            super.onIsPlayingChanged(isPlaying)
+            updateWidgetState()
+        }
+
+        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            super.onMediaItemTransition(mediaItem, reason)
+            updateWidgetState()
         }
 
         override fun onPlayerError(error: androidx.media3.common.PlaybackException) {

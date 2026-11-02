@@ -74,6 +74,7 @@ import com.otium.audio.ui.components.FastAlphabetScroller
 import kotlinx.coroutines.launch
 import com.otium.audio.ui.components.MiniPlayer
 import com.otium.audio.ui.components.SongListItem
+import com.otium.audio.ui.components.TagEditorSheet
 import com.otium.audio.ui.theme.AccentGold
 import com.otium.audio.ui.theme.DarkCardBorder
 import com.otium.audio.ui.theme.DarkSurface
@@ -102,6 +103,9 @@ fun HomeScreen(
     onSkipNext: () -> Unit,
     onOpenNowPlaying: () -> Unit,
     onOpenEqualizer: () -> Unit = {},
+    onEditTagClick: (Song) -> Unit = {},
+    onSaveMetadata: (Long, String, String, String) -> Unit = { _, _, _, _ -> },
+    onDismissTagEditor: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -364,7 +368,8 @@ fun HomeScreen(
                             songs = uiState.searchResults,
                             currentSong = uiState.playbackState.currentSong,
                             onSongClick = { song -> onSongSelected(song, uiState.searchResults) },
-                            onFavoriteClick = onFavoriteToggle
+                            onFavoriteClick = onFavoriteToggle,
+                            onEditTagClick = onEditTagClick
                         )
                     }
 
@@ -373,7 +378,8 @@ fun HomeScreen(
                             songs = uiState.selectedPlaylistSongs,
                             currentSong = uiState.playbackState.currentSong,
                             onSongClick = { song -> onSongSelected(song, uiState.selectedPlaylistSongs) },
-                            onFavoriteClick = onFavoriteToggle
+                            onFavoriteClick = onFavoriteToggle,
+                            onEditTagClick = onEditTagClick
                         )
                     }
 
@@ -382,7 +388,8 @@ fun HomeScreen(
                             songs = uiState.selectedFolder.songs,
                             currentSong = uiState.playbackState.currentSong,
                             onSongClick = { song -> onSongSelected(song, uiState.selectedFolder.songs) },
-                            onFavoriteClick = onFavoriteToggle
+                            onFavoriteClick = onFavoriteToggle,
+                            onEditTagClick = onEditTagClick
                         )
                     }
 
@@ -392,6 +399,7 @@ fun HomeScreen(
                             currentSong = uiState.playbackState.currentSong,
                             onSongClick = { song -> onSongSelected(song, uiState.songs) },
                             onFavoriteClick = onFavoriteToggle,
+                            onEditTagClick = onEditTagClick,
                             showAlphabetScroller = true
                         )
                     }
@@ -408,7 +416,8 @@ fun HomeScreen(
                             songs = uiState.favorites,
                             currentSong = uiState.playbackState.currentSong,
                             onSongClick = { song -> onSongSelected(song, uiState.favorites) },
-                            onFavoriteClick = onFavoriteToggle
+                            onFavoriteClick = onFavoriteToggle,
+                            onEditTagClick = onEditTagClick
                         )
                     }
 
@@ -417,14 +426,22 @@ fun HomeScreen(
                             songs = uiState.history,
                             currentSong = uiState.playbackState.currentSong,
                             onSongClick = { song -> onSongSelected(song, uiState.history) },
-                            onFavoriteClick = onFavoriteToggle
+                            onFavoriteClick = onFavoriteToggle,
+                            onEditTagClick = onEditTagClick
                         )
                     }
 
                     uiState.selectedTab == LibraryTab.PLAYLISTS -> {
                         PlaylistsView(
                             playlists = uiState.playlists,
+                            recentlyAdded = uiState.recentlyAdded,
+                            mostPlayed = uiState.mostPlayed,
                             onPlaylistClick = onPlaylistSelected,
+                            onSmartPlaylistClick = { _, songs ->
+                                if (songs.isNotEmpty()) {
+                                    onSongSelected(songs.first(), songs)
+                                }
+                            },
                             onDeletePlaylist = onDeletePlaylist,
                             onCreatePlaylistClick = { showCreatePlaylistDialog = true }
                         )
@@ -458,6 +475,17 @@ fun HomeScreen(
                 }
             )
         }
+
+        // ID3 Tag Editor Bottom Sheet
+        if (uiState.songToEdit != null) {
+            TagEditorSheet(
+                song = uiState.songToEdit,
+                onSave = { title, artist, album ->
+                    onSaveMetadata(uiState.songToEdit.id, title, artist, album)
+                },
+                onDismiss = onDismissTagEditor
+            )
+        }
     }
 }
 
@@ -467,6 +495,7 @@ private fun SongListView(
     currentSong: Song?,
     onSongClick: (Song) -> Unit,
     onFavoriteClick: (Song) -> Unit,
+    onEditTagClick: ((Song) -> Unit)? = null,
     showAlphabetScroller: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -507,7 +536,8 @@ private fun SongListView(
                         onFavoriteClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             onFavoriteClick(song)
-                        }
+                        },
+                        onEditTagClick = onEditTagClick?.let { { it(song) } }
                     )
                 }
                 item { Spacer(modifier = Modifier.height(100.dp)) }
@@ -599,31 +629,79 @@ private fun FolderListView(
 @Composable
 private fun PlaylistsView(
     playlists: List<PlaylistEntity>,
+    recentlyAdded: List<Song>,
+    mostPlayed: List<Song>,
     onPlaylistClick: (PlaylistEntity) -> Unit,
+    onSmartPlaylistClick: (String, List<Song>) -> Unit,
     onDeletePlaylist: (Long) -> Unit,
     onCreatePlaylistClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val haptic = LocalHapticFeedback.current
+
     Box(modifier = modifier.fillMaxSize()) {
-        if (playlists.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            item { Spacer(modifier = Modifier.height(4.dp)) }
+
+            // Smart Playlists Section
+            item {
                 Text(
-                    text = "No playlists created yet",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = TextSecondary
+                    text = "SMART DYNAMIC PLAYLISTS",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                    color = TextSecondary,
+                    modifier = Modifier.padding(vertical = 4.dp)
                 )
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                item { Spacer(modifier = Modifier.height(4.dp)) }
+
+            item {
+                SmartPlaylistCard(
+                    title = "⚡ Recently Added",
+                    subtitle = "${recentlyAdded.size} tracks added recently",
+                    trackCount = recentlyAdded.size,
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onSmartPlaylistClick("Recently Added", recentlyAdded)
+                    }
+                )
+            }
+
+            item {
+                SmartPlaylistCard(
+                    title = "🏆 Most Played / Top Rotation",
+                    subtitle = "${mostPlayed.size} heavy-rotation favorites",
+                    trackCount = mostPlayed.size,
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onSmartPlaylistClick("Most Played", mostPlayed)
+                    }
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "USER PLAYLISTS",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                    color = TextSecondary,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+            }
+
+            if (playlists.isEmpty()) {
+                item {
+                    Text(
+                        text = "No custom playlists yet. Tap '+' to create one.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary,
+                        modifier = Modifier.padding(vertical = 12.dp)
+                    )
+                }
+            } else {
                 items(playlists, key = { it.playlistId }) { playlist ->
                     Row(
                         modifier = Modifier
@@ -667,8 +745,8 @@ private fun PlaylistsView(
                         }
                     }
                 }
-                item { Spacer(modifier = Modifier.height(100.dp)) }
             }
+            item { Spacer(modifier = Modifier.height(100.dp)) }
         }
 
         FloatingActionButton(
@@ -680,6 +758,54 @@ private fun PlaylistsView(
                 .padding(24.dp)
         ) {
             Icon(imageVector = Icons.Default.Add, contentDescription = "Create Playlist")
+        }
+    }
+}
+
+@Composable
+private fun SmartPlaylistCard(
+    title: String,
+    subtitle: String,
+    trackCount: Int,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(DarkSurfaceVariant)
+            .clickable(enabled = trackCount > 0, onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(AccentGold.copy(alpha = 0.15f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.MusicNote,
+                contentDescription = null,
+                tint = AccentGold,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = TextPrimary
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = TextSecondary
+            )
         }
     }
 }

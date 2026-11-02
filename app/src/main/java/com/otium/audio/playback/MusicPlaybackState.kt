@@ -12,5 +12,6 @@ data class MusicPlaybackState(
     val isShuffleEnabled: Boolean = false,
     val playbackSpeed: Float = 1.0f,
     val isConnected: Boolean = false,
-    val queue: List<Song> = emptyList()
+    val queue: List<Song> = emptyList(),
+    val crossfadeSeconds: Int = 0 // 0s (off), 2s, 4s, 6s, 8s, 12s
 )

@@ -32,6 +32,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -133,6 +134,7 @@ fun NowPlayingScreen(
     onStartSleepTimer: (Int) -> Unit = {},
     onStartSleepEndOfTrack: () -> Unit = {},
     onCancelSleepTimer: () -> Unit = {},
+    onEditTagClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -202,6 +204,16 @@ fun NowPlayingScreen(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Edit Metadata Button
+                    IconButton(onClick = onEditTagClick) {
+                        Icon(
+                            imageVector = Icons.Default.EditNote,
+                            contentDescription = "Edit Tags",
+                            tint = TextSecondary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
                     // Lyrics Toggle Button
                     IconButton(onClick = { showLyrics = !showLyrics }) {
                         Icon(
