@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Otium Audio</string>
+    <string name="playback_notification_channel_name">Otium Music Playback</string>
+    <string name="permission_storage_rationale">Otium Audio needs permission to read audio files from your device to build your offline music library.</string>
+    <string name="grant_permission">Grant Permission</string>
+    <string name="no_songs_found">No music tracks found on device</string>
+    <string name="all_songs">Tracks</string>
+    <string name="favorites">Favorites</string>
+    <string name="playlists">Playlists</string>
+    <string name="search_placeholder">Search songs, artists, albums…</string>
+    <string name="create_playlist">Create Playlist</string>
+    <string name="playlist_name">Playlist Name</string>
+    <string name="cancel">Cancel</string>
+    <string name="create">Create</string>
+</resources>

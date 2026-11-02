@@ -1,0 +1,94 @@
+package com.otium.audio.ui.components
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.otium.audio.ui.theme.AccentGold
+import com.otium.audio.ui.theme.DarkCardBorder
+import com.otium.audio.ui.theme.TextSecondary
+import java.util.Locale
+import java.util.concurrent.TimeUnit
+
+@Composable
+fun TrackSlider(
+    currentPositionMs: Long,
+    durationMs: Long,
+    onSeekTo: (Long) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var isDragging by remember { mutableStateOf(false) }
+    var dragProgress by remember { mutableFloatStateOf(0f) }
+
+    val safeDuration = if (durationMs > 0) durationMs.toFloat() else 1f
+    val currentFraction = if (isDragging) {
+        dragProgress
+    } else {
+        (currentPositionMs.toFloat() / safeDuration).coerceIn(0f, 1f)
+    }
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Slider(
+            value = currentFraction,
+            onValueChange = { fraction ->
+                isDragging = true
+                dragProgress = fraction
+            },
+            onValueChangeFinished = {
+                val targetPosition = (dragProgress * safeDuration).toLong()
+                onSeekTo(targetPosition)
+                isDragging = false
+            },
+            colors = SliderDefaults.colors(
+                thumbColor = AccentGold,
+                activeTrackColor = AccentGold,
+                inactiveTrackColor = DarkCardBorder
+            ),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            val displayedPosition = if (isDragging) {
+                (dragProgress * safeDuration).toLong()
+            } else {
+                currentPositionMs
+            }
+
+            Text(
+                text = formatDuration(displayedPosition),
+                style = MaterialTheme.typography.labelSmall,
+                color = TextSecondary
+            )
+            Text(
+                text = formatDuration(durationMs),
+                style = MaterialTheme.typography.labelSmall,
+                color = TextSecondary
+            )
+        }
+    }
+}
+
+private fun formatDuration(durationMs: Long): String {
+    val totalSeconds = (durationMs.coerceAtLeast(0L) / 1000).toInt()
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
+}
