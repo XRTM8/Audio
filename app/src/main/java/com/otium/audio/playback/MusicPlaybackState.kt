@@ -11,5 +11,6 @@ data class MusicPlaybackState(
     val repeatMode: Int = Player.REPEAT_MODE_OFF,
     val isShuffleEnabled: Boolean = false,
     val playbackSpeed: Float = 1.0f,
-    val isConnected: Boolean = false
+    val isConnected: Boolean = false,
+    val queue: List<Song> = emptyList()
 )

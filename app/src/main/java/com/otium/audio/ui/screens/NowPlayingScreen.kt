@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -38,6 +39,7 @@ import androidx.compose.material.icons.filled.Lyrics
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.RepeatOne
 import androidx.compose.material.icons.filled.Shuffle
@@ -81,9 +83,12 @@ import com.otium.audio.data.lyrics.LrcParser
 import com.otium.audio.data.lyrics.TrackLyrics
 import com.otium.audio.data.model.Song
 import com.otium.audio.playback.EqualizerState
+import com.otium.audio.playback.SleepTimerState
 import com.otium.audio.ui.components.AudioWaveformVisualizer
 import com.otium.audio.ui.components.EqualizerSheet
 import com.otium.audio.ui.components.LyricsSheet
+import com.otium.audio.ui.components.QueueSheet
+import com.otium.audio.ui.components.SleepTimerDialog
 import com.otium.audio.ui.components.TrackSlider
 import com.otium.audio.ui.theme.DarkCardBorder
 import com.otium.audio.ui.theme.DarkSurface
@@ -106,6 +111,8 @@ fun NowPlayingScreen(
     isShuffleEnabled: Boolean,
     playbackSpeed: Float,
     equalizerState: EqualizerState,
+    queue: List<Song> = emptyList(),
+    sleepTimerState: SleepTimerState = SleepTimerState(),
     onCollapse: () -> Unit,
     onPlayPause: () -> Unit,
     onSeekTo: (Long) -> Unit,
@@ -120,6 +127,12 @@ fun NowPlayingScreen(
     onBassBoostChange: (Int) -> Unit,
     onVirtualizerChange: (Int) -> Unit,
     onEqualizerPresetSelected: (String) -> Unit,
+    onPlayQueueIndex: (Int) -> Unit = {},
+    onRemoveQueueItem: (Int) -> Unit = {},
+    onMoveQueueItem: (Int, Int) -> Unit = { _, _ -> },
+    onStartSleepTimer: (Int) -> Unit = {},
+    onStartSleepEndOfTrack: () -> Unit = {},
+    onCancelSleepTimer: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -134,6 +147,8 @@ fun NowPlayingScreen(
     // 2. Sheets / Views State
     var showLyrics by remember { mutableStateOf(false) }
     var showEqualizer by remember { mutableStateOf(false) }
+    var showQueue by remember { mutableStateOf(false) }
+    var showSleepTimer by remember { mutableStateOf(false) }
     var showSpeedDialog by remember { mutableStateOf(false) }
 
     // Synchronized Lyrics loader
@@ -193,6 +208,26 @@ fun NowPlayingScreen(
                             imageVector = Icons.Default.Lyrics,
                             contentDescription = "Lyrics",
                             tint = if (showLyrics) animatedVibrant else TextSecondary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    // Sleep Timer Button
+                    IconButton(onClick = { showSleepTimer = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Bedtime,
+                            contentDescription = "Sleep Timer",
+                            tint = if (sleepTimerState.isActive) animatedVibrant else TextSecondary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    // Queue Button
+                    IconButton(onClick = { showQueue = true }) {
+                        Icon(
+                            imageVector = Icons.Default.QueueMusic,
+                            contentDescription = "Queue",
+                            tint = TextSecondary,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -467,6 +502,29 @@ fun NowPlayingScreen(
                 onVirtualizerChange = onVirtualizerChange,
                 onPresetSelected = onEqualizerPresetSelected,
                 onDismiss = { showEqualizer = false }
+            )
+        }
+
+        // Queue / Up Next Modal Bottom Sheet
+        if (showQueue) {
+            QueueSheet(
+                queue = queue,
+                currentSong = song,
+                onPlayTrackAt = onPlayQueueIndex,
+                onRemoveTrackAt = onRemoveQueueItem,
+                onMoveTrack = onMoveQueueItem,
+                onDismiss = { showQueue = false }
+            )
+        }
+
+        // Sleep Timer Dialog
+        if (showSleepTimer) {
+            SleepTimerDialog(
+                state = sleepTimerState,
+                onStartTimer = onStartSleepTimer,
+                onStartEndOfTrack = onStartSleepEndOfTrack,
+                onCancelTimer = onCancelSleepTimer,
+                onDismiss = { showSleepTimer = false }
             )
         }
     }

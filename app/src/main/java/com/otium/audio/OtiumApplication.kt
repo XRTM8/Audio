@@ -6,6 +6,7 @@ import com.otium.audio.data.repository.AudioRepository
 import com.otium.audio.data.repository.AudioRepositoryImpl
 import com.otium.audio.playback.EqualizerController
 import com.otium.audio.playback.MusicController
+import com.otium.audio.playback.SleepTimerController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -36,8 +37,23 @@ class OtiumApplication : Application() {
         EqualizerController()
     }
 
+    val sleepTimerController: SleepTimerController by lazy {
+        SleepTimerController(
+            coroutineScope = applicationScope,
+            onTimerFinished = {
+                if (musicController.playbackState.value.isPlaying) {
+                    musicController.togglePlayPause()
+                }
+            },
+            onVolumeChange = { volume ->
+                musicController.setVolume(volume)
+            }
+        )
+    }
+
     override fun onTerminate() {
         super.onTerminate()
+        sleepTimerController.cancelTimer()
         musicController.release()
         equalizerController.release()
     }

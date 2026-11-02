@@ -40,7 +40,8 @@ class MainActivity : ComponentActivity() {
         MusicViewModel.Factory(
             repository = app.repository,
             musicController = app.musicController,
-            equalizerController = app.equalizerController
+            equalizerController = app.equalizerController,
+            sleepTimerController = app.sleepTimerController
         )
     }
 
@@ -78,6 +79,8 @@ class MainActivity : ComponentActivity() {
                             onFavoriteToggle = viewModel::toggleFavorite,
                             onPlaylistSelected = viewModel::selectPlaylist,
                             onClearSelectedPlaylist = viewModel::clearSelectedPlaylist,
+                            onFolderSelected = viewModel::selectFolder,
+                            onClearSelectedFolder = viewModel::clearSelectedFolder,
                             onCreatePlaylist = viewModel::createPlaylist,
                             onDeletePlaylist = viewModel::deletePlaylist,
                             onPlayPause = viewModel::togglePlayPause,
@@ -96,6 +99,14 @@ class MainActivity : ComponentActivity() {
                                 onPresetSelected = viewModel::applyEqualizerPreset,
                                 onDismiss = { showHomeEqualizer = false }
                             )
+                        }
+
+                        BackHandler(enabled = uiState.selectedFolder != null && !uiState.isNowPlayingExpanded) {
+                            viewModel.clearSelectedFolder()
+                        }
+
+                        BackHandler(enabled = uiState.selectedPlaylist != null && !uiState.isNowPlayingExpanded) {
+                            viewModel.clearSelectedPlaylist()
                         }
 
                         // Smooth modal expansion for NowPlayingScreen
@@ -119,6 +130,8 @@ class MainActivity : ComponentActivity() {
                                     isShuffleEnabled = uiState.playbackState.isShuffleEnabled,
                                     playbackSpeed = uiState.playbackState.playbackSpeed,
                                     equalizerState = uiState.equalizerState,
+                                    queue = uiState.playbackState.queue,
+                                    sleepTimerState = uiState.sleepTimerState,
                                     onCollapse = { viewModel.setNowPlayingExpanded(false) },
                                     onPlayPause = viewModel::togglePlayPause,
                                     onSeekTo = viewModel::seekTo,
@@ -132,7 +145,13 @@ class MainActivity : ComponentActivity() {
                                     onEqualizerBandChange = viewModel::setEqualizerBandLevel,
                                     onBassBoostChange = viewModel::setBassBoost,
                                     onVirtualizerChange = viewModel::setVirtualizer,
-                                    onEqualizerPresetSelected = viewModel::applyEqualizerPreset
+                                    onEqualizerPresetSelected = viewModel::applyEqualizerPreset,
+                                    onPlayQueueIndex = viewModel::playQueueIndex,
+                                    onRemoveQueueItem = viewModel::removeQueueItem,
+                                    onMoveQueueItem = viewModel::moveQueueItem,
+                                    onStartSleepTimer = viewModel::startSleepTimer,
+                                    onStartSleepEndOfTrack = viewModel::startSleepEndOfTrack,
+                                    onCancelSleepTimer = viewModel::cancelSleepTimer
                                 )
                             }
                         }

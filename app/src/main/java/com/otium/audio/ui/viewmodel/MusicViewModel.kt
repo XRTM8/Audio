@@ -7,10 +7,12 @@ import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.otium.audio.data.local.entity.PlaylistEntity
+import com.otium.audio.data.model.AudioFolder
 import com.otium.audio.data.model.Song
 import com.otium.audio.data.repository.AudioRepository
 import com.otium.audio.playback.EqualizerController
 import com.otium.audio.playback.MusicController
+import com.otium.audio.playback.SleepTimerController
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,6 +27,7 @@ class MusicViewModel(
     private val repository: AudioRepository,
     private val musicController: MusicController,
     private val equalizerController: EqualizerController,
+    private val sleepTimerController: SleepTimerController,
     private val savedStateHandle: SavedStateHandle? = null
 ) : ViewModel() {
 
@@ -40,6 +43,7 @@ class MusicViewModel(
     init {
         observePlaybackState()
         observeEqualizer()
+        observeSleepTimer()
         observeSearch()
     }
 
@@ -58,6 +62,12 @@ class MusicViewModel(
         viewModelScope.launch {
             repository.getFavoritesFlow().collectLatest { favorites ->
                 _uiState.update { it.copy(favorites = favorites) }
+            }
+        }
+
+        viewModelScope.launch {
+            repository.getFoldersFlow().collectLatest { folders ->
+                _uiState.update { it.copy(folders = folders) }
             }
         }
 
@@ -93,6 +103,14 @@ class MusicViewModel(
         }
     }
 
+    private fun observeSleepTimer() {
+        viewModelScope.launch {
+            sleepTimerController.state.collectLatest { timerState ->
+                _uiState.update { it.copy(sleepTimerState = timerState) }
+            }
+        }
+    }
+
     private fun observeSearch() {
         viewModelScope.launch {
             searchQueryFlow
@@ -117,7 +135,15 @@ class MusicViewModel(
 
     fun selectTab(tab: LibraryTab) {
         savedStateHandle?.set("selected_tab", tab.name)
-        _uiState.update { it.copy(selectedTab = tab, selectedPlaylist = null) }
+        _uiState.update { it.copy(selectedTab = tab, selectedPlaylist = null, selectedFolder = null) }
+    }
+
+    fun selectFolder(folder: AudioFolder) {
+        _uiState.update { it.copy(selectedFolder = folder) }
+    }
+
+    fun clearSelectedFolder() {
+        _uiState.update { it.copy(selectedFolder = null) }
     }
 
     fun selectPlaylist(playlist: PlaylistEntity) {
@@ -223,23 +249,36 @@ class MusicViewModel(
         equalizerController.applyPreset(preset)
     }
 
+    // --- Sleep Timer ---
+    fun startSleepTimer(minutes: Int) = sleepTimerController.startTimer(minutes)
+    fun startSleepEndOfTrack() = sleepTimerController.startEndOfTrackTimer()
+    fun cancelSleepTimer() = sleepTimerController.cancelTimer()
+
+    // --- Queue Management ---
+    fun playNext(song: Song) = musicController.playNext(song)
+    fun addToQueue(song: Song) = musicController.addToQueue(song)
+    fun removeQueueItem(index: Int) = musicController.removeQueueItem(index)
+    fun moveQueueItem(fromIndex: Int, toIndex: Int) = musicController.moveQueueItem(fromIndex, toIndex)
+    fun playQueueIndex(index: Int) = musicController.playQueueIndex(index)
+
     class Factory(
         private val repository: AudioRepository,
         private val musicController: MusicController,
-        private val equalizerController: EqualizerController
+        private val equalizerController: EqualizerController,
+        private val sleepTimerController: SleepTimerController
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
             if (modelClass.isAssignableFrom(MusicViewModel::class.java)) {
                 val savedStateHandle = extras.createSavedStateHandle()
-                return MusicViewModel(repository, musicController, equalizerController, savedStateHandle) as T
+                return MusicViewModel(repository, musicController, equalizerController, sleepTimerController, savedStateHandle) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }
 
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return MusicViewModel(repository, musicController, equalizerController, null) as T
+            return MusicViewModel(repository, musicController, equalizerController, sleepTimerController, null) as T
         }
     }
 }

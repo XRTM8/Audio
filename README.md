@@ -25,6 +25,14 @@
   Reactively monitors Android's MediaStore in the background using `callbackFlow`. Any music downloaded or deleted reflects in the library instantly without app restarts.
 - **⏩ Variable Playback Speed:**
   Audiophile speed control supporting 0.75x, 1.0x, 1.25x, 1.5x, and 2.0x pitch-preserved playback.
+- **🌙 Smart Sleep Timer with Acoustic Fade-Out:**
+  Presets (15m, 30m, 45m, 60m, 90m) or "End of Track" with smooth 30-second volume fade down to prevent waking listeners.
+- **📑 Queue Management (Up Next):**
+  Full queue inspection, track reordering (move up/down), swipe-to-delete, play next, and add to queue.
+- **📁 Physical Folder Hierarchy Browser:**
+  Deep directory scanning that groups tracks into physical device folders with a dedicated "Play All" option.
+- **🔤 Fast A-Z Alphabet Scroller:**
+  Precision vertical alphabet index with haptic clicks to jump instantly across massive music libraries.
 - **💾 Room Database Persistence:**
   Full reactive database for user playlists, instant track favorites, and recent play history.
 

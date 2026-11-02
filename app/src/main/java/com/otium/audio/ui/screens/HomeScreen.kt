@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -48,6 +49,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,11 +60,15 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.otium.audio.R
 import com.otium.audio.data.local.entity.PlaylistEntity
+import com.otium.audio.data.model.AudioFolder
 import com.otium.audio.data.model.Song
 import com.otium.audio.playback.BatteryOptimizationHelper
+import com.otium.audio.ui.components.FastAlphabetScroller
+import kotlinx.coroutines.launch
 import com.otium.audio.ui.components.MiniPlayer
 import com.otium.audio.ui.components.SongListItem
 import com.otium.audio.ui.theme.AccentGold
@@ -84,6 +90,8 @@ fun HomeScreen(
     onFavoriteToggle: (Song) -> Unit,
     onPlaylistSelected: (PlaylistEntity) -> Unit,
     onClearSelectedPlaylist: () -> Unit,
+    onFolderSelected: (AudioFolder) -> Unit = {},
+    onClearSelectedFolder: () -> Unit = {},
     onCreatePlaylist: (String) -> Unit,
     onDeletePlaylist: (Long) -> Unit,
     onPlayPause: () -> Unit,
@@ -236,8 +244,8 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Tab Row (Hidden while actively searching or viewing a playlist)
-            if (!uiState.isSearching && uiState.selectedPlaylist == null) {
+            // Tab Row (Hidden while actively searching, viewing a playlist, or viewing a folder)
+            if (!uiState.isSearching && uiState.selectedPlaylist == null && uiState.selectedFolder == null) {
                 PrimaryTabRow(
                     selectedTabIndex = uiState.selectedTab.ordinal,
                     containerColor = DarkSurface,
@@ -253,6 +261,7 @@ fun HomeScreen(
                     LibraryTab.entries.forEach { tab ->
                         val title = when (tab) {
                             LibraryTab.TRACKS -> stringResource(R.string.all_songs)
+                            LibraryTab.FOLDERS -> "Folders"
                             LibraryTab.FAVORITES -> stringResource(R.string.favorites)
                             LibraryTab.PLAYLISTS -> stringResource(R.string.playlists)
                             LibraryTab.HISTORY -> "History"
@@ -298,6 +307,47 @@ fun HomeScreen(
                 }
             }
 
+            // Folder Navigation Header if inside a folder
+            if (uiState.selectedFolder != null) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onClearSelectedFolder) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = TextPrimary
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = uiState.selectedFolder.name,
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                            color = TextPrimary
+                        )
+                        Text(
+                            text = "${uiState.selectedFolder.songCount} tracks",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextSecondary
+                        )
+                    }
+                    Button(
+                        onClick = {
+                            if (uiState.selectedFolder.songs.isNotEmpty()) {
+                                onSongSelected(uiState.selectedFolder.songs.first(), uiState.selectedFolder.songs)
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = DarkSurface),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Play All", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
             // Content List
             Box(
                 modifier = Modifier
@@ -323,12 +373,29 @@ fun HomeScreen(
                         )
                     }
 
+                    uiState.selectedFolder != null -> {
+                        SongListView(
+                            songs = uiState.selectedFolder.songs,
+                            currentSong = uiState.playbackState.currentSong,
+                            onSongClick = { song -> onSongSelected(song, uiState.selectedFolder.songs) },
+                            onFavoriteClick = onFavoriteToggle
+                        )
+                    }
+
                     uiState.selectedTab == LibraryTab.TRACKS -> {
                         SongListView(
                             songs = uiState.songs,
                             currentSong = uiState.playbackState.currentSong,
                             onSongClick = { song -> onSongSelected(song, uiState.songs) },
-                            onFavoriteClick = onFavoriteToggle
+                            onFavoriteClick = onFavoriteToggle,
+                            showAlphabetScroller = true
+                        )
+                    }
+
+                    uiState.selectedTab == LibraryTab.FOLDERS -> {
+                        FolderListView(
+                            folders = uiState.folders,
+                            onFolderClick = onFolderSelected
                         )
                     }
 
@@ -396,6 +463,7 @@ private fun SongListView(
     currentSong: Song?,
     onSongClick: (Song) -> Unit,
     onFavoriteClick: (Song) -> Unit,
+    showAlphabetScroller: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     if (songs.isEmpty()) {
@@ -411,6 +479,64 @@ private fun SongListView(
             )
         }
     } else {
+        val listState = rememberLazyListState()
+        val coroutineScope = rememberCoroutineScope()
+        val haptic = LocalHapticFeedback.current
+
+        Box(modifier = modifier.fillMaxSize()) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                item { Spacer(modifier = Modifier.height(4.dp)) }
+                items(songs, key = { it.id }) { song ->
+                    SongListItem(
+                        song = song,
+                        isCurrentSong = currentSong?.id == song.id,
+                        onSongClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onSongClick(song)
+                        },
+                        onFavoriteClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onFavoriteClick(song)
+                        }
+                    )
+                }
+                item { Spacer(modifier = Modifier.height(100.dp)) }
+            }
+
+            if (showAlphabetScroller && songs.size >= 15) {
+                FastAlphabetScroller(
+                    songs = songs,
+                    onIndexSelected = { targetIndex ->
+                        coroutineScope.launch {
+                            listState.scrollToItem(targetIndex)
+                        }
+                    },
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 4.dp, top = 16.dp, bottom = 120.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FolderListView(
+    folders: List<AudioFolder>,
+    onFolderClick: (AudioFolder) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (folders.isEmpty()) {
+        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(text = "No audio folders found", style = MaterialTheme.typography.bodyLarge, color = TextSecondary)
+        }
+    } else {
         LazyColumn(
             modifier = modifier
                 .fillMaxSize()
@@ -418,19 +544,48 @@ private fun SongListView(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item { Spacer(modifier = Modifier.height(4.dp)) }
-            items(songs, key = { it.id }) { song ->
-                SongListItem(
-                    song = song,
-                    isCurrentSong = currentSong?.id == song.id,
-                    onSongClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        onSongClick(song)
-                    },
-                    onFavoriteClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onFavoriteClick(song)
+            items(folders, key = { it.path }) { folder ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(DarkSurfaceVariant)
+                        .clickable { onFolderClick(folder) }
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(DarkSurfaceContainer),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Folder,
+                            contentDescription = null,
+                            tint = AccentGold,
+                            modifier = Modifier.size(26.dp)
+                        )
                     }
-                )
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = folder.name,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = TextPrimary
+                        )
+                        Text(
+                            text = "${folder.songCount} tracks • ${folder.path}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
             }
             item { Spacer(modifier = Modifier.height(100.dp)) }
         }

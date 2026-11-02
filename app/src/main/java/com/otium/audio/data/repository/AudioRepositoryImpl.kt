@@ -11,6 +11,7 @@ import com.otium.audio.data.local.entity.FavoriteEntity
 import com.otium.audio.data.local.entity.HistoryEntity
 import com.otium.audio.data.local.entity.PlaylistEntity
 import com.otium.audio.data.local.entity.PlaylistSongCrossRef
+import com.otium.audio.data.model.AudioFolder
 import com.otium.audio.data.model.Song
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
 class AudioRepositoryImpl(
@@ -78,6 +80,12 @@ class AudioRepositoryImpl(
         return combine(getAllSongsFlow(), audioDao.getAllFavoriteIdsFlow()) { songs, favoriteIds ->
             val favSet = favoriteIds.toSet()
             songs.filter { favSet.contains(it.id) }
+        }.flowOn(ioDispatcher)
+    }
+
+    override fun getFoldersFlow(): Flow<List<AudioFolder>> {
+        return getAllSongsFlow().map { songs ->
+            AudioFolder.extractFoldersFromSongs(songs)
         }.flowOn(ioDispatcher)
     }
 

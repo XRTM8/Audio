@@ -72,7 +72,8 @@ class MusicController(
                 durationMs = duration,
                 repeatMode = controller.repeatMode,
                 isShuffleEnabled = controller.shuffleModeEnabled,
-                playbackSpeed = controller.playbackParameters.speed
+                playbackSpeed = controller.playbackParameters.speed,
+                queue = currentPlaylistSongs
             )
         }
 
@@ -234,6 +235,66 @@ class MusicController(
         val controller = mediaController ?: return
         controller.setPlaybackSpeed(speed)
         _playbackState.update { it.copy(playbackSpeed = speed) }
+    }
+
+    fun setVolume(volume: Float) {
+        mediaController?.volume = volume.coerceIn(0f, 1f)
+    }
+
+    fun playNext(song: Song) {
+        val controller = mediaController ?: return
+        val currentIndex = controller.currentMediaItemIndex
+        val targetIndex = (currentIndex + 1).coerceAtMost(currentPlaylistSongs.size)
+
+        val updated = currentPlaylistSongs.toMutableList()
+        updated.add(targetIndex, song)
+        currentPlaylistSongs = updated
+
+        controller.addMediaItem(targetIndex, song.toMediaItem())
+        _playbackState.update { it.copy(queue = updated) }
+    }
+
+    fun addToQueue(song: Song) {
+        val controller = mediaController ?: return
+        val updated = currentPlaylistSongs.toMutableList()
+        updated.add(song)
+        currentPlaylistSongs = updated
+
+        controller.addMediaItem(song.toMediaItem())
+        _playbackState.update { it.copy(queue = updated) }
+    }
+
+    fun removeQueueItem(index: Int) {
+        val controller = mediaController ?: return
+        if (index !in currentPlaylistSongs.indices) return
+
+        val updated = currentPlaylistSongs.toMutableList()
+        updated.removeAt(index)
+        currentPlaylistSongs = updated
+
+        controller.removeMediaItem(index)
+        _playbackState.update { it.copy(queue = updated) }
+    }
+
+    fun moveQueueItem(fromIndex: Int, toIndex: Int) {
+        val controller = mediaController ?: return
+        if (fromIndex !in currentPlaylistSongs.indices || toIndex !in currentPlaylistSongs.indices) return
+
+        val updated = currentPlaylistSongs.toMutableList()
+        val item = updated.removeAt(fromIndex)
+        updated.add(toIndex, item)
+        currentPlaylistSongs = updated
+
+        controller.moveMediaItem(fromIndex, toIndex)
+        _playbackState.update { it.copy(queue = updated) }
+    }
+
+    fun playQueueIndex(index: Int) {
+        val controller = mediaController ?: return
+        if (index in currentPlaylistSongs.indices) {
+            controller.seekToDefaultPosition(index)
+            controller.play()
+        }
     }
 
     fun release() {
