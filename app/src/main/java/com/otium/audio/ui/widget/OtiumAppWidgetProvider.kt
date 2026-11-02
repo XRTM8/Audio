@@ -33,7 +33,7 @@ class OtiumAppWidgetProvider : AppWidgetProvider() {
 
             if (appWidgetIds.isEmpty()) return
 
-            val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val pendingFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             } else {
                 PendingIntent.FLAG_UPDATE_CURRENT
@@ -55,30 +55,30 @@ class OtiumAppWidgetProvider : AppWidgetProvider() {
 
                 // Intent to open Main Activity
                 val mainIntent = Intent(context, MainActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 }
-                val mainPendingIntent = PendingIntent.getActivity(context, 0, mainIntent, flags)
+                val mainPendingIntent = PendingIntent.getActivity(context, 0, mainIntent, pendingFlags)
                 views.setOnClickPendingIntent(R.id.widget_container, mainPendingIntent)
 
                 // Play / Pause Action
                 val playPauseIntent = Intent(context, OtiumAppWidgetProvider::class.java).apply {
                     action = ACTION_PLAY_PAUSE
                 }
-                val playPausePendingIntent = PendingIntent.getBroadcast(context, 1, playPauseIntent, flags)
+                val playPausePendingIntent = PendingIntent.getBroadcast(context, 1, playPauseIntent, pendingFlags)
                 views.setOnClickPendingIntent(R.id.widget_btn_play_pause, playPausePendingIntent)
 
                 // Skip Next Action
                 val nextIntent = Intent(context, OtiumAppWidgetProvider::class.java).apply {
                     action = ACTION_SKIP_NEXT
                 }
-                val nextPendingIntent = PendingIntent.getBroadcast(context, 2, nextIntent, flags)
+                val nextPendingIntent = PendingIntent.getBroadcast(context, 2, nextIntent, pendingFlags)
                 views.setOnClickPendingIntent(R.id.widget_btn_next, nextPendingIntent)
 
                 // Skip Previous Action
                 val prevIntent = Intent(context, OtiumAppWidgetProvider::class.java).apply {
                     action = ACTION_SKIP_PREVIOUS
                 }
-                val prevPendingIntent = PendingIntent.getBroadcast(context, 3, prevIntent, flags)
+                val prevPendingIntent = PendingIntent.getBroadcast(context, 3, prevIntent, pendingFlags)
                 views.setOnClickPendingIntent(R.id.widget_btn_prev, prevPendingIntent)
 
                 appWidgetManager.updateAppWidget(widgetId, views)
