@@ -1,25 +1,32 @@
 # 🎵 Otium Audio
 
-**Otium Audio** is a high-performance, offline-first, native music player built for Android using cutting-edge technologies and modern architecture. Engineered from the ground up for low latency, zero playback interruptions, and high-fidelity local audio playback.
+**Otium Audio** is an ultra-high-performance, offline-first, native audiophile music player built for Android. Crafted without shortcuts or AI slop, it combines precision low-latency audio architecture, AndroidX Media3 (v1.5+), hardware DSP integration, and physics-based fluid Jetpack Compose UI.
 
 ---
 
-## 🌟 Key Features
+## 🌟 Elite Feature Set
 
 - **🚀 AndroidX Media3 & ExoPlayer Engine (v1.5+):** 
-  Modern media architecture leveraging `MediaSessionService` and `ExoPlayer`. No legacy `MediaPlayer` or deprecated `MediaBrowserServiceCompat`.
+  Modern foreground playback via `MediaSessionService` with zero deprecated legacy APIs (`MediaPlayer` or `MediaBrowserServiceCompat`).
 - **🛡️ Rock-Solid Background Playback:**
-  Configured as a foreground service with `foregroundServiceType="mediaPlayback"`. Engineered to survive aggressive OEM battery killers (MIUI / HyperOS / Samsung OneUI) using `WAKE_MODE_LOCAL`.
-- **🎛️ System DSP & Equalizer Injection:**
-  Exposes the system `audioSessionId` via standard Android audio effect control broadcasts (`ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION`). Seamlessly hooks into hardware equalizers such as **Dolby Atmos**, **Dirac**, **Xiaomi Sound**, and **Wavelet**.
-- **🎧 Seamless Interruption Handling:**
-  Automatic audio focus ducking/pausing for phone calls and navigation directions. Automatic pause on headphone disconnect via `ACTION_AUDIO_BECOMING_NOISY`.
-- **📂 Scoped Storage & Fast MediaStore Scanner:**
-  Asynchronously queries local audio files with ContentResolver and Scoped Storage safety. Intelligent filters eliminate short audio files (< 30 seconds) like ringtones and voice notes.
+  Configured with `foregroundServiceType="mediaPlayback"`, `WAKE_MODE_LOCAL`, and built-in **OEM Battery Killer Defense** (MIUI / HyperOS / Samsung OneUI) to prevent sudden playback cutoffs when the screen turns off.
+- **🎛️ Dual-Layer Equalizer & DSP Injection:**
+  - **Internal Multi-Band Equalizer:** Real-time 5/10-band hardware equalizer with Bass Boost (0–100%), 3D Virtualizer (0–100%), and audiophile presets (Rock, Pop, Jazz, Electronic, Acoustic, Flat).
+  - **System DSP Auto-Hook:** Broadcasts `audioSessionId` on session creation, enabling system-wide sound enhancements like **Dolby Atmos**, **Dirac**, **Xiaomi Sound**, and **Wavelet**.
+- **🎨 Dynamic Ambient Glow (Palette Extraction):**
+  Extracts dominant, vibrant, and dark-vibrant colors directly from album artwork using the AndroidX Palette API, smoothly morphing the entire `NowPlayingScreen` background into an ambient mesh glow.
+- **📜 Live Synchronized Lyrics (.LRC Engine):**
+  Parses standard `.lrc` timestamped lyrics, automatically scrolling to the current sung line with glow effects, and allowing users to tap any line to seek playback instantly.
+- **🌊 Interactive Audio Waveform Visualizer:**
+  Live frequency bar visualizer that rhythmically animates to music playback with dynamic gradient styling.
+- **⚡ Physics-Based Album Art Gestures & Haptics:**
+  Horizontal swipe on album art with realistic spring resistance and tactile haptic feedback to skip next or previous tracks.
+- **🔄 Real-time MediaStore ContentObserver:**
+  Reactively monitors Android's MediaStore in the background using `callbackFlow`. Any music downloaded or deleted reflects in the library instantly without app restarts.
+- **⏩ Variable Playback Speed:**
+  Audiophile speed control supporting 0.75x, 1.0x, 1.25x, 1.5x, and 2.0x pitch-preserved playback.
 - **💾 Room Database Persistence:**
-  Local offline persistence for custom user playlists, track favorites, and recent playback history.
-- **🎨 Edge-to-Edge Jetpack Compose (Material 3):**
-  Minimalist dark luxury aesthetic (Obsidian & Brushed Gold) featuring smooth slider controls, dynamic album artwork rendering via Coil, persistent floating `MiniPlayer`, and a full-screen `NowPlayingScreen` with interactive gesture dismissals.
+  Full reactive database for user playlists, instant track favorites, and recent play history.
 
 ---
 
@@ -27,50 +34,64 @@
 
 ```mermaid
 flowchart TD
-    subgraph UI ["UI Layer (Jetpack Compose)"]
+    subgraph UI ["UI Layer (Jetpack Compose & Material 3)"]
         Activity["MainActivity (Edge-to-Edge)"]
         HomeScreen["HomeScreen (Tracks, Favorites, Playlists, History)"]
-        NowPlaying["NowPlayingScreen (Modal Slider & Controls)"]
-        MiniPlayer["MiniPlayer (Persistent Live Progress)"]
+        NowPlaying["NowPlayingScreen (Ambient Mesh Glow)"]
+        LyricsSheet["LyricsSheet (Auto-Scrolling .LRC)"]
+        EqualizerSheet["EqualizerSheet (Bands, BassBoost, 3D Virt)"]
+        MiniPlayer["MiniPlayer (Live Smooth Progress)"]
+        Waveform["AudioWaveformVisualizer"]
         ViewModel["MusicViewModel (StateFlow & Coroutines)"]
     end
 
-    subgraph AudioEngine ["Audio Engine (Media3)"]
+    subgraph AudioEngine ["Audio Engine (Media3 & AudioFx)"]
         Service["PlaybackService (MediaSessionService)"]
-        ExoPlayer["ExoPlayer (Hi-Fi, WakeLock, AudioFocus)"]
-        SystemDSP["System Equalizer / Dolby Atmos"]
+        ExoPlayer["ExoPlayer (Low-Latency, AudioFocus, Noisy)"]
+        EqualizerCtrl["EqualizerController (AudioFx Equalizer)"]
+        SystemDSP["Dolby Atmos / Dirac Broadcast"]
         MusicController["MusicController (StateFlow Wrapper)"]
     end
 
-    subgraph DataLayer ["Data Layer (Offline-First)"]
+    subgraph DataLayer ["Data Layer (Offline-First & Reactive)"]
         Repository["AudioRepositoryImpl"]
-        MediaStore["MediaStore (ContentResolver Scanner)"]
+        ContentObserver["MediaStore ContentObserver (Live Sync)"]
         RoomDB["OtiumDatabase (Room DB)"]
+        PaletteMgr["PaletteManager (Dynamic Ambient Colors)"]
+        LrcParser["LrcParser (Timestamped Synchronizer)"]
     end
 
     Activity --> HomeScreen
     Activity --> NowPlaying
+    NowPlaying --> LyricsSheet
+    NowPlaying --> EqualizerSheet
+    NowPlaying --> Waveform
     HomeScreen --> MiniPlayer
     HomeScreen --> ViewModel
     NowPlaying --> ViewModel
     ViewModel --> MusicController
     MusicController <--> Service
     Service --> ExoPlayer
+    ExoPlayer --> EqualizerCtrl
     ExoPlayer -.-> SystemDSP
     ViewModel --> Repository
-    Repository --> MediaStore
+    Repository <--> ContentObserver
     Repository --> RoomDB
+    NowPlaying -.-> PaletteMgr
+    NowPlaying -.-> LrcParser
 ```
 
 ---
 
 ## 🛠️ Tech Stack & Requirements
 
-- **Language:** 100% Kotlin (Coroutines, StateFlow, Flow)
-- **UI Framework:** Jetpack Compose (Material 3, Edge-to-Edge)
-- **Audio Engine:** AndroidX Media3 (ExoPlayer & MediaSessionService)
-- **Local Database:** Android Room 2.6.1
+- **Language:** 100% Kotlin (Coroutines, StateFlow, callbackFlow)
+- **UI Framework:** Jetpack Compose (Material 3, Spring Physics, Edge-to-Edge)
+- **Audio Engine:** AndroidX Media3 1.5.1 (ExoPlayer & MediaSessionService)
+- **Audio Effects:** Android AudioFx (Equalizer, BassBoost, Virtualizer)
+- **Color Extraction:** AndroidX Palette KTX 1.0.0
 - **Image Loading:** Coil 2.7.0
+- **Local Database:** Android Room 2.6.1
 - **Min SDK:** API 24 (Android 7.0 Nougat)
 - **Target SDK / Compile SDK:** API 35 (Android 15)
 - **JDK:** Java 17
@@ -81,28 +102,37 @@ flowchart TD
 
 ```
 app/src/main/
-├── AndroidManifest.xml                  # Foreground service & scoped permissions
+├── AndroidManifest.xml
 ├── java/com/otium/audio/
-│   ├── OtiumApplication.kt              # App initialization & DI container
+│   ├── OtiumApplication.kt
 │   ├── data/
 │   │   ├── local/ (OtiumDatabase, AudioDao, Entities)
-│   │   ├── model/ (Song data class & MediaItem mapping)
+│   │   ├── lyrics/ (Lyrics.kt, LrcParser)
+│   │   ├── model/ (Song data class)
 │   │   └── repository/ (AudioRepository & AudioRepositoryImpl)
 │   ├── playback/
-│   │   ├── PlaybackService.kt           # MediaSessionService, notification & DSP
-│   │   ├── MusicController.kt           # MediaController coroutine wrapper
-│   │   └── MusicPlaybackState.kt        # Immutable playback state
+│   │   ├── BatteryOptimizationHelper.kt # OEM Battery Killer Defense
+│   │   ├── EqualizerController.kt       # Multi-band EQ, BassBoost, Virtualizer
+│   │   ├── MusicController.kt           # MediaController wrapper with StateFlow
+│   │   ├── MusicPlaybackState.kt        # Immutable playback state
+│   │   └── PlaybackService.kt           # MediaSessionService, notification & DSP
 │   └── ui/
 │       ├── MainActivity.kt              # Edge-to-edge entry point
-│       ├── components/ (MiniPlayer, SongListItem, TrackSlider)
+│       ├── components/ 
+│       │   ├── AudioWaveformVisualizer.kt
+│       │   ├── EqualizerSheet.kt
+│       │   ├── LyricsSheet.kt
+│       │   ├── MiniPlayer.kt
+│       │   ├── SongListItem.kt
+│       │   └── TrackSlider.kt
 │       ├── screens/ (HomeScreen, NowPlayingScreen, PermissionScreen)
-│       ├── theme/ (Color, Theme, Typography)
+│       ├── theme/ (Color, PaletteExtractor, Theme, Typography)
 │       └── viewmodel/ (MusicViewModel, MusicUiState)
-└── res/                                 # Strings, adaptive vector icons, themes
+└── res/
 ```
 
 ---
 
 ## 📄 License
 
-This project is open-source under the terms of the GNU General Public License v3.0 or repository default.
+This project is licensed under the terms of the GNU General Public License v3.0.

@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.MusicNote
@@ -29,6 +30,8 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -49,6 +52,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -56,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import com.otium.audio.R
 import com.otium.audio.data.local.entity.PlaylistEntity
 import com.otium.audio.data.model.Song
+import com.otium.audio.playback.BatteryOptimizationHelper
 import com.otium.audio.ui.components.MiniPlayer
 import com.otium.audio.ui.components.SongListItem
 import com.otium.audio.ui.theme.AccentGold
@@ -84,7 +91,12 @@ fun HomeScreen(
     onOpenNowPlaying: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     var showCreatePlaylistDialog by remember { mutableStateOf(false) }
+    var showBatteryBanner by remember {
+        mutableStateOf(!BatteryOptimizationHelper.isIgnoringBatteryOptimizations(context))
+    }
 
     Box(
         modifier = modifier
@@ -116,6 +128,48 @@ fun HomeScreen(
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         color = TextPrimary
                     )
+                }
+            }
+
+            // Battery Optimization Alert Banner (For aggressive OEM battery managers)
+            if (showBatteryBanner) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = DarkSurfaceContainer)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.BatteryChargingFull,
+                            contentDescription = null,
+                            tint = AccentGold,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Unrestricted Playback",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = TextPrimary
+                            )
+                            Text(
+                                text = "Keep music playing uninterrupted when screen is off.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = TextSecondary
+                            )
+                        }
+                        TextButton(onClick = {
+                            BatteryOptimizationHelper.requestIgnoreBatteryOptimization(context)
+                            showBatteryBanner = false
+                        }) {
+                            Text("Allow", color = AccentGold, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             }
 
@@ -188,7 +242,10 @@ fun HomeScreen(
                         }
                         Tab(
                             selected = uiState.selectedTab == tab,
-                            onClick = { onTabSelected(tab) },
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onTabSelected(tab)
+                            },
                             text = {
                                 Text(
                                     text = title,
@@ -348,8 +405,14 @@ private fun SongListView(
                 SongListItem(
                     song = song,
                     isCurrentSong = currentSong?.id == song.id,
-                    onSongClick = { onSongClick(song) },
-                    onFavoriteClick = { onFavoriteClick(song) }
+                    onSongClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onSongClick(song)
+                    },
+                    onFavoriteClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onFavoriteClick(song)
+                    }
                 )
             }
             item { Spacer(modifier = Modifier.height(100.dp)) }

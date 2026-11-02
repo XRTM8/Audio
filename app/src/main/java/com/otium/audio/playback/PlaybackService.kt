@@ -118,6 +118,10 @@ class PlaybackService : MediaSessionService() {
         if (audioSessionId == C.AUDIO_SESSION_ID_UNSET) return
         activeAudioSessionId = audioSessionId
 
+        // Bind our internal Equalizer engine
+        (application as? com.otium.audio.OtiumApplication)?.equalizerController?.bindAudioSession(audioSessionId)
+
+        // Broadcast to system-level DSP (Dolby Atmos, Dirac, etc.)
         val intent = Intent(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION).apply {
             putExtra(AudioEffect.EXTRA_AUDIO_SESSION, audioSessionId)
             putExtra(AudioEffect.EXTRA_PACKAGE_NAME, packageName)

@@ -71,7 +71,8 @@ class MusicController(
                 currentPositionMs = position,
                 durationMs = duration,
                 repeatMode = controller.repeatMode,
-                isShuffleEnabled = controller.shuffleModeEnabled
+                isShuffleEnabled = controller.shuffleModeEnabled,
+                playbackSpeed = controller.playbackParameters.speed
             )
         }
 
@@ -181,6 +182,12 @@ class MusicController(
         _playbackState.update { it.copy(isShuffleEnabled = targetShuffle) }
     }
 
+    fun setPlaybackSpeed(speed: Float) {
+        val controller = mediaController ?: return
+        controller.setPlaybackSpeed(speed)
+        _playbackState.update { it.copy(playbackSpeed = speed) }
+    }
+
     fun release() {
         stopProgressTracker()
         controllerFuture?.let {
@@ -219,6 +226,10 @@ class MusicController(
 
         override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
             _playbackState.update { it.copy(isShuffleEnabled = shuffleModeEnabled) }
+        }
+
+        override fun onPlaybackParametersChanged(playbackParameters: androidx.media3.common.PlaybackParameters) {
+            _playbackState.update { it.copy(playbackSpeed = playbackParameters.speed) }
         }
     }
 }

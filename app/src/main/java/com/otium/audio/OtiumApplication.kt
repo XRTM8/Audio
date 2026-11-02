@@ -4,6 +4,7 @@ import android.app.Application
 import com.otium.audio.data.local.OtiumDatabase
 import com.otium.audio.data.repository.AudioRepository
 import com.otium.audio.data.repository.AudioRepositoryImpl
+import com.otium.audio.playback.EqualizerController
 import com.otium.audio.playback.MusicController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,8 +32,13 @@ class OtiumApplication : Application() {
         )
     }
 
+    val equalizerController: EqualizerController by lazy {
+        EqualizerController()
+    }
+
     override fun onTerminate() {
         super.onTerminate()
         musicController.release()
+        equalizerController.release()
     }
 }

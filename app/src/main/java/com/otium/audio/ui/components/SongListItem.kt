@@ -1,5 +1,7 @@
 package com.otium.audio.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -44,7 +46,11 @@ fun SongListItem(
     onFavoriteClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val backgroundColor = if (isCurrentSong) DarkSurfaceContainer else DarkSurfaceVariant
+    val backgroundColor by animateColorAsState(
+        targetValue = if (isCurrentSong) DarkSurfaceContainer else DarkSurfaceVariant,
+        animationSpec = tween(300),
+        label = "item_bg"
+    )
 
     Row(
         modifier = modifier

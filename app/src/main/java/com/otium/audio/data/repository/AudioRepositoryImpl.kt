@@ -14,7 +14,12 @@ import com.otium.audio.data.local.entity.PlaylistSongCrossRef
 import com.otium.audio.data.model.Song
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import android.database.ContentObserver
+import android.os.Handler
+import android.os.Looper
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -32,8 +37,28 @@ class AudioRepositoryImpl(
     }
 
     override fun getAllSongsFlow(): Flow<List<Song>> {
-        val rawSongsFlow = flow {
-            emit(querySongsFromMediaStore())
+        val rawSongsFlow = callbackFlow {
+            // Initial scan
+            trySend(querySongsFromMediaStore())
+
+            val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
+                override fun onChange(selfChange: Boolean, uri: Uri?) {
+                    super.onChange(selfChange, uri)
+                    trySend(querySongsFromMediaStore())
+                }
+            }
+
+            val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+            } else {
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+            }
+
+            context.contentResolver.registerContentObserver(collection, true, observer)
+
+            awaitClose {
+                context.contentResolver.unregisterContentObserver(observer)
+            }
         }
 
         return combine(rawSongsFlow, audioDao.getAllFavoriteIdsFlow()) { songs, favoriteIds ->

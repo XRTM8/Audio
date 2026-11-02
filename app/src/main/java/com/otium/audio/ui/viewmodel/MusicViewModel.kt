@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.otium.audio.data.local.entity.PlaylistEntity
 import com.otium.audio.data.model.Song
 import com.otium.audio.data.repository.AudioRepository
+import com.otium.audio.playback.EqualizerController
 import com.otium.audio.playback.MusicController
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,7 +20,8 @@ import kotlinx.coroutines.launch
 
 class MusicViewModel(
     private val repository: AudioRepository,
-    private val musicController: MusicController
+    private val musicController: MusicController,
+    private val equalizerController: EqualizerController
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MusicUiState())
@@ -29,6 +31,7 @@ class MusicViewModel(
 
     init {
         observePlaybackState()
+        observeEqualizer()
         observeSearch()
     }
 
@@ -70,6 +73,14 @@ class MusicViewModel(
                 playbackState.currentSong?.let { song ->
                     repository.recordHistory(song.id)
                 }
+            }
+        }
+    }
+
+    private fun observeEqualizer() {
+        viewModelScope.launch {
+            equalizerController.state.collectLatest { eqState ->
+                _uiState.update { it.copy(equalizerState = eqState) }
             }
         }
     }
@@ -179,14 +190,39 @@ class MusicViewModel(
         _uiState.update { it.copy(isNowPlayingExpanded = expanded) }
     }
 
+    fun setPlaybackSpeed(speed: Float) {
+        musicController.setPlaybackSpeed(speed)
+    }
+
+    fun toggleEqualizer(enabled: Boolean) {
+        equalizerController.setEnabled(enabled)
+    }
+
+    fun setEqualizerBandLevel(bandIndex: Short, level: Float) {
+        equalizerController.setBandLevel(bandIndex, level)
+    }
+
+    fun setBassBoost(strength: Int) {
+        equalizerController.setBassBoost(strength)
+    }
+
+    fun setVirtualizer(strength: Int) {
+        equalizerController.setVirtualizer(strength)
+    }
+
+    fun applyEqualizerPreset(preset: String) {
+        equalizerController.applyPreset(preset)
+    }
+
     class Factory(
         private val repository: AudioRepository,
-        private val musicController: MusicController
+        private val musicController: MusicController,
+        private val equalizerController: EqualizerController
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(MusicViewModel::class.java)) {
-                return MusicViewModel(repository, musicController) as T
+                return MusicViewModel(repository, musicController, equalizerController) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }

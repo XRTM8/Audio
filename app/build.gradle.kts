@@ -81,4 +81,7 @@ dependencies {
 
     // Coil for album artwork
     implementation(libs.coil.compose)
+
+    // Palette API for dynamic theme extraction
+    implementation(libs.androidx.palette)
 }

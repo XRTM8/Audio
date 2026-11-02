@@ -2,6 +2,7 @@ package com.otium.audio.ui.viewmodel
 
 import com.otium.audio.data.local.entity.PlaylistEntity
 import com.otium.audio.data.model.Song
+import com.otium.audio.playback.EqualizerState
 import com.otium.audio.playback.MusicPlaybackState
 
 enum class LibraryTab {
@@ -24,5 +25,6 @@ data class MusicUiState(
     val isSearching: Boolean = false,
     val isNowPlayingExpanded: Boolean = false,
     val hasStoragePermission: Boolean = false,
-    val playbackState: MusicPlaybackState = MusicPlaybackState()
+    val playbackState: MusicPlaybackState = MusicPlaybackState(),
+    val equalizerState: EqualizerState = EqualizerState()
 )

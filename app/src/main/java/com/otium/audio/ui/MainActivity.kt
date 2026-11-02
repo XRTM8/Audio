@@ -35,7 +35,8 @@ class MainActivity : ComponentActivity() {
         val app = application as OtiumApplication
         MusicViewModel.Factory(
             repository = app.repository,
-            musicController = app.musicController
+            musicController = app.musicController,
+            equalizerController = app.equalizerController
         )
     }
 
@@ -98,6 +99,8 @@ class MainActivity : ComponentActivity() {
                                     durationMs = uiState.playbackState.durationMs,
                                     repeatMode = uiState.playbackState.repeatMode,
                                     isShuffleEnabled = uiState.playbackState.isShuffleEnabled,
+                                    playbackSpeed = uiState.playbackState.playbackSpeed,
+                                    equalizerState = uiState.equalizerState,
                                     onCollapse = { viewModel.setNowPlayingExpanded(false) },
                                     onPlayPause = viewModel::togglePlayPause,
                                     onSeekTo = viewModel::seekTo,
@@ -105,7 +108,13 @@ class MainActivity : ComponentActivity() {
                                     onSkipPrevious = viewModel::skipToPrevious,
                                     onToggleRepeat = viewModel::toggleRepeatMode,
                                     onToggleShuffle = viewModel::toggleShuffle,
-                                    onToggleFavorite = { viewModel.toggleFavorite(currentSong) }
+                                    onToggleFavorite = { viewModel.toggleFavorite(currentSong) },
+                                    onSetPlaybackSpeed = viewModel::setPlaybackSpeed,
+                                    onToggleEqualizer = viewModel::toggleEqualizer,
+                                    onEqualizerBandChange = viewModel::setEqualizerBandLevel,
+                                    onBassBoostChange = viewModel::setBassBoost,
+                                    onVirtualizerChange = viewModel::setVirtualizer,
+                                    onEqualizerPresetSelected = viewModel::applyEqualizerPreset
                                 )
                             }
                         }
