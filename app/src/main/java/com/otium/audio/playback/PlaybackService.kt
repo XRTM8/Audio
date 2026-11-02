@@ -49,7 +49,6 @@ class PlaybackService : MediaSessionService() {
             .build()
 
         val renderersFactory = androidx.media3.exoplayer.DefaultRenderersFactory(this)
-            .setEnableAudioOffload(true) // Enables hardware DSP audio offload for battery efficiency
 
         val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()
             .setBufferDurationsMs(
@@ -70,6 +69,14 @@ class PlaybackService : MediaSessionService() {
                 repeatMode = Player.REPEAT_MODE_OFF
                 shuffleModeEnabled = false
                 addListener(PlayerEventListener())
+                trackSelectionParameters = trackSelectionParameters
+                    .buildUpon()
+                    .setAudioOffloadPreferences(
+                        androidx.media3.common.TrackSelectionParameters.AudioOffloadPreferences.Builder()
+                            .setAudioOffloadMode(androidx.media3.common.TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED)
+                            .build()
+                    )
+                    .build()
             }
     }
 

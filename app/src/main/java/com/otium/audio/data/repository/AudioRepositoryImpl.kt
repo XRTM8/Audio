@@ -15,6 +15,7 @@ import com.otium.audio.data.model.AudioFolder
 import com.otium.audio.data.model.Song
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import android.database.ContentObserver
 import android.os.Handler
 import android.os.Looper
@@ -48,7 +49,7 @@ class AudioRepositoryImpl(
                 override fun onChange(selfChange: Boolean, uri: Uri?) {
                     super.onChange(selfChange, uri)
                     debounceJob?.cancel()
-                    debounceJob = launch(ioDispatcher) {
+                    debounceJob = this@callbackFlow.launch(ioDispatcher) {
                         kotlinx.coroutines.delay(500L) // Debounce batch file additions / album downloads
                         trySend(querySongsFromMediaStore())
                     }
