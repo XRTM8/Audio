@@ -1,6 +1,5 @@
 package com.otium.audio.ui.components
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -35,10 +34,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDirection
@@ -46,6 +47,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.request.CachePolicy
+import coil.request.ImageRequest
 import com.otium.audio.data.model.Song
 import com.otium.audio.ui.theme.AccentGold
 import com.otium.audio.ui.theme.DarkCardBorder
@@ -65,11 +68,25 @@ fun SongListItem(
     onEditTagClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    val backgroundColor by animateColorAsState(
-        targetValue = if (isCurrentSong) DarkSurfaceContainer else DarkSurfaceVariant,
-        animationSpec = tween(250),
-        label = "item_bg"
-    )
+    val context = LocalContext.current
+
+    // Optimize image loading for 120Hz smooth fling scrolling
+    val thumbnailRequest = remember(song.albumArtUri) {
+        ImageRequest.Builder(context)
+            .data(song.albumArtUri)
+            .size(160, 160) // Precision thumbnail sizing downsamples high-res artwork
+            .crossfade(150)
+            .memoryCachePolicy(CachePolicy.ENABLED)
+            .diskCachePolicy(CachePolicy.ENABLED)
+            .build()
+    }
+
+    val containerColor = if (isCurrentSong) DarkSurfaceContainer else DarkSurfaceVariant
+    val borderStroke = if (isCurrentSong) {
+        BorderStroke(1.2.dp, AccentGold.copy(alpha = 0.7f))
+    } else {
+        BorderStroke(1.dp, DarkCardBorder.copy(alpha = 0.45f))
+    }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Card(
@@ -77,14 +94,14 @@ fun SongListItem(
                 .fillMaxWidth()
                 .clickable { onSongClick() },
             shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(containerColor = backgroundColor),
-            border = if (isCurrentSong) BorderStroke(1.dp, AccentGold.copy(alpha = 0.5f)) else BorderStroke(1.dp, DarkCardBorder.copy(alpha = 0.4f)),
-            elevation = CardDefaults.cardElevation(defaultElevation = if (isCurrentSong) 6.dp else 0.dp)
+            colors = CardDefaults.cardColors(containerColor = containerColor),
+            border = borderStroke,
+            elevation = CardDefaults.cardElevation(defaultElevation = if (isCurrentSong) 4.dp else 0.dp)
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                    .padding(horizontal = 12.dp, vertical = 9.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Left: Album Art with Visualizer
@@ -96,7 +113,7 @@ fun SongListItem(
                     contentAlignment = Alignment.Center
                 ) {
                     AsyncImage(
-                        model = song.albumArtUri,
+                        model = thumbnailRequest,
                         contentDescription = song.title,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.matchParentSize()
@@ -115,7 +132,7 @@ fun SongListItem(
                         Icon(
                             imageVector = Icons.Default.MusicNote,
                             contentDescription = null,
-                            tint = TextSecondary.copy(alpha = 0.4f),
+                            tint = TextSecondary.copy(alpha = 0.35f),
                             modifier = Modifier.size(22.dp)
                         )
                     }

@@ -2,13 +2,22 @@ package com.otium.audio.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val DarkSurface = Color(0xFF0F0F12)
-val DarkSurfaceVariant = Color(0xFF18181E)
-val DarkSurfaceContainer = Color(0xFF22222B)
-val AccentGold = Color(0xFFE5A93C)
-val AccentGoldLight = Color(0xFFFFD180)
-val TextPrimary = Color(0xFFF2F2F5)
-val TextSecondary = Color(0xFF9E9EA8)
-val TextTertiary = Color(0xFF656570)
-val DarkCardBorder = Color(0xFF2E2E3A)
-val ErrorRed = Color(0xFFE57373)
+// Audiophile Luxury Obsidian Palette (Poweramp & Sony Walkman Grade)
+val DarkSurface = Color(0xFF090A0E)
+val DarkSurfaceVariant = Color(0xFF12141C)
+val DarkSurfaceContainer = Color(0xFF1B1E28)
+val DarkSurfaceElevated = Color(0xFF242836)
+val DarkCardBorder = Color(0xFF2E3344)
+
+// Vibrant Pure Gold / Amber
+val AccentGold = Color(0xFFFFB300)
+val AccentGoldLight = Color(0xFFFFC947)
+val AccentGoldMuted = Color(0x33FFB300)
+val AccentCyan = Color(0xFF00E5FF)
+
+// Text Hierarchy
+val TextPrimary = Color(0xFFF7F8FA)
+val TextSecondary = Color(0xFF9CA3AF)
+val TextTertiary = Color(0xFF6B7280)
+val ErrorRed = Color(0xFFFF4545)
+

@@ -17,9 +17,17 @@ data class EqualizerBand(
     val maxDb: Float = 15f
 )
 
+private val DEFAULT_PRESET_BANDS = listOf(
+    EqualizerBand(0, 60, 0f, -15f, 15f),
+    EqualizerBand(1, 230, 0f, -15f, 15f),
+    EqualizerBand(2, 910, 0f, -15f, 15f),
+    EqualizerBand(3, 3600, 0f, -15f, 15f),
+    EqualizerBand(4, 14000, 0f, -15f, 15f)
+)
+
 data class EqualizerState(
     val isEnabled: Boolean = false,
-    val bands: List<EqualizerBand> = emptyList(),
+    val bands: List<EqualizerBand> = DEFAULT_PRESET_BANDS,
     val bassBoostStrength: Int = 0, // 0 to 1000
     val virtualizerStrength: Int = 0, // 0 to 1000
     val currentPreset: String = "Flat",
@@ -77,18 +85,25 @@ class EqualizerController {
 
             val minLevel = eq.bandLevelRange[0] / 100f
             val maxLevel = eq.bandLevelRange[1] / 100f
-            val bandCount = eq.numberOfBands
+            val bandCount = eq.numberOfBands.toInt()
 
-            val bandList = mutableListOf<EqualizerBand>()
+            val currentBands = _state.value.bands
+            val updatedBands = mutableListOf<EqualizerBand>()
+
             for (i in 0 until bandCount) {
                 val band = i.toShort()
-                val freq = eq.getCenterFreq(band) / 1000 // Convert mHz to Hz
-                val currentLevel = eq.getBandLevel(band) / 100f
-                bandList.add(
+                val freq = eq.getCenterFreq(band) / 1000 // mHz to Hz
+                val existingLevel = currentBands.getOrNull(i)?.levelDb ?: 0f
+
+                try {
+                    eq.setBandLevel(band, (existingLevel * 100).toInt().toShort())
+                } catch (_: Exception) {}
+
+                updatedBands.add(
                     EqualizerBand(
                         bandIndex = band,
                         centerFreqHz = freq,
-                        levelDb = currentLevel,
+                        levelDb = existingLevel,
                         minDb = minLevel,
                         maxDb = maxLevel
                     )
@@ -96,10 +111,10 @@ class EqualizerController {
             }
 
             _state.update {
-                it.copy(bands = bandList)
+                it.copy(bands = if (updatedBands.isNotEmpty()) updatedBands else it.bands)
             }
         } catch (_: Exception) {
-            // AudioFx may not be available on all emulators/devices
+            // AudioFx gracefully handles devices without native DSP
         }
     }
 
@@ -108,50 +123,52 @@ class EqualizerController {
             equalizer?.enabled = enabled
             bassBoost?.enabled = enabled
             virtualizer?.enabled = enabled
-            _state.update { it.copy(isEnabled = enabled) }
         } catch (_: Exception) {}
+        _state.update { it.copy(isEnabled = enabled) }
     }
 
     fun setBandLevel(bandIndex: Short, levelDb: Float) {
         try {
             equalizer?.setBandLevel(bandIndex, (levelDb * 100).toInt().toShort())
-            _state.update { currentState ->
-                val updatedBands = currentState.bands.map { band ->
-                    if (band.bandIndex == bandIndex) band.copy(levelDb = levelDb) else band
-                }
-                currentState.copy(bands = updatedBands, currentPreset = "Custom")
-            }
         } catch (_: Exception) {}
+
+        _state.update { currentState ->
+            val updatedBands = currentState.bands.map { band ->
+                if (band.bandIndex == bandIndex) band.copy(levelDb = levelDb) else band
+            }
+            currentState.copy(bands = updatedBands, currentPreset = "Custom")
+        }
     }
 
     fun setBassBoost(strength: Int) {
+        val safeStrength = strength.coerceIn(0, 1000)
         try {
             bassBoost?.let {
                 if (it.strengthSupported) {
-                    it.setStrength(strength.coerceIn(0, 1000).toShort())
+                    it.setStrength(safeStrength.toShort())
                 }
             }
-            _state.update { it.copy(bassBoostStrength = strength) }
         } catch (_: Exception) {}
+        _state.update { it.copy(bassBoostStrength = safeStrength) }
     }
 
     fun setVirtualizer(strength: Int) {
+        val safeStrength = strength.coerceIn(0, 1000)
         try {
             virtualizer?.let {
                 if (it.strengthSupported) {
-                    it.setStrength(strength.coerceIn(0, 1000).toShort())
+                    it.setStrength(safeStrength.toShort())
                 }
             }
-            _state.update { it.copy(virtualizerStrength = strength) }
         } catch (_: Exception) {}
+        _state.update { it.copy(virtualizerStrength = safeStrength) }
     }
 
     fun applyPreset(presetName: String) {
         val bands = _state.value.bands
-        if (bands.isEmpty()) return
 
         val levels = when (presetName) {
-            "Flat" -> List(bands.size) { 0f }
+            "Flat" -> listOf(0f, 0f, 0f, 0f, 0f)
             "Harman Target (Audiophile)" -> listOf(5.5f, 2.0f, -0.5f, 3.0f, 2.5f)
             "Sennheiser HD-Series" -> listOf(2.5f, 1.0f, 0.0f, 1.5f, 2.0f)
             "Sony WH-1000XM Series" -> listOf(-1.5f, -2.5f, 2.0f, 3.5f, 4.0f)
@@ -165,12 +182,15 @@ class EqualizerController {
             else -> return
         }
 
-        bands.forEachIndexed { index, band ->
+        val updatedBands = bands.mapIndexed { index, band ->
             val level = levels.getOrElse(index) { 0f }
-            setBandLevel(band.bandIndex, level)
+            try {
+                equalizer?.setBandLevel(band.bandIndex, (level * 100).toInt().toShort())
+            } catch (_: Exception) {}
+            band.copy(levelDb = level)
         }
 
-        _state.update { it.copy(currentPreset = presetName) }
+        _state.update { it.copy(bands = updatedBands, currentPreset = presetName) }
     }
 
     fun release() {

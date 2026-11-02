@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -33,18 +34,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import coil.request.CachePolicy
+import coil.request.ImageRequest
 import com.otium.audio.data.model.Song
 import com.otium.audio.ui.theme.AccentGold
 import com.otium.audio.ui.theme.DarkCardBorder
@@ -65,6 +70,18 @@ fun MiniPlayer(
     onPlayerClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+
+    val thumbnailRequest = remember(currentSong.albumArtUri) {
+        ImageRequest.Builder(context)
+            .data(currentSong.albumArtUri)
+            .size(160, 160)
+            .crossfade(150)
+            .memoryCachePolicy(CachePolicy.ENABLED)
+            .diskCachePolicy(CachePolicy.ENABLED)
+            .build()
+    }
+
     val progress = if (durationMs > 0) {
         (currentPositionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
     } else {
@@ -86,7 +103,7 @@ fun MiniPlayer(
             shape = RoundedCornerShape(22.dp),
             colors = CardDefaults.cardColors(containerColor = DarkSurfaceContainer),
             border = BorderStroke(1.dp, DarkCardBorder),
-            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
         ) {
             Column {
                 // Micro Progress Bar at the top of the pill
@@ -113,17 +130,24 @@ fun MiniPlayer(
                             .background(DarkSurfaceVariant),
                         contentAlignment = Alignment.Center
                     ) {
-                        AsyncImage(
-                            model = currentSong.albumArtUri,
+                        SubcomposeAsyncImage(
+                            model = thumbnailRequest,
                             contentDescription = currentSong.title,
                             contentScale = ContentScale.Crop,
-                            modifier = Modifier.matchParentSize()
-                        )
-                        Icon(
-                            imageVector = Icons.Default.MusicNote,
-                            contentDescription = null,
-                            tint = AccentGold.copy(alpha = 0.7f),
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.matchParentSize(),
+                            error = {
+                                Box(
+                                    modifier = Modifier.fillMaxSize().background(DarkSurfaceVariant),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.MusicNote,
+                                        contentDescription = null,
+                                        tint = AccentGold.copy(alpha = 0.6f),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
                         )
                     }
 
@@ -163,19 +187,23 @@ fun MiniPlayer(
                             .size(42.dp)
                             .scale(playScale)
                             .clip(CircleShape)
-                            .background(AccentGold)
-                            .clickable { onPlayPauseClick() },
+                            .background(AccentGold),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                            contentDescription = if (isPlaying) "Pause" else "Play",
-                            tint = DarkSurface,
-                            modifier = Modifier.size(24.dp)
-                        )
+                        IconButton(
+                            onClick = onPlayPauseClick,
+                            modifier = Modifier.size(42.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                                contentDescription = if (isPlaying) "Pause" else "Play",
+                                tint = DarkSurface,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
 
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
 
                     // Skip Next Button
                     IconButton(
@@ -183,10 +211,10 @@ fun MiniPlayer(
                         modifier = Modifier.size(38.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.SkipNext,
+                            imageVector = Icons.Default.SkipNext,
                             contentDescription = "Next",
                             tint = TextPrimary,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(26.dp)
                         )
                     }
                 }

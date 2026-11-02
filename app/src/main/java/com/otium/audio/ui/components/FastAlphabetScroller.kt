@@ -11,12 +11,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -27,14 +28,15 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.otium.audio.data.model.Song
 import com.otium.audio.ui.theme.AccentGold
 import com.otium.audio.ui.theme.DarkSurface
-import com.otium.audio.ui.theme.DarkSurfaceVariant
-import com.otium.audio.ui.theme.TextPrimary
+import com.otium.audio.ui.theme.DarkSurfaceElevated
 import com.otium.audio.ui.theme.TextSecondary
 
 @Composable
@@ -49,7 +51,7 @@ fun FastAlphabetScroller(
     val alphabet = remember { listOf("#") + ('A'..'Z').map { it.toString() } }
     var isDragging by remember { mutableStateOf(false) }
     var selectedLetter by remember { mutableStateOf("") }
-    var columnHeightPx by remember { mutableStateOf(1f) }
+    var columnHeightPx by remember { mutableFloatStateOf(1f) }
 
     // Map letter to first occurrence index
     val letterIndexMap = remember(songs) {
@@ -64,84 +66,89 @@ fun FastAlphabetScroller(
         map
     }
 
-    Box(
-        modifier = modifier
-            .onGloballyPositioned { coordinates ->
-                columnHeightPx = coordinates.size.height.toFloat()
-            }
-            .pointerInput(songs) {
-                detectVerticalDragGestures(
-                    onDragStart = { offset ->
-                        isDragging = true
-                        val fraction = (offset.y / columnHeightPx).coerceIn(0f, 0.999f)
-                        val letterIndex = (fraction * alphabet.size).toInt()
-                        val letter = alphabet.getOrElse(letterIndex) { "#" }
-                        if (letter != selectedLetter) {
-                            selectedLetter = letter
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            letterIndexMap[letter]?.let { onIndexSelected(it) }
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+        Box(
+            modifier = modifier
+                .onGloballyPositioned { coordinates ->
+                    columnHeightPx = coordinates.size.height.toFloat()
+                }
+                .pointerInput(songs) {
+                    detectVerticalDragGestures(
+                        onDragStart = { offset ->
+                            isDragging = true
+                            val fraction = (offset.y / columnHeightPx).coerceIn(0f, 0.999f)
+                            val letterIndex = (fraction * alphabet.size).toInt()
+                            val letter = alphabet.getOrElse(letterIndex) { "#" }
+                            if (letter != selectedLetter) {
+                                selectedLetter = letter
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                letterIndexMap[letter]?.let { onIndexSelected(it) }
+                            }
+                        },
+                        onDragEnd = {
+                            isDragging = false
+                            selectedLetter = ""
+                        },
+                        onDragCancel = {
+                            isDragging = false
+                            selectedLetter = ""
+                        },
+                        onVerticalDrag = { change, _ ->
+                            val fraction = (change.position.y / columnHeightPx).coerceIn(0f, 0.999f)
+                            val letterIndex = (fraction * alphabet.size).toInt()
+                            val letter = alphabet.getOrElse(letterIndex) { "#" }
+                            if (letter != selectedLetter) {
+                                selectedLetter = letter
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                letterIndexMap[letter]?.let { onIndexSelected(it) }
+                            }
                         }
-                    },
-                    onDragEnd = {
-                        isDragging = false
-                        selectedLetter = ""
-                    },
-                    onDragCancel = {
-                        isDragging = false
-                        selectedLetter = ""
-                    },
-                    onVerticalDrag = { change, _ ->
-                        val fraction = (change.position.y / columnHeightPx).coerceIn(0f, 0.999f)
-                        val letterIndex = (fraction * alphabet.size).toInt()
-                        val letter = alphabet.getOrElse(letterIndex) { "#" }
-                        if (letter != selectedLetter) {
-                            selectedLetter = letter
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            letterIndexMap[letter]?.let { onIndexSelected(it) }
-                        }
-                    }
-                )
-            }
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            // Floating Letter Bubble
-            AnimatedVisibility(
-                visible = isDragging && selectedLetter.isNotEmpty(),
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                Box(
-                    modifier = Modifier
-                        .offset(x = (-16).dp)
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(AccentGold),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = selectedLetter,
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        color = DarkSurface
                     )
                 }
-            }
-
-            // Alphabet Column
-            Column(
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(DarkSurfaceVariant.copy(alpha = 0.5f))
-                    .padding(vertical = 4.dp, horizontal = 2.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(end = 2.dp)
             ) {
-                alphabet.forEach { letter ->
-                    Text(
-                        text = letter,
-                        fontSize = 9.sp,
-                        fontWeight = if (selectedLetter == letter) FontWeight.Bold else FontWeight.Medium,
-                        color = if (selectedLetter == letter) AccentGold else TextSecondary,
-                        modifier = Modifier.padding(vertical = 0.5.dp)
-                    )
+                // Floating Letter Bubble positioned to the left of the scroll strip
+                AnimatedVisibility(
+                    visible = isDragging && selectedLetter.isNotEmpty(),
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .offset(x = (-20).dp)
+                            .size(52.dp)
+                            .clip(CircleShape)
+                            .background(AccentGold),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = selectedLetter,
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                            color = DarkSurface
+                        )
+                    }
+                }
+
+                // Alphabet Column
+                Column(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(DarkSurfaceElevated.copy(alpha = 0.65f))
+                        .padding(vertical = 6.dp, horizontal = 3.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    alphabet.forEach { letter ->
+                        Text(
+                            text = letter,
+                            fontSize = 9.sp,
+                            fontWeight = if (selectedLetter == letter) FontWeight.Bold else FontWeight.Medium,
+                            color = if (selectedLetter == letter) AccentGold else TextSecondary.copy(alpha = 0.7f),
+                            modifier = Modifier.padding(vertical = 0.5.dp)
+                        )
+                    }
                 }
             }
         }

@@ -227,26 +227,26 @@ class AudioRepositoryImpl(
         val sortOrder = "${MediaStore.Audio.Media.TITLE} COLLATE NOCASE ASC"
 
         contentResolver.query(collection, projection, selection, selectionArgs, sortOrder)?.use { cursor ->
-            val idCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
-            val titleCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
-            val artistCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
-            val albumCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
-            val albumIdCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
-            val durationCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
-            val sizeCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
-            val pathCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
-            val dateAddedCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
+            val idCol = cursor.getColumnIndex(MediaStore.Audio.Media._ID)
+            val titleCol = cursor.getColumnIndex(MediaStore.Audio.Media.TITLE)
+            val artistCol = cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST)
+            val albumCol = cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM)
+            val albumIdCol = cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM_ID)
+            val durationCol = cursor.getColumnIndex(MediaStore.Audio.Media.DURATION)
+            val sizeCol = cursor.getColumnIndex(MediaStore.Audio.Media.SIZE)
+            val pathCol = cursor.getColumnIndex(MediaStore.Audio.Media.DATA)
+            val dateAddedCol = cursor.getColumnIndex(MediaStore.Audio.Media.DATE_ADDED)
 
             while (cursor.moveToNext()) {
-                val id = cursor.getLong(idCol)
-                val title = cursor.getString(titleCol) ?: "Unknown Title"
-                val artist = cursor.getString(artistCol).takeIf { it != "<unknown>" } ?: "Unknown Artist"
-                val album = cursor.getString(albumCol) ?: "Unknown Album"
-                val albumId = cursor.getLong(albumIdCol)
-                val duration = cursor.getLong(durationCol)
-                val size = cursor.getLong(sizeCol)
-                val path = cursor.getString(pathCol) ?: ""
-                val dateAdded = cursor.getLong(dateAddedCol)
+                val id = if (idCol >= 0) cursor.getLong(idCol) else 0L
+                val title = if (titleCol >= 0) cursor.getString(titleCol) ?: "Unknown Title" else "Unknown Title"
+                val artist = if (artistCol >= 0) cursor.getString(artistCol).takeIf { it != "<unknown>" } ?: "Unknown Artist" else "Unknown Artist"
+                val album = if (albumCol >= 0) cursor.getString(albumCol) ?: "Unknown Album" else "Unknown Album"
+                val albumId = if (albumIdCol >= 0) cursor.getLong(albumIdCol) else 0L
+                val duration = if (durationCol >= 0) cursor.getLong(durationCol) else 0L
+                val size = if (sizeCol >= 0) cursor.getLong(sizeCol) else 0L
+                val path = if (pathCol >= 0) cursor.getString(pathCol) ?: "" else ""
+                val dateAdded = if (dateAddedCol >= 0) cursor.getLong(dateAddedCol) else 0L
 
                 val contentUri = ContentUris.withAppendedId(collection, id)
                 val albumArtUri = ContentUris.withAppendedId(ALBUM_ART_URI, albumId)

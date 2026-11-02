@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -77,6 +78,7 @@ import com.otium.audio.data.model.Song
 import com.otium.audio.data.update.UpdateChecker
 import com.otium.audio.ui.components.FastAlphabetScroller
 import com.otium.audio.ui.components.MiniPlayer
+import com.otium.audio.ui.components.SettingsSheet
 import com.otium.audio.ui.components.SongListItem
 import com.otium.audio.ui.components.TagEditorSheet
 import com.otium.audio.ui.theme.AccentGold
@@ -117,6 +119,7 @@ fun HomeScreen(
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     var showCreatePlaylistDialog by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
 
     Box(
         modifier = modifier
@@ -189,6 +192,16 @@ fun HomeScreen(
                             imageVector = Icons.Default.Equalizer,
                             contentDescription = "Equalizer",
                             tint = if (uiState.equalizerState.isEnabled) AccentGold else TextSecondary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    // Settings & Updates Button
+                    IconButton(onClick = { showSettings = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Settings",
+                            tint = TextSecondary,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -559,6 +572,16 @@ fun HomeScreen(
                 onDismiss = onDismissTagEditor
             )
         }
+
+        // Settings & System Updates Bottom Sheet
+        if (showSettings) {
+            SettingsSheet(
+                trackCount = uiState.songs.size,
+                availableUpdate = uiState.availableUpdate,
+                onOpenEqualizer = onOpenEqualizer,
+                onDismiss = { showSettings = false }
+            )
+        }
     }
 }
 
@@ -589,12 +612,17 @@ private fun SongListView(
         val coroutineScope = rememberCoroutineScope()
         val haptic = LocalHapticFeedback.current
 
+        val hasScroller = showAlphabetScroller && songs.size >= 12
+
         Box(modifier = modifier.fillMaxSize()) {
             LazyColumn(
                 state = listState,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 16.dp),
+                    .padding(
+                        start = 16.dp,
+                        end = if (hasScroller) 36.dp else 16.dp
+                    ),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 item { Spacer(modifier = Modifier.height(4.dp)) }
@@ -613,21 +641,28 @@ private fun SongListView(
                         onEditTagClick = onEditTagClick?.let { { it(song) } }
                     )
                 }
-                item { Spacer(modifier = Modifier.height(90.dp)) }
+                item { Spacer(modifier = Modifier.height(130.dp)) }
             }
 
-            if (showAlphabetScroller && songs.size >= 12) {
-                FastAlphabetScroller(
-                    songs = songs,
-                    onIndexSelected = { targetIndex ->
-                        coroutineScope.launch {
-                            listState.scrollToItem(targetIndex)
-                        }
-                    },
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 4.dp)
-                )
+            if (hasScroller) {
+                androidx.compose.runtime.CompositionLocalProvider(
+                    androidx.compose.ui.platform.LocalLayoutDirection provides androidx.compose.ui.unit.LayoutDirection.Ltr
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .padding(end = 2.dp)
+                    ) {
+                        FastAlphabetScroller(
+                            songs = songs,
+                            onIndexSelected = { targetIndex ->
+                                coroutineScope.launch {
+                                    listState.scrollToItem(targetIndex)
+                                }
+                            }
+                        )
+                    }
+                }
             }
         }
     }
@@ -703,7 +738,7 @@ private fun FolderListView(
                     }
                 }
             }
-            item { Spacer(modifier = Modifier.height(90.dp)) }
+            item { Spacer(modifier = Modifier.height(130.dp)) }
         }
     }
 }
@@ -779,7 +814,7 @@ private fun PlaylistsView(
                         }
                     }
                 }
-                item { Spacer(modifier = Modifier.height(90.dp)) }
+                item { Spacer(modifier = Modifier.height(130.dp)) }
             }
         }
 
