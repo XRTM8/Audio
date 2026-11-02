@@ -17,7 +17,7 @@ import com.otium.audio.data.local.entity.PlaylistSongCrossRef
         PlaylistSongCrossRef::class,
         HistoryEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class OtiumDatabase : RoomDatabase() {
