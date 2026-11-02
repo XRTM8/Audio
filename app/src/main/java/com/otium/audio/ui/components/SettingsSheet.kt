@@ -187,7 +187,7 @@ fun SettingsSheet(
                                     .padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
                                 Text(
-                                    text = "v1.5.0",
+                                    text = "v1.5.1",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = AccentGold
@@ -196,7 +196,7 @@ fun SettingsSheet(
                         }
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "Poweramp Audiophile Engine • 32-Bit Float • v1.5.0",
+                            text = "Poweramp Audiophile Engine • 32-Bit Float • v1.5.1",
                             style = MaterialTheme.typography.bodySmall,
                             color = TextSecondary
                         )
@@ -265,13 +265,13 @@ fun SettingsSheet(
                                 scope.launch {
                                     isCheckingUpdate = true
                                     updateResultText = null
-                                    val result = UpdateChecker.checkLatestRelease("1.5.0")
+                                    val result = UpdateChecker.checkLatestRelease("1.5.1")
                                     isCheckingUpdate = false
                                     if (result != null) {
                                         latestFoundUpdate = result
                                         updateResultText = "تحديث جديد متوفر: ${result.versionName}"
                                     } else {
-                                        updateResultText = "أنت تستخدم أحدث إصدار متوفر بالفعل (v1.5.0) ✓"
+                                        updateResultText = "أنت تستخدم أحدث إصدار متوفر بالفعل (v1.5.1) ✓"
                                     }
                                 }
                             },
