@@ -41,10 +41,15 @@ class AudioRepositoryImpl(
             // Initial scan
             trySend(querySongsFromMediaStore())
 
+            var debounceJob: kotlinx.coroutines.Job? = null
             val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
                 override fun onChange(selfChange: Boolean, uri: Uri?) {
                     super.onChange(selfChange, uri)
-                    trySend(querySongsFromMediaStore())
+                    debounceJob?.cancel()
+                    debounceJob = launch(ioDispatcher) {
+                        kotlinx.coroutines.delay(500L) // Debounce batch file additions / album downloads
+                        trySend(querySongsFromMediaStore())
+                    }
                 }
             }
 

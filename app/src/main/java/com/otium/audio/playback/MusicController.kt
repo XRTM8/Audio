@@ -115,9 +115,37 @@ class MusicController(
         val songIndex = playlist.indexOfFirst { it.id == song.id }
         if (songIndex == -1) return
 
-        val mediaItems = playlist.map { it.toMediaItem() }
+        if (playlist.size <= 250) {
+            val mediaItems = playlist.map { it.toMediaItem() }
+            controller.setMediaItems(mediaItems, songIndex, 0L)
+        } else {
+            // Prevents TransactionTooLargeException across IPC Binder on giant 5,000+ track queues
+            val chunkSize = 200
+            val targetChunkStart = (songIndex - 50).coerceAtLeast(0)
+            val targetChunkEnd = (targetChunkStart + chunkSize).coerceAtMost(playlist.size)
+            val activeChunk = playlist.subList(targetChunkStart, targetChunkEnd).map { it.toMediaItem() }
+            val chunkIndex = songIndex - targetChunkStart
 
-        controller.setMediaItems(mediaItems, songIndex, 0L)
+            controller.setMediaItems(activeChunk, chunkIndex, 0L)
+
+            // Stream remaining tracks smoothly into queue
+            coroutineScope.launch(Dispatchers.Main) {
+                if (targetChunkStart > 0) {
+                    val preItems = playlist.subList(0, targetChunkStart).map { it.toMediaItem() }
+                    controller.addMediaItems(0, preItems)
+                }
+                if (targetChunkEnd < playlist.size) {
+                    var offset = targetChunkEnd
+                    while (offset < playlist.size) {
+                        val end = (offset + chunkSize).coerceAtMost(playlist.size)
+                        val postItems = playlist.subList(offset, end).map { it.toMediaItem() }
+                        controller.addMediaItems(postItems)
+                        offset = end
+                    }
+                }
+            }
+        }
+
         controller.prepare()
         controller.play()
 
@@ -134,9 +162,29 @@ class MusicController(
     fun togglePlayPause() {
         val controller = mediaController ?: return
         if (controller.isPlaying) {
-            controller.pause()
+            // Micro-fade out (75ms) prevents digital audio pops / clicks on headphones
+            coroutineScope.launch(Dispatchers.Main) {
+                var vol = 1.0f
+                while (vol > 0.15f) {
+                    vol -= 0.35f
+                    controller.volume = vol.coerceAtLeast(0f)
+                    delay(25L)
+                }
+                controller.pause()
+                controller.volume = 1.0f
+            }
         } else {
+            // Micro-fade in
+            controller.volume = 0.25f
             controller.play()
+            coroutineScope.launch(Dispatchers.Main) {
+                var vol = 0.25f
+                while (vol < 1.0f) {
+                    vol += 0.35f
+                    controller.volume = vol.coerceAtMost(1.0f)
+                    delay(25L)
+                }
+            }
         }
     }
 

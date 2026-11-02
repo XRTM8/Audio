@@ -36,6 +36,7 @@ object PaletteManager {
             val loader = ImageLoader(context)
             val request = ImageRequest.Builder(context)
                 .data(albumArtUri)
+                .size(128, 128) // Crucial OOM prevention on 4K/8K embedded covers
                 .allowHardware(false) // Required for Palette Bitmap access
                 .build()
 

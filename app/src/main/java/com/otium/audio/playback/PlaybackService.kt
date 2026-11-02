@@ -48,10 +48,23 @@ class PlaybackService : MediaSessionService() {
             .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
             .build()
 
-        player = ExoPlayer.Builder(this)
+        val renderersFactory = androidx.media3.exoplayer.DefaultRenderersFactory(this)
+            .setEnableAudioOffload(true) // Enables hardware DSP audio offload for battery efficiency
+
+        val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()
+            .setBufferDurationsMs(
+                /* minBufferMs = */ 30_000,
+                /* maxBufferMs = */ 60_000,
+                /* bufferForPlaybackMs = */ 500,
+                /* bufferForPlaybackAfterRebufferMs = */ 1_000
+            )
+            .build()
+
+        player = ExoPlayer.Builder(this, renderersFactory)
             .setAudioAttributes(audioAttributes, /* handleAudioFocus = */ true)
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_LOCAL)
+            .setLoadControl(loadControl)
             .build()
             .apply {
                 repeatMode = Player.REPEAT_MODE_OFF
@@ -133,7 +146,7 @@ class PlaybackService : MediaSessionService() {
     }
 
     private fun openSystemAudioEffectSession(audioSessionId: Int) {
-        if (audioSessionId == C.AUDIO_SESSION_ID_UNSET) return
+        if (audioSessionId <= 0 || audioSessionId == C.AUDIO_SESSION_ID_UNSET) return
         activeAudioSessionId = audioSessionId
 
         // Bind our internal Equalizer engine
@@ -165,6 +178,18 @@ class PlaybackService : MediaSessionService() {
                 closeSystemAudioEffectSession(activeAudioSessionId)
             }
             openSystemAudioEffectSession(audioSessionId)
+        }
+
+        override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+            super.onPlayerError(error)
+            // Auto-skip unreadable, corrupted, or deleted files gracefully
+            if (player.hasNextMediaItem()) {
+                player.seekToNextMediaItem()
+                player.prepare()
+                player.play()
+            } else {
+                player.stop()
+            }
         }
     }
 

@@ -1,8 +1,11 @@
 package com.otium.audio.ui.viewmodel
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.CreationExtras
 import com.otium.audio.data.local.entity.PlaylistEntity
 import com.otium.audio.data.model.Song
 import com.otium.audio.data.repository.AudioRepository
@@ -21,10 +24,15 @@ import kotlinx.coroutines.launch
 class MusicViewModel(
     private val repository: AudioRepository,
     private val musicController: MusicController,
-    private val equalizerController: EqualizerController
+    private val equalizerController: EqualizerController,
+    private val savedStateHandle: SavedStateHandle? = null
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(MusicUiState())
+    private val initialTab = savedStateHandle?.get<String>("selected_tab")?.let {
+        runCatching { LibraryTab.valueOf(it) }.getOrNull()
+    } ?: LibraryTab.TRACKS
+
+    private val _uiState = MutableStateFlow(MusicUiState(selectedTab = initialTab))
     val uiState: StateFlow<MusicUiState> = _uiState.asStateFlow()
 
     private val searchQueryFlow = MutableStateFlow("")
@@ -108,6 +116,7 @@ class MusicViewModel(
     }
 
     fun selectTab(tab: LibraryTab) {
+        savedStateHandle?.set("selected_tab", tab.name)
         _uiState.update { it.copy(selectedTab = tab, selectedPlaylist = null) }
     }
 
@@ -220,11 +229,17 @@ class MusicViewModel(
         private val equalizerController: EqualizerController
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
             if (modelClass.isAssignableFrom(MusicViewModel::class.java)) {
-                return MusicViewModel(repository, musicController, equalizerController) as T
+                val savedStateHandle = extras.createSavedStateHandle()
+                return MusicViewModel(repository, musicController, equalizerController, savedStateHandle) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            return MusicViewModel(repository, musicController, equalizerController, null) as T
         }
     }
 }

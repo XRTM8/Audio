@@ -36,7 +36,7 @@ class EqualizerController {
     val state: StateFlow<EqualizerState> = _state.asStateFlow()
 
     fun bindAudioSession(audioSessionId: Int) {
-        if (audioSessionId == C.AUDIO_SESSION_ID_UNSET) return
+        if (audioSessionId <= 0 || audioSessionId == C.AUDIO_SESSION_ID_UNSET) return
 
         release()
 
