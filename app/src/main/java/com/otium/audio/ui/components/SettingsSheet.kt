@@ -187,7 +187,7 @@ fun SettingsSheet(
                                     .padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
                                 Text(
-                                    text = "v1.3.0",
+                                    text = "v1.4.0",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = AccentGold
@@ -196,7 +196,7 @@ fun SettingsSheet(
                         }
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "Poweramp Architecture • Universal & ARM64-v8a",
+                            text = "Poweramp Architecture • v1.4.0 Universal & ARM64-v8a",
                             style = MaterialTheme.typography.bodySmall,
                             color = TextSecondary
                         )
@@ -265,13 +265,13 @@ fun SettingsSheet(
                                 scope.launch {
                                     isCheckingUpdate = true
                                     updateResultText = null
-                                    val result = UpdateChecker.checkLatestRelease("1.3.0")
+                                    val result = UpdateChecker.checkLatestRelease("1.4.0")
                                     isCheckingUpdate = false
                                     if (result != null) {
                                         latestFoundUpdate = result
                                         updateResultText = "تحديث جديد متوفر: ${result.versionName}"
                                     } else {
-                                        updateResultText = "أنت تستخدم أحدث إصدار متوفر بالفعل (v1.3.0) ✓"
+                                        updateResultText = "أنت تستخدم أحدث إصدار متوفر بالفعل (v1.4.0) ✓"
                                     }
                                 }
                             },

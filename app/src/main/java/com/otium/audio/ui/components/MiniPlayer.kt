@@ -3,7 +3,6 @@ package com.otium.audio.ui.components
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
@@ -24,8 +23,6 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -47,18 +44,24 @@ import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.SubcomposeAsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.otium.audio.data.model.Song
 import com.otium.audio.ui.theme.AccentGold
-import com.otium.audio.ui.theme.DarkCardBorder
 import com.otium.audio.ui.theme.DarkSurface
 import com.otium.audio.ui.theme.DarkSurfaceContainer
 import com.otium.audio.ui.theme.DarkSurfaceVariant
 import com.otium.audio.ui.theme.TextPrimary
 import com.otium.audio.ui.theme.TextSecondary
 
+/**
+ * Poweramp-style bottom bar mini-player.
+ * Full-width flat bar, NO floating card / rounded corners.
+ * Thin amber progress line at the very top.
+ * Controls: play/pause circle + skip next icon only.
+ */
 @Composable
 fun MiniPlayer(
     currentSong: Song,
@@ -72,151 +75,144 @@ fun MiniPlayer(
 ) {
     val context = LocalContext.current
 
-    val thumbnailRequest = remember(currentSong.albumArtUri) {
+    val thumbReq = remember(currentSong.albumArtUri) {
         ImageRequest.Builder(context)
             .data(currentSong.albumArtUri)
-            .size(160, 160)
-            .crossfade(150)
+            .size(120, 120)
+            .crossfade(100)
             .memoryCachePolicy(CachePolicy.ENABLED)
             .diskCachePolicy(CachePolicy.ENABLED)
             .build()
     }
 
-    val progress = if (durationMs > 0) {
+    val progress = if (durationMs > 0)
         (currentPositionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
-    } else {
-        0f
-    }
+    else 0f
 
-    val playScale by animateFloatAsState(
-        targetValue = if (isPlaying) 1.0f else 0.94f,
+    val btnScale by animateFloatAsState(
+        targetValue = if (isPlaying) 1.0f else 0.92f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "mini_play_scale"
+        label = "mini_btn_scale"
     )
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-        Card(
+        Column(
             modifier = modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 6.dp)
-                .clickable { onPlayerClick() },
-            shape = RoundedCornerShape(22.dp),
-            colors = CardDefaults.cardColors(containerColor = DarkSurfaceContainer),
-            border = BorderStroke(1.dp, DarkCardBorder),
-            elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
+                .background(DarkSurfaceContainer)
+                .clickable { onPlayerClick() }
         ) {
-            Column {
-                // Micro Progress Bar at the top of the pill
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(2.5.dp),
-                    color = AccentGold,
-                    trackColor = DarkSurfaceVariant
-                )
+            // Thin amber progress line at the very top — Poweramp style
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(2.dp),
+                color = AccentGold,
+                trackColor = DarkSurfaceVariant
+            )
 
-                Row(
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Album art — 48dp, very small radius
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(DarkSurfaceVariant),
+                    contentAlignment = Alignment.Center
                 ) {
-                    // Left: Album Art
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(DarkSurfaceVariant),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        SubcomposeAsyncImage(
-                            model = thumbnailRequest,
-                            contentDescription = currentSong.title,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.matchParentSize(),
-                            error = {
-                                Box(
-                                    modifier = Modifier.fillMaxSize().background(DarkSurfaceVariant),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.MusicNote,
-                                        contentDescription = null,
-                                        tint = AccentGold.copy(alpha = 0.6f),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
+                    SubcomposeAsyncImage(
+                        model = thumbReq,
+                        contentDescription = currentSong.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.matchParentSize(),
+                        error = {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(DarkSurfaceVariant),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MusicNote,
+                                    contentDescription = null,
+                                    tint = AccentGold.copy(alpha = 0.5f),
+                                    modifier = Modifier.size(22.dp)
+                                )
                             }
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    // Center: Track Title & Artist
-                    Column(
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = currentSong.title,
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                textDirection = TextDirection.ContentOrLtr
-                            ),
-                            color = TextPrimary,
-                            maxLines = 1,
-                            modifier = Modifier.basicMarquee()
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = currentSong.artist,
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                textDirection = TextDirection.ContentOrLtr
-                            ),
-                            color = TextSecondary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    // Right: Play/Pause Circular Solid Button (Poweramp Style)
-                    Box(
-                        modifier = Modifier
-                            .size(42.dp)
-                            .scale(playScale)
-                            .clip(CircleShape)
-                            .background(AccentGold),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        IconButton(
-                            onClick = onPlayPauseClick,
-                            modifier = Modifier.size(42.dp)
-                        ) {
-                            Icon(
-                                imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                                contentDescription = if (isPlaying) "Pause" else "Play",
-                                tint = DarkSurface,
-                                modifier = Modifier.size(24.dp)
-                            )
                         }
-                    }
+                    )
+                }
 
-                    Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.width(12.dp))
 
-                    // Skip Next Button
+                // Track info — grows to fill space
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = currentSong.title,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp,
+                            textDirection = TextDirection.ContentOrLtr
+                        ),
+                        color = TextPrimary,
+                        maxLines = 1,
+                        modifier = Modifier.basicMarquee()
+                    )
+                    Text(
+                        text = currentSong.artist,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            textDirection = TextDirection.ContentOrLtr,
+                            fontSize = 12.sp
+                        ),
+                        color = TextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(10.dp))
+
+                // Play/Pause — solid amber circle, Poweramp style
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .scale(btnScale)
+                        .clip(CircleShape)
+                        .background(AccentGold),
+                    contentAlignment = Alignment.Center
+                ) {
                     IconButton(
-                        onClick = onSkipNextClick,
-                        modifier = Modifier.size(38.dp)
+                        onClick = onPlayPauseClick,
+                        modifier = Modifier.size(44.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.SkipNext,
-                            contentDescription = "Next",
-                            tint = TextPrimary,
+                            imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                            contentDescription = if (isPlaying) "Pause" else "Play",
+                            tint = DarkSurface,
                             modifier = Modifier.size(26.dp)
                         )
                     }
+                }
+
+                Spacer(modifier = Modifier.width(4.dp))
+
+                // Skip next — flat icon, no background
+                IconButton(
+                    onClick = onSkipNextClick,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.SkipNext,
+                        contentDescription = "Next",
+                        tint = TextSecondary,
+                        modifier = Modifier.size(26.dp)
+                    )
                 }
             }
         }

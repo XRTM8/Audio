@@ -5,7 +5,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,6 +13,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -21,12 +21,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -46,11 +43,13 @@ import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.otium.audio.data.model.Song
 import com.otium.audio.ui.theme.AccentGold
+import com.otium.audio.ui.theme.AccentGoldMuted
 import com.otium.audio.ui.theme.DarkCardBorder
 import com.otium.audio.ui.theme.DarkSurface
 import com.otium.audio.ui.theme.DarkSurfaceContainer
@@ -70,46 +69,53 @@ fun SongListItem(
 ) {
     val context = LocalContext.current
 
-    // Optimize image loading for 120Hz smooth fling scrolling
     val thumbnailRequest = remember(song.albumArtUri) {
         ImageRequest.Builder(context)
             .data(song.albumArtUri)
-            .size(160, 160) // Precision thumbnail sizing downsamples high-res artwork
-            .crossfade(150)
+            .size(128, 128)
+            .crossfade(120)
             .memoryCachePolicy(CachePolicy.ENABLED)
             .diskCachePolicy(CachePolicy.ENABLED)
             .build()
     }
 
-    val containerColor = if (isCurrentSong) DarkSurfaceContainer else DarkSurfaceVariant
-    val borderStroke = if (isCurrentSong) {
-        BorderStroke(1.2.dp, AccentGold.copy(alpha = 0.7f))
-    } else {
-        BorderStroke(1.dp, DarkCardBorder.copy(alpha = 0.45f))
-    }
-
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-        Card(
+        Box(
             modifier = modifier
                 .fillMaxWidth()
-                .clickable { onSongClick() },
-            shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(containerColor = containerColor),
-            border = borderStroke,
-            elevation = CardDefaults.cardElevation(defaultElevation = if (isCurrentSong) 4.dp else 0.dp)
+                .background(
+                    if (isCurrentSong) AccentGoldMuted else DarkSurfaceVariant
+                )
+                .clickable { onSongClick() }
         ) {
+            // Left accent bar for currently playing track — Poweramp style
+            if (isCurrentSong) {
+                Box(
+                    modifier = Modifier
+                        .width(3.dp)
+                        .height(64.dp)
+                        .align(Alignment.CenterStart)
+                        .background(AccentGold)
+                )
+            }
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 9.dp),
+                    .padding(
+                        start = if (isCurrentSong) 19.dp else 16.dp,
+                        end = 8.dp,
+                        top = 9.dp,
+                        bottom = 9.dp
+                    ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Left: Album Art with Visualizer
+                // Album Art — 54dp, 8dp corners, no extra border (Poweramp style)
                 Box(
                     modifier = Modifier
-                        .size(52.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(DarkSurface),
+                        .size(54.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(DarkSurfaceContainer),
                     contentAlignment = Alignment.Center
                 ) {
                     AsyncImage(
@@ -119,20 +125,21 @@ fun SongListItem(
                         modifier = Modifier.matchParentSize()
                     )
 
+                    // Playing overlay — animated EQ bars
                     if (isCurrentSong) {
                         Box(
                             modifier = Modifier
                                 .matchParentSize()
-                                .background(DarkSurface.copy(alpha = 0.65f)),
+                                .background(DarkSurface.copy(alpha = 0.55f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            MiniPlayingIndicator()
+                            MiniEqBars()
                         }
-                    } else {
+                    } else if (song.albumArtUri == null) {
                         Icon(
                             imageVector = Icons.Default.MusicNote,
                             contentDescription = null,
-                            tint = TextSecondary.copy(alpha = 0.35f),
+                            tint = TextSecondary.copy(alpha = 0.3f),
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -140,27 +147,29 @@ fun SongListItem(
 
                 Spacer(modifier = Modifier.width(14.dp))
 
-                // Middle: Track Title & Artist
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
+                // Title + artist — left-weighted
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = song.title,
-                        style = MaterialTheme.typography.titleMedium.copy(
+                        style = MaterialTheme.typography.bodyLarge.copy(
                             fontWeight = if (isCurrentSong) FontWeight.Bold else FontWeight.SemiBold,
+                            fontSize = 15.sp,
                             textDirection = TextDirection.ContentOrLtr
                         ),
                         color = if (isCurrentSong) AccentGold else TextPrimary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-
                     Spacer(modifier = Modifier.height(2.dp))
-
                     Text(
-                        text = "${song.artist} • ${song.formattedDuration}",
+                        text = buildString {
+                            append(song.artist)
+                            append("  •  ")
+                            append(song.formattedDuration)
+                        },
                         style = MaterialTheme.typography.bodySmall.copy(
-                            textDirection = TextDirection.ContentOrLtr
+                            textDirection = TextDirection.ContentOrLtr,
+                            fontSize = 12.sp
                         ),
                         color = TextSecondary,
                         maxLines = 1,
@@ -168,83 +177,66 @@ fun SongListItem(
                     )
                 }
 
-                // Right: Actions (Tag Edit + Favorite)
-                if (onEditTagClick != null) {
-                    IconButton(
-                        onClick = onEditTagClick,
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.EditNote,
-                            contentDescription = "Edit Tags",
-                            tint = TextSecondary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-
+                // Favorite icon only (no edit pencil cluttering the list)
                 IconButton(
                     onClick = onFavoriteClick,
-                    modifier = Modifier.size(38.dp)
+                    modifier = Modifier.size(40.dp)
                 ) {
                     Icon(
-                        imageVector = if (song.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                        imageVector = if (song.isFavorite) Icons.Filled.Favorite
+                                      else Icons.Outlined.FavoriteBorder,
                         contentDescription = "Favorite",
-                        tint = if (song.isFavorite) ErrorRed else TextSecondary,
-                        modifier = Modifier.size(20.dp)
+                        tint = if (song.isFavorite) ErrorRed else DarkCardBorder,
+                        modifier = Modifier.size(19.dp)
                     )
                 }
             }
+
+            // Hairline bottom divider (Poweramp style — no card borders)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(0.5.dp)
+                    .align(Alignment.BottomCenter)
+                    .background(DarkCardBorder.copy(alpha = 0.35f))
+            )
         }
     }
 }
 
 @Composable
-private fun MiniPlayingIndicator() {
-    val infiniteTransition = rememberInfiniteTransition(label = "mini_eq")
-    val bar1 by infiniteTransition.animateFloat(
-        initialValue = 0.2f, targetValue = 0.95f,
-        animationSpec = infiniteRepeatable(tween(350), RepeatMode.Reverse),
-        label = "b1"
+fun MiniEqBars() {
+    val inf = rememberInfiniteTransition(label = "eq_bars")
+    val b1 by inf.animateFloat(
+        initialValue = 0.18f, targetValue = 0.92f,
+        animationSpec = infiniteRepeatable(tween(380), RepeatMode.Reverse), label = "b1"
     )
-    val bar2 by infiniteTransition.animateFloat(
-        initialValue = 0.45f, targetValue = 1.0f,
-        animationSpec = infiniteRepeatable(tween(480), RepeatMode.Reverse),
-        label = "b2"
+    val b2 by inf.animateFloat(
+        initialValue = 0.52f, targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(tween(290), RepeatMode.Reverse), label = "b2"
     )
-    val bar3 by infiniteTransition.animateFloat(
-        initialValue = 0.15f, targetValue = 0.85f,
-        animationSpec = infiniteRepeatable(tween(320), RepeatMode.Reverse),
-        label = "b3"
+    val b3 by inf.animateFloat(
+        initialValue = 0.25f, targetValue = 0.78f,
+        animationSpec = infiniteRepeatable(tween(450), RepeatMode.Reverse), label = "b3"
+    )
+    val b4 by inf.animateFloat(
+        initialValue = 0.6f, targetValue = 0.95f,
+        animationSpec = infiniteRepeatable(tween(340), RepeatMode.Reverse), label = "b4"
     )
 
     Row(
-        modifier = Modifier
-            .size(width = 22.dp, height = 18.dp)
-            .padding(horizontal = 2.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier.size(width = 24.dp, height = 20.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
         verticalAlignment = Alignment.Bottom
     ) {
-        Box(
-            modifier = Modifier
-                .width(4.dp)
-                .fillMaxHeight(bar1)
-                .clip(RoundedCornerShape(2.dp))
-                .background(AccentGold)
-        )
-        Box(
-            modifier = Modifier
-                .width(4.dp)
-                .fillMaxHeight(bar2)
-                .clip(RoundedCornerShape(2.dp))
-                .background(AccentGold)
-        )
-        Box(
-            modifier = Modifier
-                .width(4.dp)
-                .fillMaxHeight(bar3)
-                .clip(RoundedCornerShape(2.dp))
-                .background(AccentGold)
-        )
+        listOf(b1, b2, b3, b4).forEach { frac ->
+            Box(
+                modifier = Modifier
+                    .width(3.dp)
+                    .fillMaxHeight(frac)
+                    .clip(RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp))
+                    .background(AccentGold)
+            )
+        }
     }
 }

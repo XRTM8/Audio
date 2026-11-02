@@ -2,22 +2,32 @@ package com.otium.audio.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Audiophile Luxury Obsidian Palette (Poweramp & Sony Walkman Grade)
-val DarkSurface = Color(0xFF090A0E)
-val DarkSurfaceVariant = Color(0xFF12141C)
-val DarkSurfaceContainer = Color(0xFF1B1E28)
-val DarkSurfaceElevated = Color(0xFF242836)
-val DarkCardBorder = Color(0xFF2E3344)
+// ═══════════════════════════════════════════════
+//  OTIUM AUDIO — Poweramp-grade Dark Palette
+//  Inspired by Poweramp v3 / Neutron Player
+// ═══════════════════════════════════════════════
 
-// Vibrant Pure Gold / Amber
-val AccentGold = Color(0xFFFFB300)
-val AccentGoldLight = Color(0xFFFFC947)
-val AccentGoldMuted = Color(0x33FFB300)
-val AccentCyan = Color(0xFF00E5FF)
+// Base dark layers (NOT pure black — Poweramp uses warm-dark grays)
+val DarkSurface          = Color(0xFF101014)   // Main background
+val DarkSurfaceVariant   = Color(0xFF18181E)   // Card / item background
+val DarkSurfaceContainer = Color(0xFF1F1F27)   // Elevated surfaces
+val DarkSurfaceElevated  = Color(0xFF26262F)   // Bottom sheets, dialogs
+val DarkCardBorder       = Color(0xFF2C2C38)   // Subtle dividers
 
-// Text Hierarchy
-val TextPrimary = Color(0xFFF7F8FA)
-val TextSecondary = Color(0xFF9CA3AF)
-val TextTertiary = Color(0xFF6B7280)
-val ErrorRed = Color(0xFFFF4545)
+// Poweramp signature amber/orange accent
+val AccentGold           = Color(0xFFE8A020)   // Primary amber (Poweramp orange)
+val AccentGoldLight      = Color(0xFFFFBD45)   // Hover / lighter accent
+val AccentGoldMuted      = Color(0x28E8A020)   // 16% alpha for tinted surfaces
+val AccentGoldDim        = Color(0xFF7A5010)   // Dim amber for indicators
 
+// Secondary accents
+val AccentCyan           = Color(0xFF00D4FF)   // Visualizer / special states
+
+// Typography hierarchy
+val TextPrimary          = Color(0xFFF0F0F5)   // Bright white
+val TextSecondary        = Color(0xFF8A8A99)   // Grey subtitle
+val TextTertiary         = Color(0xFF55555E)   // Very dim captions
+
+// Semantic
+val ErrorRed             = Color(0xFFFF453A)   // Favorite / error
+val SuccessGreen         = Color(0xFF34C759)   // Positive state
