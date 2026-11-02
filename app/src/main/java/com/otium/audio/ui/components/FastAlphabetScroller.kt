@@ -24,20 +24,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.otium.audio.data.model.Song
 import com.otium.audio.ui.theme.AccentGold
 import com.otium.audio.ui.theme.DarkSurface
+import com.otium.audio.ui.theme.DarkSurfaceContainer
 import com.otium.audio.ui.theme.DarkSurfaceElevated
 import com.otium.audio.ui.theme.TextSecondary
+import kotlin.math.roundToInt
 
 @Composable
 fun FastAlphabetScroller(
@@ -45,20 +49,39 @@ fun FastAlphabetScroller(
     onIndexSelected: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    if (songs.size < 15) return // Only display for sizable libraries
+    if (songs.size < 12) return // Only display for libraries with enough tracks
 
     val haptic = LocalHapticFeedback.current
-    val alphabet = remember { listOf("#") + ('A'..'Z').map { it.toString() } }
+
+    // Dynamically detect alphabet index needed based on song library contents
+    val alphabet = remember(songs) {
+        val hasArabic = songs.any { song ->
+            val firstChar = song.title.firstOrNull() ?: ' '
+            firstChar in '\u0600'..'\u06FF'
+        }
+        val base = listOf("#") + ('A'..'Z').map { it.toString() }
+        if (hasArabic) {
+            base + listOf("ا", "ب", "ت", "ج", "ح", "خ", "د", "ر", "س", "ش", "ص", "ع", "ف", "ق", "ك", "ل", "م", "ن", "هـ", "ي")
+        } else {
+            base
+        }
+    }
+
     var isDragging by remember { mutableStateOf(false) }
     var selectedLetter by remember { mutableStateOf("") }
     var columnHeightPx by remember { mutableFloatStateOf(1f) }
+    var currentTouchY by remember { mutableFloatStateOf(0f) }
 
     // Map letter to first occurrence index
-    val letterIndexMap = remember(songs) {
+    val letterIndexMap = remember(songs, alphabet) {
         val map = mutableMapOf<String, Int>()
         songs.forEachIndexed { index, song ->
-            val firstChar = song.title.firstOrNull()?.uppercaseChar() ?: '#'
-            val key = if (firstChar in 'A'..'Z') firstChar.toString() else "#"
+            val firstChar = song.title.firstOrNull() ?: '#'
+            val key = when {
+                firstChar.uppercaseChar() in 'A'..'Z' -> firstChar.uppercaseChar().toString()
+                firstChar in '\u0600'..'\u06FF' -> firstChar.toString()
+                else -> "#"
+            }
             if (!map.containsKey(key)) {
                 map[key] = index
             }
@@ -76,6 +99,7 @@ fun FastAlphabetScroller(
                     detectVerticalDragGestures(
                         onDragStart = { offset ->
                             isDragging = true
+                            currentTouchY = offset.y
                             val fraction = (offset.y / columnHeightPx).coerceIn(0f, 0.999f)
                             val letterIndex = (fraction * alphabet.size).toInt()
                             val letter = alphabet.getOrElse(letterIndex) { "#" }
@@ -94,6 +118,7 @@ fun FastAlphabetScroller(
                             selectedLetter = ""
                         },
                         onVerticalDrag = { change, _ ->
+                            currentTouchY = change.position.y
                             val fraction = (change.position.y / columnHeightPx).coerceIn(0f, 0.999f)
                             val letterIndex = (fraction * alphabet.size).toInt()
                             val letter = alphabet.getOrElse(letterIndex) { "#" }
@@ -106,49 +131,52 @@ fun FastAlphabetScroller(
                     )
                 }
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(end = 2.dp)
+            // Floating Letter Bubble positioned next to the finger
+            AnimatedVisibility(
+                visible = isDragging && selectedLetter.isNotEmpty(),
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset {
+                        IntOffset(
+                            x = (-48).dp.roundToPx(),
+                            y = (currentTouchY - 26.dp.toPx()).coerceIn(0f, columnHeightPx - 52.dp.toPx()).roundToInt()
+                        )
+                    }
             ) {
-                // Floating Letter Bubble positioned to the left of the scroll strip
-                AnimatedVisibility(
-                    visible = isDragging && selectedLetter.isNotEmpty(),
-                    enter = fadeIn(),
-                    exit = fadeOut()
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .offset(x = (-20).dp)
-                            .size(52.dp)
-                            .clip(CircleShape)
-                            .background(AccentGold),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = selectedLetter,
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                            color = DarkSurface
-                        )
-                    }
-                }
-
-                // Alphabet Column
-                Column(
+                Box(
                     modifier = Modifier
+                        .size(52.dp)
+                        .shadow(12.dp, CircleShape, spotColor = AccentGold)
                         .clip(CircleShape)
-                        .background(DarkSurfaceElevated.copy(alpha = 0.65f))
-                        .padding(vertical = 6.dp, horizontal = 3.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .background(AccentGold),
+                    contentAlignment = Alignment.Center
                 ) {
-                    alphabet.forEach { letter ->
-                        Text(
-                            text = letter,
-                            fontSize = 9.sp,
-                            fontWeight = if (selectedLetter == letter) FontWeight.Bold else FontWeight.Medium,
-                            color = if (selectedLetter == letter) AccentGold else TextSecondary.copy(alpha = 0.7f),
-                            modifier = Modifier.padding(vertical = 0.5.dp)
-                        )
-                    }
+                    Text(
+                        text = selectedLetter,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black),
+                        color = DarkSurface
+                    )
+                }
+            }
+
+            // Alphabet Column Strip
+            Column(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(DarkSurfaceElevated.copy(alpha = 0.80f))
+                    .padding(vertical = 4.dp, horizontal = 2.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                alphabet.forEach { letter ->
+                    Text(
+                        text = letter,
+                        fontSize = if (alphabet.size > 30) 7.5.sp else 8.5.sp,
+                        fontWeight = if (selectedLetter == letter) FontWeight.Bold else FontWeight.Normal,
+                        color = if (selectedLetter == letter) AccentGold else TextSecondary.copy(alpha = 0.65f),
+                        modifier = Modifier.padding(vertical = 0.2.dp)
+                    )
                 }
             }
         }

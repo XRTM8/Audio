@@ -101,6 +101,7 @@ class MainActivity : ComponentActivity() {
                                 onBassBoostChange = viewModel::setBassBoost,
                                 onVirtualizerChange = viewModel::setVirtualizer,
                                 onPresetSelected = viewModel::applyEqualizerPreset,
+                                onPreAmpChange = viewModel::setPreAmpGain,
                                 onDismiss = { showHomeEqualizer = false }
                             )
                         }
@@ -150,6 +151,7 @@ class MainActivity : ComponentActivity() {
                                     onBassBoostChange = viewModel::setBassBoost,
                                     onVirtualizerChange = viewModel::setVirtualizer,
                                     onEqualizerPresetSelected = viewModel::applyEqualizerPreset,
+                                    onPreAmpChange = viewModel::setPreAmpGain,
                                     onPlayQueueIndex = viewModel::playQueueIndex,
                                     onRemoveQueueItem = viewModel::removeQueueItem,
                                     onMoveQueueItem = viewModel::moveQueueItem,

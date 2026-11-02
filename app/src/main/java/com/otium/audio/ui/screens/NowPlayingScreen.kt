@@ -80,14 +80,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
-import coil.compose.SubcomposeAsyncImage
+import coil.compose.AsyncImage
+import coil.request.CachePolicy
+import coil.request.ImageRequest
 import com.otium.audio.data.lyrics.LrcParser
 import com.otium.audio.data.lyrics.TrackLyrics
 import com.otium.audio.data.model.Song
@@ -98,8 +99,8 @@ import com.otium.audio.ui.components.LyricsSheet
 import com.otium.audio.ui.components.QueueSheet
 import com.otium.audio.ui.components.SleepTimerDialog
 import com.otium.audio.ui.components.TrackSlider
+import com.otium.audio.ui.theme.AccentCyan
 import com.otium.audio.ui.theme.AccentGold
-import com.otium.audio.ui.theme.AccentGoldMuted
 import com.otium.audio.ui.theme.DarkCardBorder
 import com.otium.audio.ui.theme.DarkSurface
 import com.otium.audio.ui.theme.DarkSurfaceContainer
@@ -108,6 +109,7 @@ import com.otium.audio.ui.theme.DarkSurfaceVariant
 import com.otium.audio.ui.theme.ErrorRed
 import com.otium.audio.ui.theme.TextPrimary
 import com.otium.audio.ui.theme.TextSecondary
+import com.otium.audio.ui.theme.TextTertiary
 import com.otium.audio.ui.theme.rememberTrackColors
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -139,6 +141,7 @@ fun NowPlayingScreen(
     onBassBoostChange: (Int) -> Unit,
     onVirtualizerChange: (Int) -> Unit,
     onEqualizerPresetSelected: (String) -> Unit,
+    onPreAmpChange: (Float) -> Unit = {},
     onPlayQueueIndex: (Int) -> Unit = {},
     onRemoveQueueItem: (Int) -> Unit = {},
     onMoveQueueItem: (Int, Int) -> Unit = { _, _ -> },
@@ -152,12 +155,12 @@ fun NowPlayingScreen(
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
 
-    // Dynamic palette from album art
+    // Dynamic Palette extracted from album art
     val trackColors = rememberTrackColors(context, song.albumArtUri)
     val animatedDominant by animateColorAsState(trackColors.dominant, tween(600), label = "dom")
     val animatedVibrant  by animateColorAsState(trackColors.vibrant,  tween(600), label = "vib")
 
-    // Sheet visibility state
+    // State for Sheets & Overlays
     var showMoreSheet   by remember { mutableStateOf(false) }
     var showLyrics      by remember { mutableStateOf(false) }
     var showEqualizer   by remember { mutableStateOf(false) }
@@ -165,20 +168,26 @@ fun NowPlayingScreen(
     var showSleepTimer  by remember { mutableStateOf(false) }
     var showSpeedDialog by remember { mutableStateOf(false) }
 
-    // LRC lyrics
     val lyrics = remember(song.relativePath) {
         LrcParser.findLrcForAudio(song.relativePath) ?: TrackLyrics()
     }
 
-    // Swipe-to-skip physics
     val dragX = remember { Animatable(0f) }
 
-    // Play button spring scale
     val playBtnScale by animateFloatAsState(
-        targetValue = if (isPlaying) 1.0f else 0.94f,
+        targetValue = if (isPlaying) 1.0f else 0.93f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
         label = "play_scale"
     )
+
+    val highResArtworkRequest = remember(song.albumArtUri) {
+        ImageRequest.Builder(context)
+            .data(song.albumArtUri)
+            .crossfade(200)
+            .memoryCachePolicy(CachePolicy.ENABLED)
+            .diskCachePolicy(CachePolicy.ENABLED)
+            .build()
+    }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Box(
@@ -186,15 +195,16 @@ fun NowPlayingScreen(
                 .fillMaxSize()
                 .background(DarkSurface)
         ) {
-            // Ambient gradient behind artwork — Poweramp style
+            // Ambient Aura Glow behind artwork
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(400.dp)
+                    .height(420.dp)
                     .background(
                         brush = Brush.verticalGradient(
                             colors = listOf(
-                                animatedDominant.copy(alpha = 0.28f),
+                                animatedDominant.copy(alpha = 0.32f),
+                                animatedVibrant.copy(alpha = 0.08f),
                                 DarkSurface.copy(alpha = 0f)
                             )
                         )
@@ -205,19 +215,17 @@ fun NowPlayingScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .statusBarsPadding()
-                    .navigationBarsPadding()
-                    .padding(horizontal = 0.dp),
+                    .navigationBarsPadding(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // ── Top bar ──────────────────────────────────────────────
+                // ── Minimalist Poweramp Top Bar ──────────────────────────────
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                        .padding(horizontal = 8.dp, vertical = 2.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Collapse / back
                     IconButton(onClick = onCollapse) {
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowDown,
@@ -227,31 +235,35 @@ fun NowPlayingScreen(
                         )
                     }
 
-                    // Centre: playback context label
-                    Text(
-                        text = "NOW PLAYING",
-                        style = MaterialTheme.typography.labelSmall.copy(
+                    // Lossless Audio Badge Pill
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(DarkSurfaceContainer.copy(alpha = 0.9f))
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                    ) {
+                        Text(
+                            text = "${song.audioFormatBadge} • 32-BIT FLOAT",
+                            fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            letterSpacing = 2.sp,
-                            fontSize = 10.sp
-                        ),
-                        color = TextSecondary
-                    )
+                            letterSpacing = 1.sp,
+                            color = AccentGold
+                        )
+                    }
 
-                    // Right: favorite + EQ + more
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             onToggleFavorite()
                         }) {
                             Icon(
-                                imageVector = if (song.isFavorite) Icons.Filled.Favorite
-                                              else Icons.Outlined.FavoriteBorder,
+                                imageVector = if (song.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                                 contentDescription = "Favorite",
                                 tint = if (song.isFavorite) ErrorRed else TextSecondary,
                                 modifier = Modifier.size(22.dp)
                             )
                         }
+
                         IconButton(onClick = { showEqualizer = true }) {
                             Icon(
                                 imageVector = Icons.Default.Equalizer,
@@ -260,6 +272,7 @@ fun NowPlayingScreen(
                                 modifier = Modifier.size(22.dp)
                             )
                         }
+
                         IconButton(onClick = { showMoreSheet = true }) {
                             Icon(
                                 imageVector = Icons.Default.MoreVert,
@@ -271,7 +284,7 @@ fun NowPlayingScreen(
                     }
                 }
 
-                // ── Artwork / Lyrics ─────────────────────────────────────
+                // ── Large Cinematic Artwork with Swipe-To-Skip Physics ───────
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -281,7 +294,7 @@ fun NowPlayingScreen(
                 ) {
                     AnimatedContent(
                         targetState = showLyrics,
-                        transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(220)) },
+                        transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(200)) },
                         label = "art_lyrics"
                     ) { isLyricsMode ->
                         if (isLyricsMode) {
@@ -292,19 +305,18 @@ fun NowPlayingScreen(
                                 activeColor = animatedVibrant
                             )
                         } else {
-                            // Full-width album art with swipe physics
                             Box(
                                 modifier = Modifier
-                                    .fillMaxWidth()
+                                    .fillMaxWidth(0.92f)
                                     .aspectRatio(1f)
                                     .offset { IntOffset(dragX.value.roundToInt(), 0) }
                                     .shadow(
-                                        elevation = 24.dp,
-                                        shape = RoundedCornerShape(20.dp),
+                                        elevation = 28.dp,
+                                        shape = RoundedCornerShape(18.dp),
                                         ambientColor = animatedDominant.copy(alpha = 0.5f),
                                         spotColor = animatedDominant.copy(alpha = 0.4f)
                                     )
-                                    .clip(RoundedCornerShape(20.dp))
+                                    .clip(RoundedCornerShape(18.dp))
                                     .background(DarkSurfaceVariant)
                                     .pointerInput(Unit) {
                                         detectHorizontalDragGestures(
@@ -329,44 +341,38 @@ fun NowPlayingScreen(
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
-                                SubcomposeAsyncImage(
-                                    model = song.albumArtUri,
+                                AsyncImage(
+                                    model = highResArtworkRequest,
                                     contentDescription = song.title,
                                     contentScale = ContentScale.Crop,
-                                    modifier = Modifier.matchParentSize(),
-                                    error = {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .background(DarkSurfaceVariant),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.MusicNote,
-                                                contentDescription = null,
-                                                tint = AccentGold.copy(alpha = 0.4f),
-                                                modifier = Modifier.size(72.dp)
-                                            )
-                                        }
-                                    }
+                                    modifier = Modifier.matchParentSize()
                                 )
+
+                                if (song.albumArtUri.toString().isEmpty()) {
+                                    Icon(
+                                        imageVector = Icons.Default.MusicNote,
+                                        contentDescription = null,
+                                        tint = TextTertiary,
+                                        modifier = Modifier.size(64.dp)
+                                    )
+                                }
                             }
                         }
                     }
                 }
 
-                // ── Song info ─────────────────────────────────────────────
+                // ── Track Title & Artist Information ────────────────────────
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 28.dp),
+                        .padding(horizontal = 24.dp),
                     horizontalAlignment = Alignment.Start
                 ) {
                     Text(
                         text = song.title,
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 22.sp,
+                            fontSize = 20.sp,
                             textDirection = TextDirection.ContentOrLtr
                         ),
                         color = TextPrimary,
@@ -384,7 +390,7 @@ fun NowPlayingScreen(
                         },
                         style = MaterialTheme.typography.bodyMedium.copy(
                             textDirection = TextDirection.ContentOrLtr,
-                            fontSize = 14.sp
+                            fontSize = 13.5.sp
                         ),
                         color = TextSecondary,
                         maxLines = 1,
@@ -392,27 +398,26 @@ fun NowPlayingScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                // ── Track Slider ───────────────────────────────────────────
+                // ── Track Precision Slider ──────────────────────────────────
                 TrackSlider(
                     currentPositionMs = currentPositionMs,
                     durationMs = durationMs,
                     onSeekTo = onSeekTo,
-                    modifier = Modifier.padding(horizontal = 24.dp)
+                    modifier = Modifier.padding(horizontal = 20.dp)
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                // ── Playback Controls ─────────────────────────────────────
+                // ── Main Audio Playback Controls ────────────────────────────
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 4.dp),
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Shuffle
                     IconButton(onClick = onToggleShuffle) {
                         Icon(
                             imageVector = Icons.Default.Shuffle,
@@ -422,7 +427,6 @@ fun NowPlayingScreen(
                         )
                     }
 
-                    // Previous
                     IconButton(
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -434,20 +438,19 @@ fun NowPlayingScreen(
                             imageVector = Icons.Default.SkipPrevious,
                             contentDescription = "Previous",
                             tint = TextPrimary,
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier.size(34.dp)
                         )
                     }
 
-                    // Play / Pause — large amber circle
+                    // Tactile Master Play / Pause
                     Box(
                         modifier = Modifier
                             .size(72.dp)
                             .scale(playBtnScale)
                             .shadow(
-                                elevation = 12.dp,
+                                elevation = 14.dp,
                                 shape = CircleShape,
-                                spotColor = AccentGold.copy(alpha = 0.4f),
-                                ambientColor = AccentGold.copy(alpha = 0.2f)
+                                spotColor = AccentGold.copy(alpha = 0.45f)
                             )
                             .clip(CircleShape)
                             .background(AccentGold),
@@ -469,7 +472,6 @@ fun NowPlayingScreen(
                         }
                     }
 
-                    // Next
                     IconButton(
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -481,11 +483,10 @@ fun NowPlayingScreen(
                             imageVector = Icons.Default.SkipNext,
                             contentDescription = "Next",
                             tint = TextPrimary,
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier.size(34.dp)
                         )
                     }
 
-                    // Repeat
                     IconButton(onClick = onToggleRepeat) {
                         val (icon, tint) = when (repeatMode) {
                             Player.REPEAT_MODE_ONE -> Pair(Icons.Default.RepeatOne, AccentGold)
@@ -501,10 +502,10 @@ fun NowPlayingScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
             }
 
-            // ── More Actions Sheet ────────────────────────────────────────
+            // ── More Actions Sheet ──────────────────────────────────────────
             if (showMoreSheet) {
                 ModalBottomSheet(
                     onDismissRequest = { showMoreSheet = false },
@@ -537,7 +538,7 @@ fun NowPlayingScreen(
                             Triple(Icons.Default.QueueMusic, "Up Next Queue  (${queue.size} tracks)") {
                                 showMoreSheet = false; showQueue = true
                             },
-                            Triple(Icons.Default.EditNote, "Edit Tag Metadata") {
+                            Triple(Icons.Default.EditNote, "Edit Audio Tag Metadata") {
                                 showMoreSheet = false; onEditTagClick()
                             }
                         )
@@ -547,7 +548,7 @@ fun NowPlayingScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable { action() }
-                                    .padding(vertical = 14.dp),
+                                    .padding(vertical = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
@@ -559,15 +560,15 @@ fun NowPlayingScreen(
                                 Spacer(modifier = Modifier.width(16.dp))
                                 Text(label, color = TextPrimary, style = MaterialTheme.typography.bodyMedium)
                             }
-                            HorizontalDivider(thickness = 0.5.dp, color = DarkCardBorder.copy(alpha = 0.4f))
+                            HorizontalDivider(thickness = 0.5.dp, color = DarkCardBorder.copy(alpha = 0.35f))
                         }
 
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(20.dp))
                     }
                 }
             }
 
-            // ── Speed Dialog ──────────────────────────────────────────────
+            // ── Speed Dialog ────────────────────────────────────────────────
             if (showSpeedDialog) {
                 ModalBottomSheet(
                     onDismissRequest = { showSpeedDialog = false },
@@ -605,12 +606,12 @@ fun NowPlayingScreen(
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(20.dp))
                     }
                 }
             }
 
-            // ── Equalizer Sheet ───────────────────────────────────────────
+            // ── Equalizer Sheet ─────────────────────────────────────────────
             if (showEqualizer) {
                 EqualizerSheet(
                     state = equalizerState,
@@ -619,11 +620,12 @@ fun NowPlayingScreen(
                     onBassBoostChange = onBassBoostChange,
                     onVirtualizerChange = onVirtualizerChange,
                     onPresetSelected = onEqualizerPresetSelected,
+                    onPreAmpChange = onPreAmpChange,
                     onDismiss = { showEqualizer = false }
                 )
             }
 
-            // ── Queue Sheet ────────────────────────────────────────────────
+            // ── Queue Sheet ─────────────────────────────────────────────────
             if (showQueue) {
                 QueueSheet(
                     queue = queue,
@@ -635,7 +637,7 @@ fun NowPlayingScreen(
                 )
             }
 
-            // ── Sleep Timer Dialog ─────────────────────────────────────────
+            // ── Sleep Timer Dialog ──────────────────────────────────────────
             if (showSleepTimer) {
                 SleepTimerDialog(
                     state = sleepTimerState,

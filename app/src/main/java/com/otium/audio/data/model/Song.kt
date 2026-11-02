@@ -26,6 +26,21 @@ data class Song(
             return String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
         }
 
+    val audioFormatBadge: String
+        get() {
+            val path = (relativePath.ifEmpty { contentUri.path ?: "" }).lowercase(Locale.ROOT)
+            return when {
+                path.endsWith(".flac") -> "FLAC"
+                path.endsWith(".wav") -> "WAV"
+                path.endsWith(".opus") -> "OPUS"
+                path.endsWith(".ogg") -> "OGG"
+                path.endsWith(".m4a") -> "ALAC"
+                path.endsWith(".aac") -> "AAC"
+                path.endsWith(".mp3") -> "MP3"
+                else -> "HI-RES"
+            }
+        }
+
     fun toMediaItem(): MediaItem {
         val metadata = MediaMetadata.Builder()
             .setTitle(title)

@@ -38,6 +38,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDirection
@@ -45,22 +46,22 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.SubcomposeAsyncImage
+import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.otium.audio.data.model.Song
 import com.otium.audio.ui.theme.AccentGold
+import com.otium.audio.ui.theme.DarkCardBorder
 import com.otium.audio.ui.theme.DarkSurface
 import com.otium.audio.ui.theme.DarkSurfaceContainer
 import com.otium.audio.ui.theme.DarkSurfaceVariant
 import com.otium.audio.ui.theme.TextPrimary
 import com.otium.audio.ui.theme.TextSecondary
+import com.otium.audio.ui.theme.TextTertiary
 
 /**
- * Poweramp-style bottom bar mini-player.
- * Full-width flat bar, NO floating card / rounded corners.
- * Thin amber progress line at the very top.
- * Controls: play/pause circle + skip next icon only.
+ * Poweramp-grade Full-Width Flat Bottom Console Player.
+ * Edge-to-edge layout, razor-thin amber progress track, high-performance artwork decode.
  */
 @Composable
 fun MiniPlayer(
@@ -74,12 +75,13 @@ fun MiniPlayer(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
 
     val thumbReq = remember(currentSong.albumArtUri) {
         ImageRequest.Builder(context)
             .data(currentSong.albumArtUri)
             .size(120, 120)
-            .crossfade(100)
+            .crossfade(false)
             .memoryCachePolicy(CachePolicy.ENABLED)
             .diskCachePolicy(CachePolicy.ENABLED)
             .build()
@@ -90,7 +92,7 @@ fun MiniPlayer(
     else 0f
 
     val btnScale by animateFloatAsState(
-        targetValue = if (isPlaying) 1.0f else 0.92f,
+        targetValue = if (isPlaying) 1.0f else 0.93f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
         label = "mini_btn_scale"
     )
@@ -102,73 +104,72 @@ fun MiniPlayer(
                 .background(DarkSurfaceContainer)
                 .clickable { onPlayerClick() }
         ) {
-            // Thin amber progress line at the very top — Poweramp style
+            // Micro Amber Seekbar at the top of the console
             LinearProgressIndicator(
                 progress = { progress },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(2.dp),
                 color = AccentGold,
-                trackColor = DarkSurfaceVariant
+                trackColor = DarkCardBorder
             )
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                    .height(60.dp)
+                    .padding(horizontal = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Album art — 48dp, very small radius
+                // Album Art
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(44.dp)
                         .clip(RoundedCornerShape(6.dp))
                         .background(DarkSurfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
-                    SubcomposeAsyncImage(
+                    AsyncImage(
                         model = thumbReq,
                         contentDescription = currentSong.title,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.matchParentSize(),
-                        error = {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(DarkSurfaceVariant),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.MusicNote,
-                                    contentDescription = null,
-                                    tint = AccentGold.copy(alpha = 0.5f),
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
-                        }
+                        modifier = Modifier.matchParentSize()
                     )
+
+                    if (currentSong.albumArtUri.toString().isEmpty()) {
+                        Icon(
+                            imageVector = Icons.Default.MusicNote,
+                            contentDescription = null,
+                            tint = TextTertiary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                // Track info — grows to fill space
-                Column(modifier = Modifier.weight(1f)) {
+                // Title & Artist
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.Center
+                ) {
                     Text(
                         text = currentSong.title,
                         style = MaterialTheme.typography.bodyLarge.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.5.sp,
                             textDirection = TextDirection.ContentOrLtr
                         ),
                         color = TextPrimary,
                         maxLines = 1,
                         modifier = Modifier.basicMarquee()
                     )
+                    Spacer(modifier = Modifier.height(1.dp))
                     Text(
-                        text = currentSong.artist,
+                        text = "${currentSong.artist} • ${currentSong.audioFormatBadge}",
                         style = MaterialTheme.typography.bodySmall.copy(
                             textDirection = TextDirection.ContentOrLtr,
-                            fontSize = 12.sp
+                            fontSize = 11.sp
                         ),
                         color = TextSecondary,
                         maxLines = 1,
@@ -176,36 +177,42 @@ fun MiniPlayer(
                     )
                 }
 
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(8.dp))
 
-                // Play/Pause — solid amber circle, Poweramp style
+                // Tactile Amber Play/Pause Circle
                 Box(
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(42.dp)
                         .scale(btnScale)
                         .clip(CircleShape)
                         .background(AccentGold),
                     contentAlignment = Alignment.Center
                 ) {
                     IconButton(
-                        onClick = onPlayPauseClick,
-                        modifier = Modifier.size(44.dp)
+                        onClick = {
+                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                            onPlayPauseClick()
+                        },
+                        modifier = Modifier.size(42.dp)
                     ) {
                         Icon(
                             imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                             contentDescription = if (isPlaying) "Pause" else "Play",
                             tint = DarkSurface,
-                            modifier = Modifier.size(26.dp)
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.width(4.dp))
 
-                // Skip next — flat icon, no background
+                // Skip Next Flat Icon
                 IconButton(
-                    onClick = onSkipNextClick,
-                    modifier = Modifier.size(40.dp)
+                    onClick = {
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                        onSkipNextClick()
+                    },
+                    modifier = Modifier.size(38.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.SkipNext,

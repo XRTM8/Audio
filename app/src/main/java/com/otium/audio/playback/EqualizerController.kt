@@ -18,17 +18,24 @@ data class EqualizerBand(
     val maxDb: Float = 15f
 )
 
-private val DEFAULT_PRESET_BANDS = listOf(
-    EqualizerBand(0, 60, 0f, -15f, 15f),
-    EqualizerBand(1, 230, 0f, -15f, 15f),
-    EqualizerBand(2, 910, 0f, -15f, 15f),
-    EqualizerBand(3, 3600, 0f, -15f, 15f),
-    EqualizerBand(4, 14000, 0f, -15f, 15f)
+// 10-Band Audiophile reference frequencies (Poweramp & studio hardware standard)
+private val DEFAULT_10_BANDS = listOf(
+    EqualizerBand(0, 31, 0f, -15f, 15f),
+    EqualizerBand(1, 62, 0f, -15f, 15f),
+    EqualizerBand(2, 125, 0f, -15f, 15f),
+    EqualizerBand(3, 250, 0f, -15f, 15f),
+    EqualizerBand(4, 500, 0f, -15f, 15f),
+    EqualizerBand(5, 1000, 0f, -15f, 15f),
+    EqualizerBand(6, 2000, 0f, -15f, 15f),
+    EqualizerBand(7, 4000, 0f, -15f, 15f),
+    EqualizerBand(8, 8000, 0f, -15f, 15f),
+    EqualizerBand(9, 16000, 0f, -15f, 15f)
 )
 
 data class EqualizerState(
-    val isEnabled: Boolean = true, // Default enabled for immediate feedback
-    val bands: List<EqualizerBand> = DEFAULT_PRESET_BANDS,
+    val isEnabled: Boolean = true,
+    val preAmpDb: Float = 0f, // -10dB to +10dB Pre-Amp gain
+    val bands: List<EqualizerBand> = DEFAULT_10_BANDS,
     val bassBoostStrength: Int = 0, // 0 to 1000
     val virtualizerStrength: Int = 0, // 0 to 1000
     val currentPreset: String = "Flat",
@@ -40,10 +47,10 @@ data class EqualizerState(
         "AirPods Pro Reference",
         "Bass Boost Extreme",
         "Acoustic & Vocals",
-        "Rock",
+        "Rock & Metal",
         "Electronic Club",
-        "Pop",
-        "Jazz",
+        "Pop & Modern",
+        "Jazz & Warm",
         "Custom"
     )
 )
@@ -85,7 +92,7 @@ class EqualizerController {
                 val freq = try {
                     eq.getCenterFreq(band) / 1000
                 } catch (_: Exception) {
-                    DEFAULT_PRESET_BANDS.getOrNull(i)?.centerFreqHz ?: ((i + 1) * 1000)
+                    DEFAULT_10_BANDS.getOrNull(i)?.centerFreqHz ?: ((i + 1) * 1000)
                 }
 
                 val existingLevel = currentBands.getOrNull(i)?.levelDb ?: 0f
@@ -183,6 +190,11 @@ class EqualizerController {
         _state.update { it.copy(isEnabled = enabled) }
     }
 
+    fun setPreAmpGain(gainDb: Float) {
+        val safeGain = gainDb.coerceIn(-10f, 10f)
+        _state.update { it.copy(preAmpDb = safeGain) }
+    }
+
     fun setBandLevel(bandIndex: Short, levelDb: Float) {
         if (equalizer == null && lastAudioSessionId > 0 && lastAudioSessionId != C.AUDIO_SESSION_ID_UNSET) {
             bindAudioSession(lastAudioSessionId)
@@ -268,23 +280,33 @@ class EqualizerController {
 
         val bands = _state.value.bands
 
-        val levels = when (presetName) {
-            "Flat" -> listOf(0f, 0f, 0f, 0f, 0f)
-            "Harman Target (Audiophile)" -> listOf(5.5f, 2.0f, -0.5f, 3.0f, 2.5f)
-            "Sennheiser HD-Series" -> listOf(2.5f, 1.0f, 0.0f, 1.5f, 2.0f)
-            "Sony WH-1000XM Series" -> listOf(-1.5f, -2.5f, 2.0f, 3.5f, 4.0f)
-            "AirPods Pro Reference" -> listOf(2.5f, 0.5f, 0.0f, 1.0f, 1.5f)
-            "Bass Boost Extreme" -> listOf(7.5f, 5.0f, 1.0f, 0.0f, 0.0f)
-            "Acoustic & Vocals" -> listOf(-1.0f, 1.5f, 4.0f, 3.5f, 2.5f)
-            "Rock" -> listOf(5f, 3f, -1f, 2f, 5f)
-            "Electronic Club" -> listOf(6f, 4f, 0f, 3f, 6f)
-            "Pop" -> listOf(-1f, 2f, 5f, 3f, -1f)
-            "Jazz" -> listOf(4f, 2f, -1f, 2f, 4f)
+        // Reference 10-band target curves
+        val target10Levels = when (presetName) {
+            "Flat" -> listOf(0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f)
+            "Harman Target (Audiophile)" -> listOf(6.0f, 4.5f, 2.0f, 0.0f, -0.5f, 1.0f, 2.5f, 3.5f, 2.5f, 1.5f)
+            "Sennheiser HD-Series" -> listOf(3.5f, 2.5f, 1.0f, 0.0f, 0.0f, 0.5f, 1.5f, 2.0f, 2.5f, 3.0f)
+            "Sony WH-1000XM Series" -> listOf(-1.5f, -2.5f, -1.0f, 0.5f, 2.0f, 2.5f, 3.5f, 4.0f, 3.5f, 2.0f)
+            "AirPods Pro Reference" -> listOf(3.0f, 2.0f, 0.5f, 0.0f, 0.0f, 0.5f, 1.0f, 1.5f, 2.0f, 1.5f)
+            "Bass Boost Extreme" -> listOf(9.0f, 7.5f, 5.0f, 2.0f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f)
+            "Acoustic & Vocals" -> listOf(-1.5f, -1.0f, 0.5f, 1.5f, 3.5f, 4.0f, 3.5f, 2.5f, 2.0f, 1.5f)
+            "Rock & Metal" -> listOf(6.0f, 5.0f, 3.0f, -1.0f, -1.5f, 0.5f, 2.0f, 4.0f, 5.5f, 6.0f)
+            "Electronic Club" -> listOf(7.0f, 6.0f, 4.0f, 1.0f, 0.0f, 0.5f, 2.0f, 3.5f, 5.5f, 6.5f)
+            "Pop & Modern" -> listOf(-1.0f, 0.5f, 2.0f, 4.0f, 5.0f, 4.5f, 3.0f, 2.0f, 0.5f, -1.0f)
+            "Jazz & Warm" -> listOf(4.5f, 4.0f, 2.0f, 0.0f, -0.5f, 1.0f, 2.0f, 3.0f, 3.5f, 4.0f)
             else -> return
         }
 
         val updatedBands = bands.mapIndexed { index, band ->
-            val level = levels.getOrElse(index) { 0f }
+            // Map 10-band target to whatever number of bands the hardware has
+            val level = if (bands.size == 10) {
+                target10Levels.getOrElse(index) { 0f }
+            } else {
+                // Interpolate from 10-band curve
+                val ratio = if (bands.size > 1) index.toFloat() / (bands.size - 1) else 0f
+                val targetIndex = (ratio * (target10Levels.size - 1)).toInt()
+                target10Levels.getOrElse(targetIndex) { 0f }
+            }
+
             val safeMb = (level * 100).toInt().coerceIn(
                 (band.minDb * 100).toInt(),
                 (band.maxDb * 100).toInt()
