@@ -89,7 +89,8 @@ class MainActivity : ComponentActivity() {
                             onOpenEqualizer = { showHomeEqualizer = true },
                             onEditTagClick = viewModel::openTagEditor,
                             onSaveMetadata = viewModel::saveSongMetadata,
-                            onDismissTagEditor = { viewModel.openTagEditor(null) }
+                            onDismissTagEditor = { viewModel.openTagEditor(null) },
+                            onDismissUpdate = viewModel::dismissUpdate
                         )
 
                         if (showHomeEqualizer) {

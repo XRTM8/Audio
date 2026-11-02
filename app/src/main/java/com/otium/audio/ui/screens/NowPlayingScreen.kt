@@ -394,7 +394,10 @@ fun NowPlayingScreen(
             ) {
                 Text(
                     text = song.title,
-                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        textDirection = androidx.compose.ui.text.style.TextDirection.ContentOrLtrs
+                    ),
                     color = TextPrimary,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
@@ -403,7 +406,9 @@ fun NowPlayingScreen(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "${song.artist} • ${song.album}",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        textDirection = androidx.compose.ui.text.style.TextDirection.ContentOrLtrs
+                    ),
                     color = TextSecondary,
                     textAlign = TextAlign.Center,
                     maxLines = 1,

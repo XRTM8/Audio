@@ -1,10 +1,12 @@
 package com.otium.audio.playback
 
 import android.app.PendingIntent
+import android.content.ContentUris
 import android.content.Intent
 import android.media.audiofx.AudioEffect
 import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -69,14 +71,6 @@ class PlaybackService : MediaSessionService() {
                 repeatMode = Player.REPEAT_MODE_OFF
                 shuffleModeEnabled = false
                 addListener(PlayerEventListener())
-                trackSelectionParameters = trackSelectionParameters
-                    .buildUpon()
-                    .setAudioOffloadPreferences(
-                        androidx.media3.common.TrackSelectionParameters.AudioOffloadPreferences.Builder()
-                            .setAudioOffloadMode(androidx.media3.common.TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED)
-                            .build()
-                    )
-                    .build()
             }
     }
 
@@ -234,14 +228,8 @@ class PlaybackService : MediaSessionService() {
 
         override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
             super.onPlayerError(error)
-            // Auto-skip unreadable, corrupted, or deleted files gracefully
-            if (player.hasNextMediaItem()) {
-                player.seekToNextMediaItem()
-                player.prepare()
-                player.play()
-            } else {
-                player.stop()
-            }
+            android.util.Log.e("PlaybackService", "ExoPlayer error: ${error.errorCodeName}", error)
+            player.pause()
         }
     }
 
@@ -251,8 +239,22 @@ class PlaybackService : MediaSessionService() {
             controller: MediaSession.ControllerInfo,
             mediaItems: MutableList<MediaItem>
         ): ListenableFuture<MutableList<MediaItem>> {
-            val updatedMediaItems = mediaItems.map {
-                it.buildUpon().setUri(it.requestMetadata.mediaUri).build()
+            val updatedMediaItems = mediaItems.map { item ->
+                val resolvedUri = item.requestMetadata.mediaUri
+                    ?: item.localConfiguration?.uri
+                    ?: ContentUris.withAppendedId(
+                        MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                        item.mediaId.toLongOrNull() ?: 0L
+                    )
+
+                item.buildUpon()
+                    .setUri(resolvedUri)
+                    .setRequestMetadata(
+                        MediaItem.RequestMetadata.Builder()
+                            .setMediaUri(resolvedUri)
+                            .build()
+                    )
+                    .build()
             }.toMutableList()
             return Futures.immediateFuture(updatedMediaItems)
         }

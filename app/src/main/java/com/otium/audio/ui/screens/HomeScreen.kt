@@ -1,8 +1,13 @@
 package com.otium.audio.ui.screens
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,35 +24,34 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRowDefaults
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -65,13 +69,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.otium.audio.R
 import com.otium.audio.data.local.entity.PlaylistEntity
 import com.otium.audio.data.model.AudioFolder
 import com.otium.audio.data.model.Song
-import com.otium.audio.playback.BatteryOptimizationHelper
+import com.otium.audio.data.update.UpdateChecker
 import com.otium.audio.ui.components.FastAlphabetScroller
-import kotlinx.coroutines.launch
 import com.otium.audio.ui.components.MiniPlayer
 import com.otium.audio.ui.components.SongListItem
 import com.otium.audio.ui.components.TagEditorSheet
@@ -84,6 +88,7 @@ import com.otium.audio.ui.theme.TextPrimary
 import com.otium.audio.ui.theme.TextSecondary
 import com.otium.audio.ui.viewmodel.LibraryTab
 import com.otium.audio.ui.viewmodel.MusicUiState
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -106,14 +111,12 @@ fun HomeScreen(
     onEditTagClick: (Song) -> Unit = {},
     onSaveMetadata: (Long, String, String, String) -> Unit = { _, _, _, _ -> },
     onDismissTagEditor: () -> Unit = {},
+    onDismissUpdate: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     var showCreatePlaylistDialog by remember { mutableStateOf(false) }
-    var showBatteryBanner by remember {
-        mutableStateOf(!BatteryOptimizationHelper.isIgnoringBatteryOptimizations(context))
-    }
 
     Box(
         modifier = modifier
@@ -124,107 +127,139 @@ fun HomeScreen(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // App Bar
+            // Poweramp Luxury Header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                    .padding(horizontal = 20.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.MusicNote,
-                        contentDescription = null,
-                        tint = AccentGold,
-                        modifier = Modifier.size(28.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(CircleShape)
+                            .background(DarkSurfaceContainer),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MusicNote,
+                            contentDescription = null,
+                            tint = AccentGold,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = "Otium Audio",
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                            color = TextPrimary
+                            text = "OTIUM AUDIO",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 2.sp
+                            ),
+                            color = AccentGold
                         )
                         Text(
-                            text = "${uiState.songs.size} tracks offline",
+                            text = "Hi-Res Offline Engine • ${uiState.songs.size} Tracks",
                             style = MaterialTheme.typography.labelSmall,
                             color = TextSecondary
                         )
                     }
                 }
 
-                IconButton(onClick = onOpenEqualizer) {
-                    Icon(
-                        imageVector = Icons.Default.Equalizer,
-                        contentDescription = "Equalizer",
-                        tint = if (uiState.equalizerState.isEnabled) AccentGold else TextSecondary,
-                        modifier = Modifier.size(24.dp)
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Update Available Badge Button
+                    if (uiState.availableUpdate != null) {
+                        IconButton(onClick = {
+                            UpdateChecker.openDownload(context, uiState.availableUpdate.downloadUrl)
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.SystemUpdate,
+                                contentDescription = "Update Available",
+                                tint = AccentGold,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+
+                    // Equalizer Button
+                    IconButton(onClick = onOpenEqualizer) {
+                        Icon(
+                            imageVector = Icons.Default.Equalizer,
+                            contentDescription = "Equalizer",
+                            tint = if (uiState.equalizerState.isEnabled) AccentGold else TextSecondary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 }
             }
 
-            // Battery Optimization Alert Banner (For aggressive OEM battery managers)
-            if (showBatteryBanner) {
+            // In-App Auto Update Floating Alert Banner
+            if (uiState.availableUpdate != null) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 4.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = DarkSurfaceContainer)
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = DarkSurfaceContainer),
+                    border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(AccentGold.copy(alpha = 0.6f)))
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.BatteryChargingFull,
-                            contentDescription = null,
-                            tint = AccentGold,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Unrestricted Playback",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                color = TextPrimary
+                                text = "🚀 New Update Available: ${uiState.availableUpdate.versionName}",
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = AccentGold
                             )
                             Text(
-                                text = "Keep music playing uninterrupted when screen is off.",
-                                style = MaterialTheme.typography.bodyMedium,
+                                text = "Tap to update seamlessly with zero package conflict.",
+                                style = MaterialTheme.typography.bodySmall,
                                 color = TextSecondary
                             )
                         }
-                        TextButton(onClick = {
-                            BatteryOptimizationHelper.requestIgnoreBatteryOptimization(context)
-                            showBatteryBanner = false
-                        }) {
-                            Text("Allow", color = AccentGold, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                UpdateChecker.openDownload(context, uiState.availableUpdate.downloadUrl)
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = AccentGold,
+                                contentColor = DarkSurface
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("Update", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
             }
 
-            // Search Bar
+            // Poweramp Floating Search Bar
             OutlinedTextField(
                 value = uiState.searchQuery,
                 onValueChange = onSearchQueryChanged,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
                 placeholder = {
                     Text(
-                        text = stringResource(R.string.search_placeholder),
-                        color = TextSecondary,
-                        style = MaterialTheme.typography.bodyMedium
+                        text = "Search tracks, artists, albums...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary
                     )
                 },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = "Search",
-                        tint = TextSecondary
+                        tint = AccentGold
                     )
                 },
                 trailingIcon = {
@@ -238,55 +273,65 @@ fun HomeScreen(
                         }
                     }
                 },
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(24.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = DarkSurfaceVariant,
-                    unfocusedContainerColor = DarkSurfaceVariant,
+                    focusedContainerColor = DarkSurfaceContainer,
+                    unfocusedContainerColor = DarkSurfaceContainer,
                     focusedBorderColor = AccentGold,
                     unfocusedBorderColor = DarkCardBorder,
+                    cursorColor = AccentGold,
                     focusedTextColor = TextPrimary,
                     unfocusedTextColor = TextPrimary
                 ),
                 singleLine = true
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Tab Row (Hidden while actively searching, viewing a playlist, or viewing a folder)
+            // Poweramp Horizontal Filter Chips (Smooth scrollable pills, zero broken text wrapping!)
             if (!uiState.isSearching && uiState.selectedPlaylist == null && uiState.selectedFolder == null) {
-                PrimaryTabRow(
-                    selectedTabIndex = uiState.selectedTab.ordinal,
-                    containerColor = DarkSurface,
-                    contentColor = AccentGold,
-                    indicator = {
-                        TabRowDefaults.PrimaryIndicator(
-                            modifier = Modifier.tabIndicatorOffset(uiState.selectedTab.ordinal),
-                            color = AccentGold,
-                            height = 3.dp
-                        )
-                    }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    LibraryTab.entries.forEach { tab ->
-                        val title = when (tab) {
-                            LibraryTab.TRACKS -> stringResource(R.string.all_songs)
-                            LibraryTab.FOLDERS -> "Folders"
-                            LibraryTab.FAVORITES -> stringResource(R.string.favorites)
-                            LibraryTab.PLAYLISTS -> stringResource(R.string.playlists)
-                            LibraryTab.HISTORY -> "History"
-                        }
-                        Tab(
-                            selected = uiState.selectedTab == tab,
+                    val chips = listOf(
+                        Triple(LibraryTab.TRACKS, "All Songs", uiState.songs.size),
+                        Triple(LibraryTab.FAVORITES, "Favorites", uiState.favorites.size),
+                        Triple(LibraryTab.RECENTLY_ADDED, "Recently Added", uiState.recentlyAdded.size),
+                        Triple(LibraryTab.MOST_PLAYED, "Most Played", uiState.mostPlayed.size),
+                        Triple(LibraryTab.FOLDERS, "Folders", uiState.folders.size),
+                        Triple(LibraryTab.PLAYLISTS, "Playlists", uiState.playlists.size),
+                        Triple(LibraryTab.HISTORY, "History", uiState.history.size)
+                    )
+
+                    chips.forEach { (tab, title, count) ->
+                        val isSelected = uiState.selectedTab == tab
+                        FilterChip(
+                            selected = isSelected,
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 onTabSelected(tab)
                             },
-                            text = {
+                            label = {
                                 Text(
-                                    text = title,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = if (uiState.selectedTab == tab) AccentGold else TextSecondary
+                                    text = if (count > 0) "$title ($count)" else title,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                 )
-                            }
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = AccentGold,
+                                selectedLabelColor = DarkSurface,
+                                containerColor = DarkSurfaceContainer,
+                                labelColor = TextSecondary
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = isSelected,
+                                borderColor = if (isSelected) AccentGold else DarkCardBorder
+                            ),
+                            shape = RoundedCornerShape(18.dp)
                         )
                     }
                 }
@@ -297,7 +342,7 @@ fun HomeScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onClearSelectedPlaylist) {
@@ -320,7 +365,7 @@ fun HomeScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onClearSelectedFolder) {
@@ -333,12 +378,12 @@ fun HomeScreen(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = uiState.selectedFolder.name,
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             color = TextPrimary
                         )
                         Text(
                             text = "${uiState.selectedFolder.songCount} tracks",
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MaterialTheme.typography.labelSmall,
                             color = TextSecondary
                         )
                     }
@@ -348,108 +393,136 @@ fun HomeScreen(
                                 onSongSelected(uiState.selectedFolder.songs.first(), uiState.selectedFolder.songs)
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = DarkSurface),
-                        shape = RoundedCornerShape(10.dp)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AccentGold,
+                            contentColor = DarkSurface
+                        ),
+                        shape = RoundedCornerShape(8.dp)
                     ) {
                         Text("Play All", fontWeight = FontWeight.Bold)
                     }
                 }
             }
 
-            // Content List
+            // Main Content Area with 120fps smooth transitions
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
             ) {
-                when {
-                    uiState.isSearching -> {
-                        SongListView(
-                            songs = uiState.searchResults,
-                            currentSong = uiState.playbackState.currentSong,
-                            onSongClick = { song -> onSongSelected(song, uiState.searchResults) },
-                            onFavoriteClick = onFavoriteToggle,
-                            onEditTagClick = onEditTagClick
-                        )
-                    }
+                AnimatedContent(
+                    targetState = when {
+                        uiState.isSearching -> "SEARCH"
+                        uiState.selectedPlaylist != null -> "PLAYLIST_DETAIL"
+                        uiState.selectedFolder != null -> "FOLDER_DETAIL"
+                        else -> uiState.selectedTab.name
+                    },
+                    transitionSpec = { fadeIn(animationSpec = androidx.compose.animation.core.tween(180)) togetherWith fadeOut(animationSpec = androidx.compose.animation.core.tween(180)) },
+                    label = "tab_content_anim"
+                ) { target ->
+                    when (target) {
+                        "SEARCH" -> {
+                            SongListView(
+                                songs = uiState.searchResults,
+                                currentSong = uiState.playbackState.currentSong,
+                                onSongClick = { song -> onSongSelected(song, uiState.searchResults) },
+                                onFavoriteClick = onFavoriteToggle,
+                                onEditTagClick = onEditTagClick
+                            )
+                        }
 
-                    uiState.selectedPlaylist != null -> {
-                        SongListView(
-                            songs = uiState.selectedPlaylistSongs,
-                            currentSong = uiState.playbackState.currentSong,
-                            onSongClick = { song -> onSongSelected(song, uiState.selectedPlaylistSongs) },
-                            onFavoriteClick = onFavoriteToggle,
-                            onEditTagClick = onEditTagClick
-                        )
-                    }
+                        "PLAYLIST_DETAIL" -> {
+                            SongListView(
+                                songs = uiState.selectedPlaylistSongs,
+                                currentSong = uiState.playbackState.currentSong,
+                                onSongClick = { song -> onSongSelected(song, uiState.selectedPlaylistSongs) },
+                                onFavoriteClick = onFavoriteToggle,
+                                onEditTagClick = onEditTagClick
+                            )
+                        }
 
-                    uiState.selectedFolder != null -> {
-                        SongListView(
-                            songs = uiState.selectedFolder.songs,
-                            currentSong = uiState.playbackState.currentSong,
-                            onSongClick = { song -> onSongSelected(song, uiState.selectedFolder.songs) },
-                            onFavoriteClick = onFavoriteToggle,
-                            onEditTagClick = onEditTagClick
-                        )
-                    }
+                        "FOLDER_DETAIL" -> {
+                            SongListView(
+                                songs = uiState.selectedFolder?.songs ?: emptyList(),
+                                currentSong = uiState.playbackState.currentSong,
+                                onSongClick = { song -> onSongSelected(song, uiState.selectedFolder?.songs ?: emptyList()) },
+                                onFavoriteClick = onFavoriteToggle,
+                                onEditTagClick = onEditTagClick
+                            )
+                        }
 
-                    uiState.selectedTab == LibraryTab.TRACKS -> {
-                        SongListView(
-                            songs = uiState.songs,
-                            currentSong = uiState.playbackState.currentSong,
-                            onSongClick = { song -> onSongSelected(song, uiState.songs) },
-                            onFavoriteClick = onFavoriteToggle,
-                            onEditTagClick = onEditTagClick,
-                            showAlphabetScroller = true
-                        )
-                    }
+                        LibraryTab.TRACKS.name -> {
+                            // Unified Master List of All Songs (Poweramp Style)
+                            SongListView(
+                                songs = uiState.songs,
+                                currentSong = uiState.playbackState.currentSong,
+                                onSongClick = { song -> onSongSelected(song, uiState.songs) },
+                                onFavoriteClick = onFavoriteToggle,
+                                onEditTagClick = onEditTagClick,
+                                showAlphabetScroller = true
+                            )
+                        }
 
-                    uiState.selectedTab == LibraryTab.FOLDERS -> {
-                        FolderListView(
-                            folders = uiState.folders,
-                            onFolderClick = onFolderSelected
-                        )
-                    }
+                        LibraryTab.FAVORITES.name -> {
+                            SongListView(
+                                songs = uiState.favorites,
+                                currentSong = uiState.playbackState.currentSong,
+                                onSongClick = { song -> onSongSelected(song, uiState.favorites) },
+                                onFavoriteClick = onFavoriteToggle,
+                                onEditTagClick = onEditTagClick
+                            )
+                        }
 
-                    uiState.selectedTab == LibraryTab.FAVORITES -> {
-                        SongListView(
-                            songs = uiState.favorites,
-                            currentSong = uiState.playbackState.currentSong,
-                            onSongClick = { song -> onSongSelected(song, uiState.favorites) },
-                            onFavoriteClick = onFavoriteToggle,
-                            onEditTagClick = onEditTagClick
-                        )
-                    }
+                        LibraryTab.RECENTLY_ADDED.name -> {
+                            SongListView(
+                                songs = uiState.recentlyAdded,
+                                currentSong = uiState.playbackState.currentSong,
+                                onSongClick = { song -> onSongSelected(song, uiState.recentlyAdded) },
+                                onFavoriteClick = onFavoriteToggle,
+                                onEditTagClick = onEditTagClick
+                            )
+                        }
 
-                    uiState.selectedTab == LibraryTab.HISTORY -> {
-                        SongListView(
-                            songs = uiState.history,
-                            currentSong = uiState.playbackState.currentSong,
-                            onSongClick = { song -> onSongSelected(song, uiState.history) },
-                            onFavoriteClick = onFavoriteToggle,
-                            onEditTagClick = onEditTagClick
-                        )
-                    }
+                        LibraryTab.MOST_PLAYED.name -> {
+                            SongListView(
+                                songs = uiState.mostPlayed,
+                                currentSong = uiState.playbackState.currentSong,
+                                onSongClick = { song -> onSongSelected(song, uiState.mostPlayed) },
+                                onFavoriteClick = onFavoriteToggle,
+                                onEditTagClick = onEditTagClick
+                            )
+                        }
 
-                    uiState.selectedTab == LibraryTab.PLAYLISTS -> {
-                        PlaylistsView(
-                            playlists = uiState.playlists,
-                            recentlyAdded = uiState.recentlyAdded,
-                            mostPlayed = uiState.mostPlayed,
-                            onPlaylistClick = onPlaylistSelected,
-                            onSmartPlaylistClick = { _, songs ->
-                                if (songs.isNotEmpty()) {
-                                    onSongSelected(songs.first(), songs)
-                                }
-                            },
-                            onDeletePlaylist = onDeletePlaylist,
-                            onCreatePlaylistClick = { showCreatePlaylistDialog = true }
-                        )
+                        LibraryTab.FOLDERS.name -> {
+                            FolderListView(
+                                folders = uiState.folders,
+                                onFolderClick = onFolderSelected
+                            )
+                        }
+
+                        LibraryTab.PLAYLISTS.name -> {
+                            PlaylistsView(
+                                playlists = uiState.playlists,
+                                onPlaylistClick = onPlaylistSelected,
+                                onDeletePlaylist = onDeletePlaylist,
+                                onCreatePlaylistClick = { showCreatePlaylistDialog = true }
+                            )
+                        }
+
+                        LibraryTab.HISTORY.name -> {
+                            SongListView(
+                                songs = uiState.history,
+                                currentSong = uiState.playbackState.currentSong,
+                                onSongClick = { song -> onSongSelected(song, uiState.history) },
+                                onFavoriteClick = onFavoriteToggle,
+                                onEditTagClick = onEditTagClick
+                            )
+                        }
                     }
                 }
             }
 
-            // Floating MiniPlayer at bottom
+            // Floating Poweramp MiniPlayer at bottom
             val currentSong = uiState.playbackState.currentSong
             if (currentSong != null) {
                 MiniPlayer(
@@ -540,10 +613,10 @@ private fun SongListView(
                         onEditTagClick = onEditTagClick?.let { { it(song) } }
                     )
                 }
-                item { Spacer(modifier = Modifier.height(100.dp)) }
+                item { Spacer(modifier = Modifier.height(90.dp)) }
             }
 
-            if (showAlphabetScroller && songs.size >= 15) {
+            if (showAlphabetScroller && songs.size >= 12) {
                 FastAlphabetScroller(
                     songs = songs,
                     onIndexSelected = { targetIndex ->
@@ -553,7 +626,7 @@ private fun SongListView(
                     },
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
-                        .padding(end = 4.dp, top = 16.dp, bottom = 120.dp)
+                        .padding(end = 4.dp)
                 )
             }
         }
@@ -567,8 +640,15 @@ private fun FolderListView(
     modifier: Modifier = Modifier
 ) {
     if (folders.isEmpty()) {
-        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(text = "No audio folders found", style = MaterialTheme.typography.bodyLarge, color = TextSecondary)
+        Box(
+            modifier = modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "No folders found",
+                style = MaterialTheme.typography.bodyLarge,
+                color = TextSecondary
+            )
         }
     } else {
         LazyColumn(
@@ -582,7 +662,7 @@ private fun FolderListView(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(DarkSurfaceVariant)
                         .clickable { onFolderClick(folder) }
                         .padding(16.dp),
@@ -591,7 +671,7 @@ private fun FolderListView(
                     Box(
                         modifier = Modifier
                             .size(48.dp)
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(12.dp))
                             .background(DarkSurfaceContainer),
                         contentAlignment = Alignment.Center
                     ) {
@@ -608,8 +688,10 @@ private fun FolderListView(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = folder.name,
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                            color = TextPrimary
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = TextPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
                             text = "${folder.songCount} tracks • ${folder.path}",
@@ -621,7 +703,7 @@ private fun FolderListView(
                     }
                 }
             }
-            item { Spacer(modifier = Modifier.height(100.dp)) }
+            item { Spacer(modifier = Modifier.height(90.dp)) }
         }
     }
 }
@@ -629,84 +711,36 @@ private fun FolderListView(
 @Composable
 private fun PlaylistsView(
     playlists: List<PlaylistEntity>,
-    recentlyAdded: List<Song>,
-    mostPlayed: List<Song>,
     onPlaylistClick: (PlaylistEntity) -> Unit,
-    onSmartPlaylistClick: (String, List<Song>) -> Unit,
     onDeletePlaylist: (Long) -> Unit,
     onCreatePlaylistClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val haptic = LocalHapticFeedback.current
-
     Box(modifier = modifier.fillMaxSize()) {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            item { Spacer(modifier = Modifier.height(4.dp)) }
-
-            // Smart Playlists Section
-            item {
+        if (playlists.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
                 Text(
-                    text = "SMART DYNAMIC PLAYLISTS",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                    color = TextSecondary,
-                    modifier = Modifier.padding(vertical = 4.dp)
+                    text = "No playlists created yet. Tap '+' to create one.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = TextSecondary
                 )
             }
-
-            item {
-                SmartPlaylistCard(
-                    title = "⚡ Recently Added",
-                    subtitle = "${recentlyAdded.size} tracks added recently",
-                    trackCount = recentlyAdded.size,
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        onSmartPlaylistClick("Recently Added", recentlyAdded)
-                    }
-                )
-            }
-
-            item {
-                SmartPlaylistCard(
-                    title = "🏆 Most Played / Top Rotation",
-                    subtitle = "${mostPlayed.size} heavy-rotation favorites",
-                    trackCount = mostPlayed.size,
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        onSmartPlaylistClick("Most Played", mostPlayed)
-                    }
-                )
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "USER PLAYLISTS",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                    color = TextSecondary,
-                    modifier = Modifier.padding(vertical = 4.dp)
-                )
-            }
-
-            if (playlists.isEmpty()) {
-                item {
-                    Text(
-                        text = "No custom playlists yet. Tap '+' to create one.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary,
-                        modifier = Modifier.padding(vertical = 12.dp)
-                    )
-                }
-            } else {
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                item { Spacer(modifier = Modifier.height(4.dp)) }
                 items(playlists, key = { it.playlistId }) { playlist ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(14.dp))
                             .background(DarkSurfaceVariant)
                             .clickable { onPlaylistClick(playlist) }
                             .padding(16.dp),
@@ -715,7 +749,7 @@ private fun PlaylistsView(
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
-                                .clip(RoundedCornerShape(8.dp))
+                                .clip(RoundedCornerShape(12.dp))
                                 .background(DarkSurfaceContainer),
                             contentAlignment = Alignment.Center
                         ) {
@@ -731,7 +765,7 @@ private fun PlaylistsView(
 
                         Text(
                             text = playlist.name,
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             color = TextPrimary,
                             modifier = Modifier.weight(1f)
                         )
@@ -745,8 +779,8 @@ private fun PlaylistsView(
                         }
                     }
                 }
+                item { Spacer(modifier = Modifier.height(90.dp)) }
             }
-            item { Spacer(modifier = Modifier.height(100.dp)) }
         }
 
         FloatingActionButton(
@@ -763,54 +797,6 @@ private fun PlaylistsView(
 }
 
 @Composable
-private fun SmartPlaylistCard(
-    title: String,
-    subtitle: String,
-    trackCount: Int,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(DarkSurfaceVariant)
-            .clickable(enabled = trackCount > 0, onClick = onClick)
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(AccentGold.copy(alpha = 0.15f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.MusicNote,
-                contentDescription = null,
-                tint = AccentGold,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = TextPrimary
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = TextSecondary
-            )
-        }
-    }
-}
-
-@Composable
 private fun CreatePlaylistDialog(
     onDismiss: () -> Unit,
     onCreate: (String) -> Unit
@@ -819,17 +805,12 @@ private fun CreatePlaylistDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = stringResource(R.string.create_playlist),
-                color = TextPrimary
-            )
-        },
+        title = { Text(stringResource(R.string.create_playlist), color = TextPrimary, fontWeight = FontWeight.Bold) },
         text = {
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text(stringResource(R.string.playlist_name)) },
+                label = { Text(stringResource(R.string.playlist_name), color = TextSecondary) },
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = AccentGold,
@@ -841,15 +822,18 @@ private fun CreatePlaylistDialog(
         },
         confirmButton = {
             Button(
-                onClick = { onCreate(name) },
+                onClick = { if (name.isNotBlank()) onCreate(name.trim()) },
                 colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = DarkSurface)
             ) {
-                Text(stringResource(R.string.create))
+                Text("Create", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel), color = TextSecondary)
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(containerColor = DarkSurfaceVariant, contentColor = TextPrimary)
+            ) {
+                Text(stringResource(R.string.cancel))
             }
         },
         containerColor = DarkSurfaceContainer

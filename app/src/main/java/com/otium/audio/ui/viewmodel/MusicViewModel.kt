@@ -45,6 +45,20 @@ class MusicViewModel(
         observeEqualizer()
         observeSleepTimer()
         observeSearch()
+        checkForUpdates()
+    }
+
+    fun checkForUpdates() {
+        viewModelScope.launch {
+            val update = com.otium.audio.data.update.UpdateChecker.checkLatestRelease("1.2.0")
+            if (update != null) {
+                _uiState.update { it.copy(availableUpdate = update) }
+            }
+        }
+    }
+
+    fun dismissUpdate() {
+        _uiState.update { it.copy(availableUpdate = null) }
     }
 
     fun onPermissionGranted() {

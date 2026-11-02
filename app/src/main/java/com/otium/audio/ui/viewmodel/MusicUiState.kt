@@ -9,8 +9,10 @@ import com.otium.audio.playback.SleepTimerState
 
 enum class LibraryTab {
     TRACKS,
-    FOLDERS,
     FAVORITES,
+    RECENTLY_ADDED,
+    MOST_PLAYED,
+    FOLDERS,
     PLAYLISTS,
     HISTORY
 }
@@ -35,5 +37,6 @@ data class MusicUiState(
     val hasStoragePermission: Boolean = false,
     val playbackState: MusicPlaybackState = MusicPlaybackState(),
     val equalizerState: EqualizerState = EqualizerState(),
-    val sleepTimerState: SleepTimerState = SleepTimerState()
+    val sleepTimerState: SleepTimerState = SleepTimerState(),
+    val availableUpdate: com.otium.audio.data.update.UpdateInfo? = null
 )

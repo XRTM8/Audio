@@ -35,9 +35,14 @@ data class Song(
             .setIsPlayable(true)
             .build()
 
+        val requestMetadata = MediaItem.RequestMetadata.Builder()
+            .setMediaUri(contentUri)
+            .build()
+
         return MediaItem.Builder()
             .setMediaId(id.toString())
             .setUri(contentUri)
+            .setRequestMetadata(requestMetadata)
             .setMediaMetadata(metadata)
             .build()
     }
