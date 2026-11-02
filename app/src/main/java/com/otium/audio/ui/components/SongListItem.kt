@@ -123,6 +123,13 @@ fun SongListItem(
                         .background(DarkSurfaceContainer),
                     contentAlignment = Alignment.Center
                 ) {
+                    Icon(
+                        imageVector = Icons.Default.MusicNote,
+                        contentDescription = null,
+                        tint = TextTertiary,
+                        modifier = Modifier.size(20.dp)
+                    )
+
                     AsyncImage(
                         model = thumbnailRequest,
                         contentDescription = song.title,
@@ -139,13 +146,6 @@ fun SongListItem(
                         ) {
                             MiniEqBars()
                         }
-                    } else if (song.albumArtUri.toString().isEmpty()) {
-                        Icon(
-                            imageVector = Icons.Default.MusicNote,
-                            contentDescription = null,
-                            tint = TextTertiary,
-                            modifier = Modifier.size(20.dp)
-                        )
                     }
                 }
 

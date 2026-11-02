@@ -12,6 +12,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -101,6 +102,8 @@ import com.otium.audio.ui.components.SleepTimerDialog
 import com.otium.audio.ui.components.TrackSlider
 import com.otium.audio.ui.theme.AccentCyan
 import com.otium.audio.ui.theme.AccentGold
+import com.otium.audio.ui.theme.AccentGoldDim
+import com.otium.audio.ui.theme.AccentGoldLight
 import com.otium.audio.ui.theme.DarkCardBorder
 import com.otium.audio.ui.theme.DarkSurface
 import com.otium.audio.ui.theme.DarkSurfaceContainer
@@ -341,21 +344,15 @@ fun NowPlayingScreen(
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
+                                // High-End Audiophile Vinyl Placeholder if artwork is absent or loading
+                                AudiophileVinylCover()
+
                                 AsyncImage(
                                     model = highResArtworkRequest,
                                     contentDescription = song.title,
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier.matchParentSize()
                                 )
-
-                                if (song.albumArtUri.toString().isEmpty()) {
-                                    Icon(
-                                        imageVector = Icons.Default.MusicNote,
-                                        contentDescription = null,
-                                        tint = TextTertiary,
-                                        modifier = Modifier.size(64.dp)
-                                    )
-                                }
                             }
                         }
                     }
@@ -647,6 +644,43 @@ fun NowPlayingScreen(
                     onDismiss = { showSleepTimer = false }
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun AudiophileVinylCover() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DarkSurfaceVariant),
+        contentAlignment = Alignment.Center
+    ) {
+        // Outer concentric groove rings
+        listOf(0.88f, 0.74f, 0.60f, 0.46f).forEach { fraction ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize(fraction)
+                    .clip(CircleShape)
+                    .border(1.dp, DarkCardBorder.copy(alpha = 0.6f), CircleShape)
+            )
+        }
+
+        // Center Gold Label
+        Box(
+            modifier = Modifier
+                .fillMaxSize(0.32f)
+                .clip(CircleShape)
+                .background(AccentGoldDim)
+                .border(1.5.dp, AccentGold, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.MusicNote,
+                contentDescription = null,
+                tint = AccentGoldLight,
+                modifier = Modifier.size(28.dp)
+            )
         }
     }
 }

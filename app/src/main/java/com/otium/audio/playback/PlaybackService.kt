@@ -62,9 +62,8 @@ class PlaybackService : MediaSessionService() {
             override fun buildAudioSink(
                 context: Context,
                 enableFloatOutput: Boolean,
-                enableAudioTrackPlaybackParams: Boolean,
-                enableOffload: Boolean
-            ): AudioSink {
+                enableAudioTrackPlaybackParams: Boolean
+            ): AudioSink? {
                 return DefaultAudioSink.Builder(context)
                     .setEnableFloatOutput(true) // Studio-grade 32-bit floating point PCM output
                     .setAudioProcessorChain(DefaultAudioSink.DefaultAudioProcessorChain())

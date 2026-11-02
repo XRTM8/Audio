@@ -6,6 +6,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -129,21 +130,19 @@ fun MiniPlayer(
                         .background(DarkSurfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
+                    Icon(
+                        imageVector = Icons.Default.MusicNote,
+                        contentDescription = null,
+                        tint = TextTertiary,
+                        modifier = Modifier.size(20.dp)
+                    )
+
                     AsyncImage(
                         model = thumbReq,
                         contentDescription = currentSong.title,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.matchParentSize()
                     )
-
-                    if (currentSong.albumArtUri.toString().isEmpty()) {
-                        Icon(
-                            imageVector = Icons.Default.MusicNote,
-                            contentDescription = null,
-                            tint = TextTertiary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
                 }
 
                 Spacer(modifier = Modifier.width(12.dp))
