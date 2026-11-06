@@ -34,6 +34,7 @@ private val DEFAULT_10_BANDS = listOf(
 
 data class EqualizerState(
     val isEnabled: Boolean = true,
+    val isBound: Boolean = false,
     val preAmpDb: Float = 0f, // -10dB to +10dB Pre-Amp gain
     val bands: List<EqualizerBand> = DEFAULT_10_BANDS,
     val bassBoostStrength: Int = 0, // 0 to 1000
@@ -55,14 +56,27 @@ data class EqualizerState(
     )
 )
 
-class EqualizerController {
+class EqualizerController(private val store: EqProfileStore? = null) {
 
     private var equalizer: Equalizer? = null
     private var bassBoost: BassBoost? = null
     private var virtualizer: Virtualizer? = null
     private var lastAudioSessionId: Int = C.AUDIO_SESSION_ID_UNSET
 
-    private val _state = MutableStateFlow(EqualizerState())
+    private val _state = MutableStateFlow(
+        store?.load()?.let { saved ->
+            EqualizerState(
+                isEnabled = saved.enabled,
+                preAmpDb = saved.preAmpDb,
+                bassBoostStrength = saved.bassBoost,
+                virtualizerStrength = saved.virtualizer,
+                currentPreset = saved.preset ?: "Custom",
+                bands = DEFAULT_10_BANDS.mapIndexed { index, band ->
+                    band.copy(levelDb = saved.bandLevels.getOrElse(index) { band.levelDb })
+                }
+            )
+        } ?: EqualizerState()
+    )
     val state: StateFlow<EqualizerState> = _state.asStateFlow()
 
     fun bindAudioSession(audioSessionId: Int) {
@@ -73,6 +87,11 @@ class EqualizerController {
 
         lastAudioSessionId = audioSessionId
         release()
+
+        // The device equalizer is no longer used: OtiumAudioProcessor shapes the stream
+        // itself, which removes the five band ceiling and the per-device frequency drift.
+        _state.update { it.copy(isBound = true) }
+        return
 
         // 1. Equalizer — Priority 1000 ensures our app takes full control of the session
         try {
@@ -119,6 +138,7 @@ class EqualizerController {
             }
 
             eq.enabled = _state.value.isEnabled
+            _state.update { it.copy(isBound = true) }
 
             if (updatedBands.isNotEmpty()) {
                 _state.update { it.copy(bands = updatedBands) }
@@ -188,6 +208,7 @@ class EqualizerController {
         }
 
         _state.update { it.copy(isEnabled = enabled) }
+        store?.save(_state.value, force = true)
     }
 
     fun setPreAmpGain(gainDb: Float) {
@@ -218,6 +239,7 @@ class EqualizerController {
             }
             currentState.copy(bands = updatedBands, currentPreset = "Custom")
         }
+        store?.save(_state.value)
     }
 
     fun setBassBoost(strength: Int) {
@@ -242,6 +264,7 @@ class EqualizerController {
         }
 
         _state.update { it.copy(bassBoostStrength = safeStrength) }
+        store?.save(_state.value)
     }
 
     fun setVirtualizer(strength: Int) {
@@ -266,6 +289,7 @@ class EqualizerController {
         }
 
         _state.update { it.copy(virtualizerStrength = safeStrength) }
+        store?.save(_state.value)
     }
 
     fun applyPreset(presetName: String) {
@@ -320,9 +344,11 @@ class EqualizerController {
         }
 
         _state.update { it.copy(bands = updatedBands, currentPreset = presetName) }
+        store?.save(_state.value, force = true)
     }
 
     fun release() {
+        _state.update { it.copy(isBound = false) }
         try {
             equalizer?.release()
         } catch (_: Exception) {}

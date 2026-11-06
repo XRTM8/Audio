@@ -234,7 +234,7 @@ fun SongListItem(
                     .fillMaxWidth()
                     .height(0.5.dp)
                     .align(Alignment.BottomCenter)
-                    .background(DarkCardBorder.copy(alpha = 0.25f))
+                    .background(DarkCardBorder.copy(alpha = 0.08f))
             )
         }
 

@@ -4,6 +4,7 @@ import android.app.Application
 import com.otium.audio.data.local.OtiumDatabase
 import com.otium.audio.data.repository.AudioRepository
 import com.otium.audio.data.repository.AudioRepositoryImpl
+import com.otium.audio.playback.EqProfileStore
 import com.otium.audio.playback.EqualizerController
 import com.otium.audio.playback.MusicController
 import com.otium.audio.playback.SleepTimerController
@@ -35,7 +36,7 @@ class OtiumApplication : Application() {
     }
 
     val equalizerController: EqualizerController by lazy {
-        EqualizerController()
+        EqualizerController(EqProfileStore(this))
     }
 
     val sleepTimerController: SleepTimerController by lazy {
@@ -58,6 +59,8 @@ class OtiumApplication : Application() {
         // repository registers a content observer, and the base context does not exist
         // until attachBaseContext has run. Touching either in the constructor crashes.
         musicController.onTrackEnded = { sleepTimerController.onTrackEnded() }
+        // Re-apply the saved pre-amp to the freshly created player.
+        musicController.setHeadroomDb(equalizerController.state.value.preAmpDb)
         applicationScope.launch { repository.pruneHistory(HISTORY_RETENTION_DAYS) }
     }
 

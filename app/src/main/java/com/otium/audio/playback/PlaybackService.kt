@@ -26,6 +26,8 @@ import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionResult
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
+import com.otium.audio.audio.dsp.OtiumAudioProcessor
+import com.otium.audio.OtiumApplication
 import com.otium.audio.R
 import com.otium.audio.ui.MainActivity
 
@@ -64,9 +66,14 @@ class PlaybackService : MediaSessionService() {
                 enableFloatOutput: Boolean,
                 enableAudioTrackPlaybackParams: Boolean
             ): AudioSink? {
+                val controller = (context.applicationContext as OtiumApplication).equalizerController
                 return DefaultAudioSink.Builder(context)
-                    .setEnableFloatOutput(true) // Studio-grade 32-bit floating point PCM output
-                    .setAudioProcessorChain(DefaultAudioSink.DefaultAudioProcessorChain())
+                    // Float output would bypass the platform effects; our own processor runs
+                    // on 16-bit PCM and does not care either way.
+                    .setEnableFloatOutput(false)
+                    .setAudioProcessorChain(
+                        DefaultAudioSink.DefaultAudioProcessorChain(OtiumAudioProcessor(controller))
+                    )
                     .build()
             }
         }.apply {

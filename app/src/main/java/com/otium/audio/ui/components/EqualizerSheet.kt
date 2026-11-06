@@ -124,7 +124,12 @@ fun EqualizerSheet(
                             }
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "${state.bands.size}-Band Studio Matrix",
+                                text = if (state.isBound) {
+                                    "${state.bands.size}-Band Studio Matrix"
+                                } else {
+                                    // There is no audio session to attach to until something plays.
+                                    "يعمل بعد تشغيل أغنية"
+                                },
                                 fontSize = 10.sp,
                                 color = TextSecondary
                             )

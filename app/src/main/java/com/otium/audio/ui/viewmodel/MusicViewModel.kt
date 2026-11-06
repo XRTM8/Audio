@@ -270,7 +270,10 @@ class MusicViewModel(
     // --- Equalizer ---------------------------------------------------------
 
     fun toggleEqualizer(enabled: Boolean) = equalizerController.setEnabled(enabled)
-    fun setPreAmpGain(gainDb: Float) = equalizerController.setPreAmpGain(gainDb)
+    fun setPreAmpGain(gainDb: Float) {
+        equalizerController.setPreAmpGain(gainDb)
+        musicController.setHeadroomDb(gainDb)
+    }
     fun setEqualizerBandLevel(bandIndex: Short, level: Float) =
         equalizerController.setBandLevel(bandIndex, level)
     fun setBassBoost(strength: Int) = equalizerController.setBassBoost(strength)

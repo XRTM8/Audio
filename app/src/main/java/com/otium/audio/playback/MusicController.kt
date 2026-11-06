@@ -9,15 +9,16 @@ import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import com.otium.audio.data.model.Song
+import kotlin.math.pow
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 class MusicController(
@@ -211,7 +212,7 @@ class MusicController(
                     delay(25L)
                 }
                 controller.pause()
-                controller.volume = 1.0f
+                applyOutputVolume()
             }
         } else {
             // Micro-fade in
@@ -276,8 +277,26 @@ class MusicController(
         _playbackState.update { it.copy(playbackSpeed = speed) }
     }
 
+    private var headroomLinear = 1f
+    private var fadeLinear = 1f
+
+    /** Sleep timer and micro fades go through here so they never cancel the headroom. */
     fun setVolume(volume: Float) {
-        mediaController?.volume = volume.coerceIn(0f, 1f)
+        fadeLinear = volume.coerceIn(0f, 1f)
+        applyOutputVolume()
+    }
+
+    /**
+     * The pre-amp, for real. Negative values buy headroom before an equalizer boost,
+     * positive values push the signal up and rely on the device to stay clean.
+     */
+    fun setHeadroomDb(db: Float) {
+        headroomLinear = 10f.pow(db.coerceIn(-20f, 6f) / 20f)
+        applyOutputVolume()
+    }
+
+    private fun applyOutputVolume() {
+        mediaController?.volume = (headroomLinear * fadeLinear).coerceIn(0f, 1f)
     }
 
     fun playNext(song: Song) {

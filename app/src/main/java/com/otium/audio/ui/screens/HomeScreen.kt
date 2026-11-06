@@ -65,6 +65,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import com.otium.audio.ui.theme.AmbientBackdrop
 import com.otium.audio.ui.theme.ErrorRed
+import com.otium.audio.ui.theme.TextTertiary
 import kotlinx.coroutines.flow.StateFlow
 
 import androidx.compose.ui.text.font.FontWeight
@@ -150,20 +151,22 @@ fun HomeScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                        .padding(start = 20.dp, end = 12.dp, top = 10.dp, bottom = 6.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Branding & Hi-Res Engine Indicator
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    // The library answers "what do I have" before anything else.
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "OTIUM",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Black,
-                                letterSpacing = 2.5.sp,
-                                fontSize = 18.sp
-                            ),
-                            color = AccentGold
+                            text = "مكتبتك",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = TextTertiary
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "${uiState.songs.size} أغنية",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = TextPrimary
                         )
                     }
 
@@ -285,7 +288,7 @@ fun HomeScreen(
                                     .padding(horizontal = 12.dp, vertical = 5.dp)
                             ) {
                                 Text(
-                                    text = if (count > 0) "$label ($count)" else label,
+                                    text = label,
                                     style = MaterialTheme.typography.labelMedium.copy(
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                         fontSize = 11.5.sp
