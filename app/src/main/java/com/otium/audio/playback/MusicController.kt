@@ -167,7 +167,8 @@ class MusicController(
             it.copy(
                 currentSong = song,
                 isPlaying = true,
-                durationMs = song.durationMs
+                durationMs = song.durationMs,
+                queue = playlist
             )
         }
     }

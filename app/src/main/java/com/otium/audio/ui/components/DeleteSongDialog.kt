@@ -46,7 +46,7 @@ fun DeleteSongDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = DarkSurfaceContainer,
-        title = { Text("حذف الأغنية", color = TextPrimary) },
+        title = { Text("حذف المقطع الصوتي", color = TextPrimary) },
         text = {
             Text(
                 "«${song.title}» ستُحذف من الجهاز نهائياً. لا يمكن التراجع.",

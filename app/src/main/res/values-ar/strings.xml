@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Otium Audio</string>
+    <string name="playback_notification_channel_name">تشغيل صوتيات Otium</string>
+    <string name="permission_storage_rationale">يحتاج Otium Audio إلى إذن الوصول للملفات الصوتية لبناء مكتبتك والاستماع بدون إنترنت.</string>
+    <string name="grant_permission">منح الإذن</string>
+    <string name="no_songs_found">لم يتم العثور على أي مقاطع صوتية على الجهاز</string>
+    <string name="all_songs">المقاطع</string>
+    <string name="favorites">المفضلة</string>
+    <string name="playlists">قوائم التشغيل</string>
+    <string name="search_placeholder">بحث في المقاطع، القراء، الألبومات…</string>
+    <string name="create_playlist">إنشاء قائمة تشغيل</string>
+    <string name="playlist_name">اسم القائمة</string>
+    <string name="cancel">إلغاء</string>
+    <string name="create">إنشاء</string>
+</resources>

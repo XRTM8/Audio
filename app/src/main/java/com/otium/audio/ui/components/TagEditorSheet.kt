@@ -90,7 +90,7 @@ fun TagEditorSheet(
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "ID3 Tag Editor",
+                        text = "تعديل بيانات المقطع الصوتي",
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         color = TextPrimary
                     )
@@ -114,7 +114,7 @@ fun TagEditorSheet(
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Text(
-                        text = "FILE PATH",
+                        text = "مسار الملف",
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                         color = AccentGold
                     )
@@ -134,7 +134,7 @@ fun TagEditorSheet(
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
-                label = { Text("Track Title", color = TextSecondary) },
+                label = { Text("عنوان المقطع", color = TextSecondary) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -153,7 +153,7 @@ fun TagEditorSheet(
             OutlinedTextField(
                 value = artist,
                 onValueChange = { artist = it },
-                label = { Text("Artist", color = TextSecondary) },
+                label = { Text("القارئ / الفنان", color = TextSecondary) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -172,7 +172,7 @@ fun TagEditorSheet(
             OutlinedTextField(
                 value = album,
                 onValueChange = { album = it },
-                label = { Text("Album", color = TextSecondary) },
+                label = { Text("الألبوم", color = TextSecondary) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -209,7 +209,7 @@ fun TagEditorSheet(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Save Metadata to File",
+                    text = "حفظ التعديلات",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                 )
             }

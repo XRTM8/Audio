@@ -18,9 +18,11 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.graphicsLayer
@@ -535,10 +537,15 @@ fun NowPlayingScreen(
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = buildString {
-                                append(targetSong.artist)
-                                if (targetSong.album.isNotBlank() && targetSong.album != "<unknown>") {
+                                val cleanArtist = targetSong.artist.trim()
+                                val cleanAlbum = targetSong.album.trim()
+                                append(if (cleanArtist.isNotBlank()) cleanArtist else "فنان غير معروف")
+                                if (cleanAlbum.isNotBlank() &&
+                                    cleanAlbum != "<unknown>" &&
+                                    !cleanAlbum.equals(cleanArtist, ignoreCase = true)
+                                ) {
                                     append("  •  ")
-                                    append(targetSong.album)
+                                    append(cleanAlbum)
                                 }
                             },
                             style = MaterialTheme.typography.bodyMedium.copy(
@@ -682,7 +689,7 @@ fun NowPlayingScreen(
                         )
 
                         val actions = listOf(
-                            Triple(Icons.Default.Lyrics, if (showLyrics) "إخفاء الكلمات" else "كلمات الأغنية") {
+                            Triple(Icons.Default.Lyrics, if (showLyrics) "إخفاء الكلمات" else "عرض الكلمات") {
                                 showMoreSheet = false; showLyrics = !showLyrics
                             },
                             Triple(Icons.Default.Speed, "سرعة التشغيل (${playbackSpeed}x)") {

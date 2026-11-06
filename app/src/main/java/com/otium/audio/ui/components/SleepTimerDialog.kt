@@ -71,7 +71,7 @@ fun SleepTimerDialog(
                 }
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = "Sleep Timer",
+                    text = "مؤقت النوم",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                     color = TextPrimary
                 )
@@ -90,7 +90,7 @@ fun SleepTimerDialog(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = if (state.isEndOfTrack) "Stopping after current track" else "Music will stop in",
+                                text = if (state.isEndOfTrack) "إيقاف التشغيل عند نهاية المقطع الحالي" else "سيتوقف التشغيل بعد",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = TextSecondary
                             )
@@ -108,7 +108,7 @@ fun SleepTimerDialog(
                 }
 
                 Text(
-                    text = "Select duration",
+                    text = "تحديد المدة",
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                     color = TextSecondary
                 )
@@ -122,7 +122,7 @@ fun SleepTimerDialog(
                         FilterChip(
                             selected = false,
                             onClick = { onStartTimer(mins) },
-                            label = { Text("${mins}m") },
+                            label = { Text("${mins} د") },
                             colors = FilterChipDefaults.filterChipColors(
                                 containerColor = DarkSurfaceVariant,
                                 labelColor = TextPrimary
@@ -145,7 +145,7 @@ fun SleepTimerDialog(
                         FilterChip(
                             selected = false,
                             onClick = { onStartTimer(mins) },
-                            label = { Text("${mins}m") },
+                            label = { Text("${mins} د") },
                             colors = FilterChipDefaults.filterChipColors(
                                 containerColor = DarkSurfaceVariant,
                                 labelColor = TextPrimary
@@ -161,7 +161,7 @@ fun SleepTimerDialog(
                     FilterChip(
                         selected = false,
                         onClick = onStartEndOfTrack,
-                        label = { Text("End of Track") },
+                        label = { Text("نهاية المقطع") },
                         colors = FilterChipDefaults.filterChipColors(
                             containerColor = DarkSurfaceVariant,
                             labelColor = TextPrimary
@@ -182,13 +182,13 @@ fun SleepTimerDialog(
                     onClick = onCancelTimer,
                     colors = ButtonDefaults.buttonColors(containerColor = ErrorRed, contentColor = TextPrimary)
                 ) {
-                    Text("Turn Off Timer")
+                    Text("إيقاف المؤقت")
                 }
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Close", color = TextSecondary)
+                Text("إغلاق", color = TextSecondary)
             }
         },
         containerColor = DarkSurfaceContainer,

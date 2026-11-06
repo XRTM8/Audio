@@ -217,7 +217,7 @@ fun HomeScreen(
                         .height(48.dp),
                     placeholder = {
                         Text(
-                            text = "Search ${uiState.songs.size} tracks, artists, albums...",
+                            text = "بحث في ${uiState.songs.size} مقطعاً، فناناً، ألبوماً...",
                             style = MaterialTheme.typography.bodyMedium,
                             color = TextSecondary,
                             fontSize = 12.5.sp
@@ -268,13 +268,13 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         val filterPills = listOf(
-                            Triple(LibraryTab.TRACKS, "All Songs", uiState.songs.size),
-                            Triple(LibraryTab.FAVORITES, "Favorites", uiState.favorites.size),
-                            Triple(LibraryTab.FOLDERS, "Folders", uiState.folders.size),
-                            Triple(LibraryTab.RECENTLY_ADDED, "Recent", uiState.recentlyAdded.size),
-                            Triple(LibraryTab.PLAYLISTS, "Playlists", uiState.playlists.size),
-                            Triple(LibraryTab.MOST_PLAYED, "Most Played", uiState.mostPlayed.size),
-                            Triple(LibraryTab.HISTORY, "History", uiState.history.size)
+                            Triple(LibraryTab.TRACKS, "جميع المقاطع", uiState.songs.size),
+                            Triple(LibraryTab.FAVORITES, "المفضلة", uiState.favorites.size),
+                            Triple(LibraryTab.FOLDERS, "المجلدات", uiState.folders.size),
+                            Triple(LibraryTab.RECENTLY_ADDED, "المضافة حديثاً", uiState.recentlyAdded.size),
+                            Triple(LibraryTab.PLAYLISTS, "قوائم التشغيل", uiState.playlists.size),
+                            Triple(LibraryTab.MOST_PLAYED, "الأكثر استماعاً", uiState.mostPlayed.size),
+                            Triple(LibraryTab.HISTORY, "سجل التشغيل", uiState.history.size)
                         )
 
                         filterPills.forEach { (tab, label, count) ->
@@ -340,7 +340,7 @@ fun HomeScreen(
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = "${uiState.selectedFolder.songCount} tracks",
+                                text = "${uiState.selectedFolder.songCount} مقطع",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = TextSecondary
                             )
@@ -354,7 +354,7 @@ fun HomeScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = DarkSurface),
                             shape = RoundedCornerShape(6.dp)
                         ) {
-                            Text("Play All", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Text("تشغيل الكل", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         }
                     }
                 }
@@ -458,7 +458,7 @@ private fun MasterSongListView(
     if (songs.isEmpty()) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
-                text = "No tracks found",
+                text = "لم يتم العثور على أي مقاطع صوتية",
                 style = MaterialTheme.typography.bodyLarge,
                 color = TextSecondary,
                 textAlign = TextAlign.Center
@@ -528,7 +528,7 @@ private fun FolderListView(
 ) {
     if (folders.isEmpty()) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("No audio folders found", color = TextSecondary)
+            Text("لا توجد مجلدات صوتية", color = TextSecondary)
         }
         return
     }
@@ -566,7 +566,7 @@ private fun FolderListView(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "${folder.songCount} tracks",
+                        text = "${folder.songCount} مقطع",
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
                         color = TextSecondary
                     )
@@ -593,18 +593,18 @@ private fun PlaylistsView(
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
             containerColor = DarkSurfaceContainer,
-            title = { Text("Delete playlist", color = TextPrimary) },
+            title = { Text("حذف قائمة التشغيل", color = TextPrimary) },
             text = {
-                Text("\"${target.name}\" will be removed. The songs stay in your library.", color = TextSecondary)
+                Text("سيتم حذف قائمة «${target.name}». ستبقى المقاطع الصوتية في مكتبتك كما هي.", color = TextSecondary)
             },
             confirmButton = {
                 TextButton(onClick = {
                     onDeletePlaylist(target.playlistId)
                     pendingDelete = null
-                }) { Text("Delete", color = ErrorRed) }
+                }) { Text("حذف", color = ErrorRed) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text("Cancel", color = TextSecondary) }
+                TextButton(onClick = { pendingDelete = null }) { Text("إلغاء", color = TextSecondary) }
             }
         )
     }
@@ -613,7 +613,7 @@ private fun PlaylistsView(
         if (playlists.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = "No playlists yet", color = TextSecondary)
+                    Text(text = "لا توجد قوائم تشغيل حتى الآن", color = TextSecondary)
                     Spacer(modifier = Modifier.height(10.dp))
                     Button(
                         onClick = onCreatePlaylistClick,
@@ -622,7 +622,7 @@ private fun PlaylistsView(
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("New Playlist", fontWeight = FontWeight.Bold)
+                        Text("قائمة تشغيل جديدة", fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -681,7 +681,7 @@ private fun PlaylistsView(
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("New", fontWeight = FontWeight.Bold)
+                    Text("قائمة جديدة", fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -698,12 +698,12 @@ private fun CreatePlaylistDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = DarkSurfaceContainer,
-        title = { Text("New Playlist", color = TextPrimary, fontWeight = FontWeight.Bold) },
+        title = { Text("قائمة تشغيل جديدة", color = TextPrimary, fontWeight = FontWeight.Bold) },
         text = {
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                placeholder = { Text("Playlist name", color = TextSecondary) },
+                placeholder = { Text("اسم القائمة", color = TextSecondary) },
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = AccentGold,
                     unfocusedBorderColor = DarkCardBorder,
@@ -721,11 +721,11 @@ private fun CreatePlaylistDialog(
                 enabled = name.isNotBlank(),
                 colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = DarkSurface)
             ) {
-                Text("Create", fontWeight = FontWeight.Bold)
+                Text("إنشاء", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel", color = TextSecondary) }
+            TextButton(onClick = onDismiss) { Text("إلغاء", color = TextSecondary) }
         }
     )
 }
