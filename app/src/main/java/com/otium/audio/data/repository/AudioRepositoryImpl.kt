@@ -206,8 +206,9 @@ class AudioRepositoryImpl(
             MediaStore.Audio.Media.DATA,
             MediaStore.Audio.Media.DATE_ADDED
         )
-        val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0 AND " +
-            "${MediaStore.Audio.Media.DURATION} >= ?"
+        // IS_MUSIC and a thirty second floor together hid a great deal of real
+        // audio. A one second floor only drops notification blips.
+        val selection = "${MediaStore.Audio.Media.DURATION} >= ?"
         val args = arrayOf(MIN_DURATION_MS.toString())
 
         runCatching {
@@ -275,7 +276,7 @@ class AudioRepositoryImpl(
 
     private companion object {
         const val RESCAN_WINDOW_MS = 1_200L
-        const val MIN_DURATION_MS = 30_000L
+        const val MIN_DURATION_MS = 1_000L
         const val RECENT_LIMIT = 50
         const val UNKNOWN_TITLE = "Unknown Title"
         const val UNKNOWN_ARTIST = "Unknown Artist"

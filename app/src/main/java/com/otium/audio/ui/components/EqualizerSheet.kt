@@ -116,7 +116,7 @@ fun EqualizerSheet(
                                     .padding(horizontal = 5.dp, vertical = 0.5.dp)
                             ) {
                                 Text(
-                                    text = if (state.isEnabled) "ACTIVE (32-BIT)" else "BYPASS",
+                                    text = if (state.isEnabled) "ACTIVE" else "BYPASS",
                                     fontSize = 9.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = if (state.isEnabled) SuccessGreen else TextSecondary

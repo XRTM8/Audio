@@ -169,6 +169,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        // The user may have granted the permission from system settings while the
+        // app was backgrounded; without this the library stays empty forever.
+        if (hasRequiredAudioPermission(this)) viewModel.onPermissionGranted()
+    }
+
     private fun hasRequiredAudioPermission(context: Context): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ContextCompat.checkSelfPermission(

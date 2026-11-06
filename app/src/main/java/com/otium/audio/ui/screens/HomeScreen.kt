@@ -164,20 +164,6 @@ fun HomeScreen(
                             ),
                             color = AccentGold
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(AccentCyan.copy(alpha = 0.15f))
-                                .padding(horizontal = 5.dp, vertical = 1.dp)
-                        ) {
-                            Text(
-                                text = "32-BIT FLOAT",
-                                fontSize = 8.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = AccentCyan
-                            )
-                        }
                     }
 
                     // Icon Cluster
