@@ -1,13 +1,17 @@
 package com.otium.audio.playback
 
+import android.content.Context
+import android.media.AudioDeviceCallback
+import android.media.AudioDeviceInfo
 import android.media.audiofx.BassBoost
 import android.media.audiofx.Equalizer
 import android.media.audiofx.Virtualizer
+import android.media.AudioManager
 import android.util.Log
 import androidx.media3.common.C
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 data class EqualizerBand(
@@ -35,6 +39,7 @@ private val DEFAULT_10_BANDS = listOf(
 data class EqualizerState(
     val isEnabled: Boolean = true,
     val isBound: Boolean = false,
+    val deviceLabel: String = "",
     val preAmpDb: Float = 0f, // -10dB to +10dB Pre-Amp gain
     val bands: List<EqualizerBand> = DEFAULT_10_BANDS,
     val bassBoostStrength: Int = 0, // 0 to 1000
@@ -51,7 +56,10 @@ data class EqualizerState(
     )
 )
 
-class EqualizerController(private val store: EqProfileStore? = null) {
+class EqualizerController(
+    private val context: Context,
+    private val store: EqProfileStore = EqProfileStore(context)
+) {
 
     private var equalizer: Equalizer? = null
     private var bassBoost: BassBoost? = null
@@ -59,7 +67,7 @@ class EqualizerController(private val store: EqProfileStore? = null) {
     private var lastAudioSessionId: Int = C.AUDIO_SESSION_ID_UNSET
 
     private val _state = MutableStateFlow(
-        store?.load()?.let { saved ->
+        store.load(OutputDevice.detect(context).key)?.let { saved ->
             EqualizerState(
                 isEnabled = saved.enabled,
                 preAmpDb = saved.preAmpDb,
@@ -73,6 +81,46 @@ class EqualizerController(private val store: EqProfileStore? = null) {
         } ?: EqualizerState()
     )
     val state: StateFlow<EqualizerState> = _state.asStateFlow()
+
+    private var currentDevice: OutputDevice = OutputDevice.detect(context)
+
+    init {
+        // Headphones appearing is a change of curve, not just of volume.
+        val manager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+        manager?.registerAudioDeviceCallback(
+            object : AudioDeviceCallback() {
+                override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) = reapply()
+                override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>) = reapply()
+            },
+            null
+        )
+        _state.update { it.copy(deviceLabel = currentDevice.label) }
+    }
+
+    private fun reapply() {
+        val detected = OutputDevice.detect(context)
+        if (detected == currentDevice) {
+            _state.update { it.copy(deviceLabel = detected.label) }
+            return
+        }
+        currentDevice = detected
+        val saved = store.load(detected.key)
+        _state.update { previous ->
+            val bands = if (saved == null) {
+                DEFAULT_10_BANDS
+            } else {
+                DEFAULT_10_BANDS.mapIndexed { index, band ->
+                    band.copy(levelDb = saved.bandLevels.getOrElse(index) { band.levelDb })
+                }
+            }
+            previous.copy(
+                deviceLabel = detected.label,
+                bands = bands,
+                preAmpDb = saved?.preAmpDb ?: 0f,
+                currentPreset = saved?.preset ?: "Flat"
+            )
+        }
+    }
 
     fun bindAudioSession(audioSessionId: Int) {
         if (audioSessionId <= 0 || audioSessionId == C.AUDIO_SESSION_ID_UNSET) {
@@ -203,7 +251,7 @@ class EqualizerController(private val store: EqProfileStore? = null) {
         }
 
         _state.update { it.copy(isEnabled = enabled) }
-        store?.save(_state.value, force = true)
+        store.save(currentDevice.key, _state.value, force = true)
     }
 
     fun setPreAmpGain(gainDb: Float) {
@@ -234,7 +282,7 @@ class EqualizerController(private val store: EqProfileStore? = null) {
             }
             currentState.copy(bands = updatedBands, currentPreset = "Custom")
         }
-        store?.save(_state.value)
+        store.save(currentDevice.key, _state.value)
     }
 
     fun setBassBoost(strength: Int) {
@@ -259,7 +307,7 @@ class EqualizerController(private val store: EqProfileStore? = null) {
         }
 
         _state.update { it.copy(bassBoostStrength = safeStrength) }
-        store?.save(_state.value)
+        store.save(currentDevice.key, _state.value)
     }
 
     fun setVirtualizer(strength: Int) {
@@ -284,7 +332,7 @@ class EqualizerController(private val store: EqProfileStore? = null) {
         }
 
         _state.update { it.copy(virtualizerStrength = safeStrength) }
-        store?.save(_state.value)
+        store.save(currentDevice.key, _state.value)
     }
 
     fun applyPreset(presetName: String) {
@@ -337,7 +385,7 @@ class EqualizerController(private val store: EqProfileStore? = null) {
         }
 
         _state.update { it.copy(bands = updatedBands, currentPreset = presetName) }
-        store?.save(_state.value, force = true)
+        store.save(currentDevice.key, _state.value, force = true)
     }
 
     fun release() {

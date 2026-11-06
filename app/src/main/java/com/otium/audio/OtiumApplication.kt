@@ -36,7 +36,7 @@ class OtiumApplication : Application() {
     }
 
     val equalizerController: EqualizerController by lazy {
-        EqualizerController(EqProfileStore(this))
+        EqualizerController(this)
     }
 
     val sleepTimerController: SleepTimerController by lazy {
