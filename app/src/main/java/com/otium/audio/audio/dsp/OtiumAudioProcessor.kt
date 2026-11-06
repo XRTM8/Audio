@@ -60,32 +60,41 @@ class OtiumAudioProcessor(
     }
 
     override fun queueInput(inputBuffer: ByteBuffer) {
+        val remaining = inputBuffer.remaining()
+        if (remaining == 0) return
+
         syncFromController()
 
-        val output = replaceOutputBuffer(inputBuffer.remaining())
-        if (bypass) {
-            // Bit for bit. A flat equalizer should cost nothing at all.
+        val output = replaceOutputBuffer(remaining)
+        if (bypass || channelCount <= 0 || channelCount > CHANNELS_MAX) {
             output.put(inputBuffer)
             output.flip()
             return
         }
-        val inputSamples = inputBuffer.remaining() / bytesPerSample()
 
-        repeat(inputSamples) { index ->
-            val channel = index % channelCount
-            var sample = readSample(inputBuffer, index)
+        val startPos = inputBuffer.position()
+        try {
+            val inputSamples = remaining / bytesPerSample()
+            repeat(inputSamples) {
+                val channel = it % channelCount
+                var sample = readSample(inputBuffer, it)
 
-            sample = preAmp.process(sample)
-            val bandFilters = filters
-            for (band in bandFilters.indices) {
-                sample = bandFilters[band][channel].process(sample)
+                sample = preAmp.process(sample)
+                val bandFilters = filters
+                for (band in bandFilters.indices) {
+                    sample = bandFilters[band][channel].process(sample)
+                }
+                sample = limiter.process(sample, channel)
+
+                writeSample(output, sample)
             }
-            sample = limiter.process(sample, channel)
-
-            writeSample(output, sample)
+            output.flip()
+        } catch (_: Throwable) {
+            inputBuffer.position(startPos)
+            output.clear()
+            output.put(inputBuffer)
+            output.flip()
         }
-
-        output.flip()
     }
 
     private fun rebuildFilters() {

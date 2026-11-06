@@ -70,7 +70,7 @@ class PlaybackService : MediaSessionService() {
                 return DefaultAudioSink.Builder(context)
                     // Float output would bypass the platform effects; our own processor runs
                     // on 16-bit PCM and does not care either way.
-                    .setEnableFloatOutput(false)
+                    .setEnableFloatOutput(true)
                     .setAudioProcessorChain(
                         DefaultAudioSink.DefaultAudioProcessorChain(OtiumAudioProcessor(controller))
                     )
@@ -267,8 +267,13 @@ class PlaybackService : MediaSessionService() {
             }
         }
 
+        private var consecutiveErrors = 0
+
         override fun onPlaybackStateChanged(playbackState: Int) {
             super.onPlaybackStateChanged(playbackState)
+            if (playbackState == Player.STATE_READY && player.isPlaying) {
+                consecutiveErrors = 0
+            }
             val currentId = player.audioSessionId
             if (currentId > 0 && currentId != C.AUDIO_SESSION_ID_UNSET && currentId != activeAudioSessionId) {
                 openSystemAudioEffectSession(currentId)
@@ -277,6 +282,9 @@ class PlaybackService : MediaSessionService() {
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             super.onIsPlayingChanged(isPlaying)
+            if (isPlaying) {
+                consecutiveErrors = 0
+            }
             updateWidgetState()
             val currentId = player.audioSessionId
             if (currentId > 0 && currentId != C.AUDIO_SESSION_ID_UNSET && currentId != activeAudioSessionId) {
@@ -284,11 +292,8 @@ class PlaybackService : MediaSessionService() {
             }
         }
 
-        private var consecutiveErrors = 0
-
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             super.onMediaItemTransition(mediaItem, reason)
-            consecutiveErrors = 0
             updateWidgetState()
             val currentId = player.audioSessionId
             if (currentId > 0 && currentId != C.AUDIO_SESSION_ID_UNSET && currentId != activeAudioSessionId) {
@@ -300,7 +305,7 @@ class PlaybackService : MediaSessionService() {
             super.onPlayerError(error)
             Log.e(TAG, "playback failed: ${error.errorCodeName}", error)
             consecutiveErrors++
-            if (consecutiveErrors <= 3 && player.hasNextMediaItem()) {
+            if (consecutiveErrors < 2 && player.hasNextMediaItem()) {
                 player.seekToNextMediaItem()
                 player.prepare()
                 player.play()
