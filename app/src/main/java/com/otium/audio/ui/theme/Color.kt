@@ -12,7 +12,7 @@ import androidx.compose.ui.graphics.Color
 val DarkSurface          = Color(0xFF000000)
 val DarkSurfaceVariant   = Color(0xD9141419)
 val DarkSurfaceContainer = Color(0xE61A1A21)
-val DarkSurfaceElevated  = Color(0xFF16161C)
+val DarkSurfaceElevated  = Color(0xD216161C)
 val DarkCardBorder       = Color(0x24FFFFFF)
 val GlassSheen           = Color(0x1AFFFFFF)
 val GlassScrim           = Color(0xCC000000)

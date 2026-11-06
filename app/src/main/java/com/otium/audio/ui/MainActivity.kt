@@ -25,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import com.otium.audio.OtiumApplication
+import com.otium.audio.ui.components.DeleteSongDialog
 import com.otium.audio.ui.components.EqualizerSheet
 import com.otium.audio.ui.screens.HomeScreen
 import com.otium.audio.ui.screens.NowPlayingScreen
@@ -69,6 +70,7 @@ class MainActivity : ComponentActivity() {
                         OtiumAccent.color = colors.vibrant.asReadableAccent()
                     }
                     var showHomeEqualizer by remember { mutableStateOf(false) }
+                    var songToDelete by remember { mutableStateOf<com.otium.audio.data.model.Song?>(null) }
 
                     LaunchedEffect(Unit) {
                         if (hasRequiredAudioPermission(this@MainActivity)) {
@@ -103,7 +105,13 @@ class MainActivity : ComponentActivity() {
                             onEditTagClick = viewModel::openTagEditor,
                             onSaveMetadata = viewModel::saveSongMetadata,
                             onDismissTagEditor = { viewModel.openTagEditor(null) },
-                            onDismissUpdate = viewModel::dismissUpdate
+                            onDismissUpdate = viewModel::dismissUpdate,
+                            onSongLongPress = { songToDelete = it }
+                        )
+
+                        DeleteSongDialog(
+                            song = songToDelete,
+                            onDismiss = { songToDelete = null }
                         )
 
                         if (showHomeEqualizer) {

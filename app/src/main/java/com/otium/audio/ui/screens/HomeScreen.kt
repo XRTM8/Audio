@@ -114,6 +114,7 @@ fun HomeScreen(
     onOpenNowPlaying: () -> Unit,
     onOpenEqualizer: () -> Unit = {},
     onEditTagClick: (Song) -> Unit = {},
+    onSongLongPress: (Song) -> Unit = {},
     onSaveMetadata: (Long, String, String, String) -> Unit = { _, _, _, _ -> },
     onDismissTagEditor: () -> Unit = {},
     onDismissUpdate: () -> Unit = {},
@@ -379,6 +380,7 @@ fun HomeScreen(
                             onSongClick = { song -> onSongSelected(song, displayedSongs) },
                             onFavoriteClick = onFavoriteToggle,
                             onEditTagClick = onEditTagClick,
+                        onSongLongPress = onSongLongPress,
                             showAlphabetScroller = !uiState.isSearching && uiState.selectedFolder == null && uiState.selectedPlaylist == null
                         )
                     }
@@ -443,6 +445,7 @@ private fun MasterSongListView(
     onSongClick: (Song) -> Unit,
     onFavoriteClick: (Song) -> Unit,
     onEditTagClick: ((Song) -> Unit)? = null,
+    onSongLongPress: (Song) -> Unit,
     showAlphabetScroller: Boolean = true,
     modifier: Modifier = Modifier
 ) {
@@ -486,7 +489,8 @@ private fun MasterSongListView(
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         onFavoriteClick(song)
                     },
-                    onEditTagClick = onEditTagClick?.let { { it(song) } }
+                    onEditTagClick = onEditTagClick?.let { { it(song) } },
+                    onLongClick = { onSongLongPress(song) }
                 )
             }
             item { Spacer(modifier = Modifier.height(10.dp)) }

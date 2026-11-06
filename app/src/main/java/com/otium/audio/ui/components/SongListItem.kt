@@ -7,6 +7,8 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -67,12 +69,14 @@ import com.otium.audio.ui.theme.TextTertiary
  * Zero Card allocations, hardware-accelerated memory cache for album artwork.
  */
 @Composable
+@OptIn(ExperimentalFoundationApi::class)
 fun SongListItem(
     song: Song,
     isCurrentSong: Boolean,
     onSongClick: () -> Unit,
     onFavoriteClick: () -> Unit,
     onEditTagClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -96,7 +100,10 @@ fun SongListItem(
                     if (isCurrentSong) OtiumAccent.color.copy(alpha = 0.10f)
                     else DarkSurfaceVariant
                 )
-                .clickable { onSongClick() }
+                .combinedClickable(
+                    onClick = { onSongClick() },
+                    onLongClick = onLongClick
+                )
         ) {
             // Left active amber glow bar for playing track
             if (isCurrentSong) {
