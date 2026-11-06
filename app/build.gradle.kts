@@ -24,13 +24,24 @@ android {
         applicationId = "com.otium.audio"
         minSdk = 26
         targetSdk = 35
-        versionCode = 24
-        versionName = "2.9.0"
+        versionCode = 25
+        versionName = "2.9.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    val distributionKeystore = file("distribution.keystore")
     signingConfigs {
+        create("distribution") {
+            storeFile = distributionKeystore
+            storePassword = "otiummusicrelease"
+            keyAlias = "otium"
+            keyPassword = "otiummusicrelease"
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
+            enableV4Signing = true
+        }
         if (keystorePropertiesFile.exists()) {
             create("release") {
                 storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
@@ -61,8 +72,7 @@ android {
             signingConfig = if (keystorePropertiesFile.exists()) {
                 signingConfigs.getByName("release")
             } else {
-                // CI: no keystore - fall back to debug signing
-                signingConfigs.getByName("debug")
+                signingConfigs.getByName("distribution")
             }
         }
         debug {
@@ -72,6 +82,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("distribution")
         }
     }
 
