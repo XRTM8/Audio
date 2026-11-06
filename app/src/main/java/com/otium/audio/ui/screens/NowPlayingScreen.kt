@@ -15,6 +15,7 @@ import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
@@ -30,6 +31,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
@@ -77,6 +79,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import com.otium.audio.ui.theme.AmbientBackdrop
 import kotlinx.coroutines.flow.StateFlow
@@ -117,6 +120,10 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
+private val SWIPE_THRESHOLD = 72.dp
+private const val DRAG_DAMPING = 0.55f
+private const val MAX_DRAG_PX = 320f
+
 @Composable
 fun NowPlayingScreen(
     song: Song,
@@ -155,6 +162,7 @@ fun NowPlayingScreen(
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
+    val density = LocalDensity.current
     val scope = rememberCoroutineScope()
 
     // Dynamic Palette extracted from album art
@@ -321,22 +329,32 @@ fun NowPlayingScreen(
                                     .clip(RoundedCornerShape(18.dp))
                                     .background(DarkSurfaceVariant)
                                     .pointerInput(Unit) {
+                                        val threshold = with(density) { SWIPE_THRESHOLD.roundToPx() }.toFloat()
                                         detectHorizontalDragGestures(
+                                            onDragCancel = {
+                                                scope.launch {
+                                                    dragX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
+                                                }
+                                            },
                                             onDragEnd = {
                                                 scope.launch {
-                                                    if (dragX.value > 160f) {
+                                                    if (dragX.value > threshold) {
                                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                         onSkipPrevious()
-                                                    } else if (dragX.value < -160f) {
+                                                    } else if (dragX.value < -threshold) {
                                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                         onSkipNext()
                                                     }
                                                     dragX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
                                                 }
                                             },
-                                            onHorizontalDrag = { _, amount ->
+                                            onHorizontalDrag = { change, amount ->
+                                                change.consume()
                                                 scope.launch {
-                                                    dragX.snapTo(dragX.value + amount * 0.55f)
+                                                    dragX.snapTo(
+                                                        (dragX.value + amount * DRAG_DAMPING)
+                                                            .coerceIn(-MAX_DRAG_PX, MAX_DRAG_PX)
+                                                    )
                                                 }
                                             }
                                         )
@@ -585,12 +603,14 @@ fun NowPlayingScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f).forEach { speed ->
                                 FilterChip(
-                                    selected = playbackSpeed == speed,
+                                    selected = kotlin.math.abs(playbackSpeed - speed) < 0.01f,
                                     onClick = { onSetPlaybackSpeed(speed); showSpeedDialog = false },
                                     label = { Text("${speed}x", fontSize = 12.sp) },
                                     colors = FilterChipDefaults.filterChipColors(

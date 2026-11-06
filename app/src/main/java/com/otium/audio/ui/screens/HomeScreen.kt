@@ -6,6 +6,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -62,6 +64,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import com.otium.audio.ui.theme.AmbientBackdrop
+import com.otium.audio.ui.theme.ErrorRed
 import kotlinx.coroutines.flow.StateFlow
 
 import androidx.compose.ui.text.font.FontWeight
@@ -579,6 +582,7 @@ private fun FolderListView(
 }
 
 // ── Playlists View ───────────────────────────────────────────────────────────
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PlaylistsView(
     playlists: List<PlaylistEntity>,
@@ -587,6 +591,28 @@ private fun PlaylistsView(
     onCreatePlaylistClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var pendingDelete by remember { mutableStateOf<PlaylistEntity?>(null) }
+
+    pendingDelete?.let { target ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            containerColor = DarkSurfaceContainer,
+            title = { Text("Delete playlist", color = TextPrimary) },
+            text = {
+                Text("\"${target.name}\" will be removed. The songs stay in your library.", color = TextSecondary)
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    onDeletePlaylist(target.playlistId)
+                    pendingDelete = null
+                }) { Text("Delete", color = ErrorRed) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = null }) { Text("Cancel", color = TextSecondary) }
+            }
+        )
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         if (playlists.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -611,7 +637,10 @@ private fun PlaylistsView(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(DarkSurfaceVariant)
-                            .clickable { onPlaylistClick(playlist) }
+                            .combinedClickable(
+                                onClick = { onPlaylistClick(playlist) },
+                                onLongClick = { pendingDelete = playlist }
+                            )
                             .padding(horizontal = 14.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {

@@ -22,10 +22,10 @@ android {
 
     defaultConfig {
         applicationId = "com.otium.audio"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 35
-        versionCode = 10
-        versionName = "1.5.4"
+        versionCode = 11
+        versionName = "2.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -123,4 +123,6 @@ dependencies {
 
     // Palette API for dynamic theme extraction
     implementation(libs.androidx.palette)
+
+    testImplementation("junit:junit:4.13.2")
 }
