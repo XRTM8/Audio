@@ -70,6 +70,9 @@ class MusicViewModel(
         _uiState.update { it.copy(hasStoragePermission = true) }
         if (libraryLoaded) return
         libraryLoaded = true
+        // Immediately scan now that permission is granted so songs appear
+        // on first launch without needing an app restart.
+        repository.refresh()
         loadLibrary()
     }
 

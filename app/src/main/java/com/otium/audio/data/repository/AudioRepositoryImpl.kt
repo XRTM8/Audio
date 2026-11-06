@@ -85,6 +85,12 @@ class AudioRepositoryImpl(
         }
     }
 
+    override fun refresh() {
+        scope.launch {
+            songs.value = readLibrary(songs.value)
+        }
+    }
+
     override fun getAllSongsFlow(): Flow<List<Song>> =
         combine(songs, favoriteIds) { list, favorites ->
             if (favorites.isEmpty()) list else list.map { it.withFavorite(favorites) }

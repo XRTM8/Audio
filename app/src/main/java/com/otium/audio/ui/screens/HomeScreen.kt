@@ -174,7 +174,8 @@ fun HomeScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (uiState.availableUpdate != null) {
                             IconButton(onClick = {
-                                UpdateChecker.openDownload(context, uiState.availableUpdate.downloadUrl)
+                                // Open Settings sheet (full in-app download UI).
+                                showSettings = true
                             }) {
                                 Icon(
                                     imageVector = Icons.Default.SystemUpdate,

@@ -26,4 +26,7 @@ interface AudioRepository {
     fun getRecentlyAddedFlow(): Flow<List<Song>>
     fun searchSongs(query: String): Flow<List<Song>>
     suspend fun updateSongMetadata(songId: Long, title: String, artist: String, album: String): Boolean
+
+    /** Force an immediate MediaStore re-scan without waiting for the observer debounce. */
+    fun refresh()
 }

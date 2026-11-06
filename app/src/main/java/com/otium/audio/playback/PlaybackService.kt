@@ -284,8 +284,11 @@ class PlaybackService : MediaSessionService() {
             }
         }
 
+        private var consecutiveErrors = 0
+
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             super.onMediaItemTransition(mediaItem, reason)
+            consecutiveErrors = 0
             updateWidgetState()
             val currentId = player.audioSessionId
             if (currentId > 0 && currentId != C.AUDIO_SESSION_ID_UNSET && currentId != activeAudioSessionId) {
@@ -296,12 +299,13 @@ class PlaybackService : MediaSessionService() {
         override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
             super.onPlayerError(error)
             Log.e(TAG, "playback failed: ${error.errorCodeName}", error)
-            // A dead file should cost the listener one track, not the whole session.
-            if (player.hasNextMediaItem()) {
+            consecutiveErrors++
+            if (consecutiveErrors <= 3 && player.hasNextMediaItem()) {
                 player.seekToNextMediaItem()
                 player.prepare()
                 player.play()
             } else {
+                consecutiveErrors = 0
                 player.pause()
             }
         }
