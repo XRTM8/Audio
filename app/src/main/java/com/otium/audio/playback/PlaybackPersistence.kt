@@ -8,9 +8,9 @@ import android.content.Context
  * The queue is written only when it changes; the position is written every few seconds.
  * That keeps a ten thousand track queue from being serialised on every tick.
  */
-class PlaybackPersistence(context: Context) {
+class PlaybackPersistence(private val context: Context) {
 
-    private val prefs = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+    private val prefs by lazy { context.getSharedPreferences(FILE, Context.MODE_PRIVATE) }
 
     fun saveQueue(songIds: List<Long>, index: Int) {
         prefs.edit()

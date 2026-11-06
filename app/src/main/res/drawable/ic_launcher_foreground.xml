@@ -4,7 +4,20 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+
+    <!-- Outer ring: the monogram, thin so it stays crisp at 48 dp -->
     <path
-        android:fillColor="#E5A93C"
-        android:pathData="M38,30v48l38,-24z" />
+        android:pathData="M54,28 A26,26 0 0 1 54,80 A26,26 0 0 1 54,28 Z"
+        android:fillColor="#00000000"
+        android:strokeColor="#E9C37C"
+        android:strokeWidth="2.6"
+        android:strokeLineCap="round" />
+
+    <!-- Inner play mark, optical centre shifted left of the geometric centre -->
+    <path
+        android:pathData="M48.5,44.5 L63,54 L48.5,63.5 Z"
+        android:fillColor="#F6F6F8"
+        android:strokeColor="#F6F6F8"
+        android:strokeWidth="1.6"
+        android:strokeLineJoin="round" />
 </vector>

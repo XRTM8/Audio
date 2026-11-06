@@ -52,9 +52,11 @@ class OtiumApplication : Application() {
         )
     }
 
-    init {
-        // Both were dead before: the end-of-track timer was never triggered and the
-        // playback history table was never pruned.
+    override fun onCreate() {
+        super.onCreate()
+        // Deliberately here and not in init: the controller opens preferences and the
+        // repository registers a content observer, and the base context does not exist
+        // until attachBaseContext has run. Touching either in the constructor crashes.
         musicController.onTrackEnded = { sleepTimerController.onTrackEnded() }
         applicationScope.launch { repository.pruneHistory(HISTORY_RETENTION_DAYS) }
     }
