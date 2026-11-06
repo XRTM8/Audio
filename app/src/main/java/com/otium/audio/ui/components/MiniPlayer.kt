@@ -1,7 +1,7 @@
 package com.otium.audio.ui.components
 
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
@@ -9,43 +9,44 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.LocalLayoutDirection
+
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
@@ -59,6 +60,7 @@ import com.otium.audio.ui.theme.DarkSurfaceVariant
 import com.otium.audio.ui.theme.TextPrimary
 import com.otium.audio.ui.theme.TextSecondary
 import com.otium.audio.ui.theme.TextTertiary
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Poweramp-grade Full-Width Flat Bottom Console Player.
@@ -68,7 +70,7 @@ import com.otium.audio.ui.theme.TextTertiary
 fun MiniPlayer(
     currentSong: Song,
     isPlaying: Boolean,
-    currentPositionMs: Long,
+    positionFlow: StateFlow<Long>,
     durationMs: Long,
     onPlayPauseClick: () -> Unit,
     onSkipNextClick: () -> Unit,
@@ -77,6 +79,7 @@ fun MiniPlayer(
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
+    val position by positionFlow.collectAsState()
 
     val thumbReq = remember(currentSong.albumArtUri) {
         ImageRequest.Builder(context)
@@ -89,7 +92,7 @@ fun MiniPlayer(
     }
 
     val progress = if (durationMs > 0)
-        (currentPositionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
+        (position.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
     else 0f
 
     val btnScale by animateFloatAsState(
@@ -98,7 +101,6 @@ fun MiniPlayer(
         label = "mini_btn_scale"
     )
 
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Column(
             modifier = modifier
                 .fillMaxWidth()
@@ -222,5 +224,5 @@ fun MiniPlayer(
                 }
             }
         }
-    }
+
 }

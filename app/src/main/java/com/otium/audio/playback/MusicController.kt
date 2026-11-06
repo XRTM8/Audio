@@ -31,6 +31,11 @@ class MusicController(
     private val _playbackState = MutableStateFlow(MusicPlaybackState())
     val playbackState: StateFlow<MusicPlaybackState> = _playbackState.asStateFlow()
 
+    // Position updates four times a second. Keeping it out of MusicPlaybackState means
+    // the library screen no longer recomposes on every tick just to move a 2 dp bar.
+    private val _position = MutableStateFlow(0L)
+    val position: StateFlow<Long> = _position.asStateFlow()
+
     private var currentPlaylistSongs: List<Song> = emptyList()
 
     init {
@@ -62,13 +67,12 @@ class MusicController(
         val currentSong = currentPlaylistSongs.find { it.id.toString() == currentMediaId }
 
         val duration = if (controller.duration > 0) controller.duration else (currentSong?.durationMs ?: 0L)
-        val position = controller.currentPosition.coerceAtLeast(0L)
+        _position.value = controller.currentPosition.coerceAtLeast(0L)
 
         _playbackState.update {
             it.copy(
                 currentSong = currentSong ?: it.currentSong,
                 isPlaying = controller.isPlaying,
-                currentPositionMs = position,
                 durationMs = duration,
                 repeatMode = controller.repeatMode,
                 isShuffleEnabled = controller.shuffleModeEnabled,
@@ -90,14 +94,7 @@ class MusicController(
             while (isActive) {
                 val controller = mediaController
                 if (controller != null && controller.isPlaying) {
-                    val position = controller.currentPosition.coerceAtLeast(0L)
-                    val duration = if (controller.duration > 0) controller.duration else _playbackState.value.durationMs
-                    _playbackState.update {
-                        it.copy(
-                            currentPositionMs = position,
-                            durationMs = duration
-                        )
-                    }
+                    _position.value = controller.currentPosition.coerceAtLeast(0L)
                 }
                 delay(250L)
             }
@@ -154,7 +151,6 @@ class MusicController(
             it.copy(
                 currentSong = song,
                 isPlaying = true,
-                currentPositionMs = 0L,
                 durationMs = song.durationMs
             )
         }
@@ -192,7 +188,7 @@ class MusicController(
     fun seekTo(positionMs: Long) {
         val controller = mediaController ?: return
         controller.seekTo(positionMs)
-        _playbackState.update { it.copy(currentPositionMs = positionMs) }
+        _position.value = positionMs
     }
 
     fun skipToNext() {
@@ -317,8 +313,7 @@ class MusicController(
                 _playbackState.update {
                     it.copy(
                         currentSong = newSong,
-                        durationMs = newSong.durationMs,
-                        currentPositionMs = 0L
+                        durationMs = newSong.durationMs
                     )
                 }
             }

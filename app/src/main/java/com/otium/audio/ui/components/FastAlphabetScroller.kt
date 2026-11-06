@@ -29,10 +29,10 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.LocalLayoutDirection
+
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.LayoutDirection
+
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.otium.audio.data.model.Song
@@ -89,7 +89,6 @@ fun FastAlphabetScroller(
         map
     }
 
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Box(
             modifier = modifier
                 .onGloballyPositioned { coordinates ->
@@ -180,5 +179,5 @@ fun FastAlphabetScroller(
                 }
             }
         }
-    }
+
 }

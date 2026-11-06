@@ -42,6 +42,9 @@ class MusicViewModel(
     private val _uiState = MutableStateFlow(MusicUiState(selectedTab = initialTab))
     val uiState: StateFlow<MusicUiState> = _uiState.asStateFlow()
 
+    /** Ticks four times a second while playing; collected only by the progress widgets. */
+    val position: StateFlow<Long> = musicController.position
+
     private val searchQuery = MutableStateFlow("")
 
     private var libraryLoaded = false

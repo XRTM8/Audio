@@ -10,23 +10,22 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
@@ -36,6 +35,7 @@ import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SystemUpdate
+import androidx.compose.material.icons.Icons
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -50,18 +50,18 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import kotlinx.coroutines.flow.StateFlow
 
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -94,6 +94,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeScreen(
     uiState: MusicUiState,
+    positionFlow: StateFlow<Long>,
     onTabSelected: (LibraryTab) -> Unit,
     onSearchQueryChanged: (String) -> Unit,
     onSongSelected: (Song, List<Song>) -> Unit,
@@ -119,10 +120,9 @@ fun HomeScreen(
     var showCreatePlaylistDialog by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
 
-    // Active displayed track list based on selected filter
-    val displayedSongs by remember(uiState) {
-        derivedStateOf {
-            when {
+    // Active displayed track list based on selected filter. Cheap to evaluate and it
+    // returns the list instance itself, so reading it on every recomposition is free.
+    val displayedSongs = when {
                 uiState.isSearching -> uiState.searchResults
                 uiState.selectedPlaylist != null -> uiState.selectedPlaylistSongs
                 uiState.selectedFolder != null -> uiState.selectedFolder.songs
@@ -131,8 +131,6 @@ fun HomeScreen(
                 uiState.selectedTab == LibraryTab.MOST_PLAYED -> uiState.mostPlayed
                 uiState.selectedTab == LibraryTab.HISTORY -> uiState.history
                 else -> uiState.songs
-            }
-        }
     }
 
         Box(
@@ -402,7 +400,7 @@ fun HomeScreen(
                     MiniPlayer(
                         currentSong = currentSong,
                         isPlaying = uiState.playbackState.isPlaying,
-                        currentPositionMs = uiState.playbackState.currentPositionMs,
+                        positionFlow = positionFlow,
                         durationMs = uiState.playbackState.durationMs,
                         onPlayPauseClick = onPlayPause,
                         onSkipNextClick = onSkipNext,

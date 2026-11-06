@@ -73,6 +73,7 @@ class MainActivity : ComponentActivity() {
                     } else {
                         HomeScreen(
                             uiState = uiState,
+                            positionFlow = viewModel.position,
                             onTabSelected = viewModel::selectTab,
                             onSearchQueryChanged = viewModel::onSearchQueryChanged,
                             onSongSelected = viewModel::playSong,
@@ -129,7 +130,7 @@ class MainActivity : ComponentActivity() {
                                 NowPlayingScreen(
                                     song = currentSong,
                                     isPlaying = uiState.playbackState.isPlaying,
-                                    currentPositionMs = uiState.playbackState.currentPositionMs,
+                                    positionFlow = viewModel.position,
                                     durationMs = uiState.playbackState.durationMs,
                                     repeatMode = uiState.playbackState.repeatMode,
                                     isShuffleEnabled = uiState.playbackState.isShuffleEnabled,
