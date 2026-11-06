@@ -20,6 +20,7 @@ interface AudioRepository {
     suspend fun removeSongFromPlaylist(playlistId: Long, songId: Long)
 
     suspend fun recordHistory(songId: Long)
+    suspend fun pruneHistory(maxAgeDays: Int)
     fun getRecentlyPlayedFlow(): Flow<List<Song>>
     fun getMostPlayedFlow(limit: Int = 50): Flow<List<Song>>
     fun getRecentlyAddedFlow(): Flow<List<Song>>

@@ -38,6 +38,9 @@ class MusicController(
 
     private var currentPlaylistSongs: List<Song> = emptyList()
 
+    /** Set by the application so the sleep timer can stop at the end of a track. */
+    var onTrackEnded: (() -> Unit)? = null
+
     init {
         initializeController()
     }
@@ -307,6 +310,7 @@ class MusicController(
         }
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) onTrackEnded?.invoke()
             val mediaId = mediaItem?.mediaId
             val newSong = currentPlaylistSongs.find { it.id.toString() == mediaId }
             if (newSong != null) {

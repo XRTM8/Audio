@@ -1,11 +1,12 @@
 package com.otium.audio.ui.viewmodel
 
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.createSavedStateHandle
-import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import com.otium.audio.BuildConfig
 import com.otium.audio.data.local.entity.PlaylistEntity
 import com.otium.audio.data.model.AudioFolder
 import com.otium.audio.data.model.Song
@@ -14,16 +15,17 @@ import com.otium.audio.data.update.UpdateChecker
 import com.otium.audio.playback.EqualizerController
 import com.otium.audio.playback.MusicController
 import com.otium.audio.playback.SleepTimerController
-import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 @OptIn(FlowPreview::class)
@@ -157,7 +159,9 @@ class MusicViewModel(
 
     fun checkForUpdates() {
         viewModelScope.launch {
-            UpdateChecker.checkLatestRelease(VERSION_NAME)?.let { update ->
+            // Not on the first frame: a network round trip should never race the UI.
+            delay(UPDATE_CHECK_DELAY_MS)
+            UpdateChecker.checkLatestRelease(BuildConfig.VERSION_NAME)?.let { update ->
                 _uiState.update { it.copy(availableUpdate = update) }
             }
         }
@@ -312,6 +316,6 @@ class MusicViewModel(
     private companion object {
         const val SEARCH_DEBOUNCE_MS = 200L
         const val MOST_PLAYED_LIMIT = 50
-        const val VERSION_NAME = "1.5.1"
+        const val UPDATE_CHECK_DELAY_MS = 3_000L
     }
 }

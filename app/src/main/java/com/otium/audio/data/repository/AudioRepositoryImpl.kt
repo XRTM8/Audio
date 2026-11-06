@@ -156,6 +156,11 @@ class AudioRepositoryImpl(
         audioDao.recordHistory(HistoryEntity(songId = songId, playedAt = System.currentTimeMillis()))
     }
 
+    override suspend fun pruneHistory(maxAgeDays: Int) = withContext(io) {
+        val cutoff = System.currentTimeMillis() - maxAgeDays * 24L * 60L * 60L * 1000L
+        audioDao.pruneHistory(cutoff)
+    }
+
     override fun getRecentlyPlayedFlow(): Flow<List<Song>> =
         combine(getAllSongsFlow(), audioDao.getRecentHistorySongIdsFlow()) { list, ids ->
             val byId = list.associateBy { it.id }

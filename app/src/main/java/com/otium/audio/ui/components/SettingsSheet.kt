@@ -9,44 +9,37 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.GraphicEq
-import androidx.compose.material.icons.filled.Headphones
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.SystemUpdate
+import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,14 +47,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.otium.audio.data.update.UpdateInfo
+import com.otium.audio.BuildConfig
 import com.otium.audio.data.update.UpdateChecker
+import com.otium.audio.data.update.UpdateInfo
 import com.otium.audio.ui.theme.AccentCyan
 import com.otium.audio.ui.theme.AccentGold
 import com.otium.audio.ui.theme.DarkCardBorder
@@ -90,10 +84,6 @@ fun SettingsSheet(
     var updateResultText by remember { mutableStateOf<String?>(null) }
     var latestFoundUpdate by remember { mutableStateOf(availableUpdate) }
 
-    var autoUpdateEnabled by remember { mutableStateOf(true) }
-    var highResAudioEnabled by remember { mutableStateOf(true) }
-    var ignoreShortAudio by remember { mutableStateOf(true) }
-    var smooth120HzEnabled by remember { mutableStateOf(true) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -187,7 +177,7 @@ fun SettingsSheet(
                                     .padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
                                 Text(
-                                    text = "v1.5.1",
+                                    text = "v${BuildConfig.VERSION_NAME}",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = AccentGold
@@ -196,7 +186,7 @@ fun SettingsSheet(
                         }
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "Poweramp Audiophile Engine • 32-Bit Float • v1.5.1",
+                            text = "مشغّل موسيقى محلي • v${BuildConfig.VERSION_NAME}",
                             style = MaterialTheme.typography.bodySmall,
                             color = TextSecondary
                         )
@@ -221,39 +211,6 @@ fun SettingsSheet(
                 border = androidx.compose.foundation.BorderStroke(1.dp, DarkCardBorder)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    // Auto-check toggle
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Check for Updates Automatically",
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                                color = TextPrimary
-                            )
-                            Text(
-                                text = "التحقق من التحديثات تلقائياً في الخلفية",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = TextSecondary
-                            )
-                        }
-                        Switch(
-                            checked = autoUpdateEnabled,
-                            onCheckedChange = { autoUpdateEnabled = it },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = AccentGold,
-                                checkedTrackColor = DarkSurface
-                            )
-                        )
-                    }
-
-                    HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 12.dp),
-                        color = DarkCardBorder.copy(alpha = 0.6f)
-                    )
-
                     // Manual Check Button
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -265,13 +222,13 @@ fun SettingsSheet(
                                 scope.launch {
                                     isCheckingUpdate = true
                                     updateResultText = null
-                                    val result = UpdateChecker.checkLatestRelease("1.5.1")
+                                    val result = UpdateChecker.checkLatestRelease(BuildConfig.VERSION_NAME)
                                     isCheckingUpdate = false
                                     if (result != null) {
                                         latestFoundUpdate = result
                                         updateResultText = "تحديث جديد متوفر: ${result.versionName}"
                                     } else {
-                                        updateResultText = "أنت تستخدم أحدث إصدار متوفر بالفعل (v1.5.1) ✓"
+                                        updateResultText = "أنت تستخدم أحدث إصدار متوفر بالفعل (v${BuildConfig.VERSION_NAME}) ✓"
                                     }
                                 }
                             },
@@ -394,92 +351,9 @@ fun SettingsSheet(
                                 Text("فتح الموازن الصوتي ومؤثرات 3D والـ Bass", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
                             }
                         }
-                        Icon(imageVector = Icons.Default.OpenInNew, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(18.dp))
+                        Icon(imageVector = Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(18.dp))
                     }
 
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = DarkCardBorder.copy(alpha = 0.6f))
-
-                    // Hi-Res Audio 32-bit Float Processing
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("32-Bit High-Res Processing", fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                            Text("معالجة الصوت بدقة فائقة لمنع التشويش والقص", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
-                        }
-                        Switch(
-                            checked = highResAudioEnabled,
-                            onCheckedChange = { highResAudioEnabled = it },
-                            colors = SwitchDefaults.colors(checkedThumbColor = AccentGold, checkedTrackColor = DarkSurface)
-                        )
-                    }
-
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = DarkCardBorder.copy(alpha = 0.6f))
-
-                    // Filter short tracks
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Ignore Short Audio (< 30s)", fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                            Text("استبعاد التسجيلات الصوتية والنغمات القصيرة", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
-                        }
-                        Switch(
-                            checked = ignoreShortAudio,
-                            onCheckedChange = { ignoreShortAudio = it },
-                            colors = SwitchDefaults.colors(checkedThumbColor = AccentGold, checkedTrackColor = DarkSurface)
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Section: Performance & Display
-            Text(
-                text = "PERFORMANCE & DISPLAY (الأداء ومعدل الإطارات)",
-                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                color = AccentGold
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = DarkSurfaceVariant),
-                border = androidx.compose.foundation.BorderStroke(1.dp, DarkCardBorder)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("120Hz Fluid Physics", fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(4.dp))
-                                        .background(AccentCyan.copy(alpha = 0.2f))
-                                        .padding(horizontal = 4.dp, vertical = 1.dp)
-                                ) {
-                                    Text("ACTIVE", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = AccentCyan)
-                                }
-                            }
-                            Text("حركة سلسة ومحسنة للشاشات السريعة بدون تقطيع", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
-                        }
-                        Switch(
-                            checked = smooth120HzEnabled,
-                            onCheckedChange = { smooth120HzEnabled = it },
-                            colors = SwitchDefaults.colors(checkedThumbColor = AccentCyan, checkedTrackColor = DarkSurface)
-                        )
-                    }
                 }
             }
 
@@ -508,7 +382,7 @@ fun SettingsSheet(
                         Text("Otium Audio on GitHub", fontWeight = FontWeight.Bold, color = TextPrimary)
                         Text("مستودع المشروع والتحديثات الرسمية", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
                     }
-                    Icon(imageVector = Icons.Default.OpenInNew, contentDescription = null, tint = AccentGold)
+                    Icon(imageVector = Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, tint = AccentGold)
                 }
             }
 

@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Equalizer
@@ -42,7 +43,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.RepeatOne
 import androidx.compose.material.icons.filled.Shuffle
@@ -62,7 +62,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -101,7 +100,6 @@ import com.otium.audio.ui.components.LyricsSheet
 import com.otium.audio.ui.components.QueueSheet
 import com.otium.audio.ui.components.SleepTimerDialog
 import com.otium.audio.ui.components.TrackSlider
-import com.otium.audio.ui.theme.AccentCyan
 import com.otium.audio.ui.theme.AccentGold
 import com.otium.audio.ui.theme.AccentGoldDim
 import com.otium.audio.ui.theme.AccentGoldLight
@@ -113,7 +111,6 @@ import com.otium.audio.ui.theme.DarkSurfaceVariant
 import com.otium.audio.ui.theme.ErrorRed
 import com.otium.audio.ui.theme.TextPrimary
 import com.otium.audio.ui.theme.TextSecondary
-import com.otium.audio.ui.theme.TextTertiary
 import com.otium.audio.ui.theme.rememberTrackColors
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -187,6 +184,7 @@ fun NowPlayingScreen(
     val highResArtworkRequest = remember(song.albumArtUri) {
         ImageRequest.Builder(context)
             .data(song.albumArtUri)
+            .size(1080, 1080)
             .crossfade(200)
             .memoryCachePolicy(CachePolicy.ENABLED)
             .diskCachePolicy(CachePolicy.ENABLED)
@@ -246,7 +244,7 @@ fun NowPlayingScreen(
                             .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
                         Text(
-                            text = "${song.audioFormatBadge} • 32-BIT FLOAT",
+                            text = song.audioFormatBadge,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp,
@@ -532,7 +530,7 @@ fun NowPlayingScreen(
                             Triple(Icons.Default.Bedtime, if (sleepTimerState.isActive) "Sleep Timer (${sleepTimerState.remainingSeconds}s remaining)" else "Sleep Timer") {
                                 showMoreSheet = false; showSleepTimer = true
                             },
-                            Triple(Icons.Default.QueueMusic, "Up Next Queue  (${queue.size} tracks)") {
+                            Triple(Icons.AutoMirrored.Filled.QueueMusic, "Up Next Queue  (${queue.size} tracks)") {
                                 showMoreSheet = false; showQueue = true
                             },
                             Triple(Icons.Default.EditNote, "Edit Audio Tag Metadata") {

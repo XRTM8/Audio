@@ -9,6 +9,7 @@ import com.otium.audio.playback.MusicController
 import com.otium.audio.playback.SleepTimerController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.SupervisorJob
 
 class OtiumApplication : Application() {
@@ -51,10 +52,14 @@ class OtiumApplication : Application() {
         )
     }
 
-    override fun onTerminate() {
-        super.onTerminate()
-        sleepTimerController.cancelTimer()
-        musicController.release()
-        equalizerController.release()
+    init {
+        // Both were dead before: the end-of-track timer was never triggered and the
+        // playback history table was never pruned.
+        musicController.onTrackEnded = { sleepTimerController.onTrackEnded() }
+        applicationScope.launch { repository.pruneHistory(HISTORY_RETENTION_DAYS) }
+    }
+
+    private companion object {
+        const val HISTORY_RETENTION_DAYS = 90
     }
 }
