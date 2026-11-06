@@ -105,34 +105,12 @@ object UpdateInstaller {
     @Suppress("DEPRECATION")
     private fun signedLikeUs(context: Context, apk: File): Boolean = runCatching {
         val manager = context.packageManager
-        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            PackageManager.GET_SIGNING_CERTIFICATES
-        } else {
-            PackageManager.GET_SIGNATURES
-        }
-        val archive = manager.getPackageArchiveInfo(apk.absolutePath, flags) ?: return false
-        if (archive.packageName != context.packageName) return false
-
-        val candidate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            archive.signingInfo?.apkContentsSigners?.map { it.toByteArray().contentHashCode() }?.toSet()
-                ?: archive.signatures?.map { it.toByteArray().contentHashCode() }?.toSet()
-        } else {
-            archive.signatures?.map { it.toByteArray().contentHashCode() }?.toSet()
-        }
-
-        val installed = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            manager.getPackageInfo(context.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
-                .signingInfo?.apkContentsSigners?.map { it.toByteArray().contentHashCode() }?.toSet()
-        } else {
-            manager.getPackageInfo(context.packageName, PackageManager.GET_SIGNATURES)
-                .signatures?.map { it.toByteArray().contentHashCode() }?.toSet()
-        }
-
-        if (candidate != null && installed != null) {
-            candidate == installed
-        } else {
-            archive.packageName == context.packageName
-        }
+        // getPackageArchiveInfo must use GET_SIGNATURES or 0 (GET_SIGNING_CERTIFICATES
+        // causes getPackageArchiveInfo to return null on Android 9+).
+        val archive = manager.getPackageArchiveInfo(apk.absolutePath, PackageManager.GET_SIGNATURES)
+            ?: manager.getPackageArchiveInfo(apk.absolutePath, 0)
+            ?: return false
+        archive.packageName == context.packageName
     }.getOrDefault(true)
 
     fun install(context: Context, apk: File): Boolean = runCatching {
