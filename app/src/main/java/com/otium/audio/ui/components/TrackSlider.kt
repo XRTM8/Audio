@@ -26,9 +26,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
-
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
-
+import androidx.compose.ui.unit.LayoutDirection
 import com.otium.audio.ui.theme.AccentGold
 import com.otium.audio.ui.theme.DarkCardBorder
 import com.otium.audio.ui.theme.TextSecondary
@@ -54,6 +54,7 @@ fun TrackSlider(
         (position.toFloat() / safeDuration).coerceIn(0f, 1f)
     }
 
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Column(modifier = modifier.fillMaxWidth()) {
             Slider(
                 value = currentFraction,
@@ -117,7 +118,7 @@ fun TrackSlider(
                 )
             }
         }
-
+    }
 }
 
 private fun formatDuration(durationMs: Long): String {

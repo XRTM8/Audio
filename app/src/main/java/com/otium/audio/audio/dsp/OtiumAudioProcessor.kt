@@ -10,13 +10,9 @@ import kotlin.math.abs
 import kotlin.math.exp
 
 /**
- * The whole playback chain in one processor: pre-amp, ten band equalizer, and a peak
- * limiter. It runs inside Media3's sink, so the decoder and the output stay platform code
- * while everything that shapes the sound belongs to us.
- *
- * Ten bands are fixed here on purpose. The device equalizer exposes whatever its DSP happens
- * to have — usually five — and the old code rebuilt the UI from that count, which is why the
- * controls rarely matched the frequencies printed on them.
+ * The whole playback chain in one processor: pre-amp, ten band equalizer, clarity enhancer,
+ * stereo chorus, audiophile reverb, and a transparent peak limiter. It runs inside Media3's sink,
+ * so the decoder and the output stay platform code while everything that shapes the sound belongs to us.
  */
 @UnstableApi
 class OtiumAudioProcessor(
@@ -30,6 +26,10 @@ class OtiumAudioProcessor(
     private val filters = Array(BAND_FREQUENCIES_HZ.size) { Array(CHANNELS_MAX) { Biquad() } }
     private var preAmp = Biquad()
     private var limiter = PeakLimiter()
+
+    private val reverb = AudiophileReverb()
+    private val chorus = StereoChorus()
+    private val clarity = ClarityEnhancer()
 
     private var appliedGains = FloatArray(BAND_FREQUENCIES_HZ.size)
     private var bypass = true
@@ -50,6 +50,9 @@ class OtiumAudioProcessor(
         appliedPreAmpDb = Float.NaN
         rebuildFilters()
         limiter.configure(sampleRateHz)
+        reverb.configure(sampleRateHz)
+        chorus.configure(sampleRateHz)
+        clarity.configure(sampleRateHz)
         return inputAudioFormat
     }
 
@@ -57,6 +60,9 @@ class OtiumAudioProcessor(
         filters.forEach { perChannel -> perChannel.forEach { it.reset() } }
         preAmp.reset()
         limiter.reset()
+        reverb.reset()
+        chorus.reset()
+        clarity.reset()
     }
 
     override fun queueInput(inputBuffer: ByteBuffer) {
@@ -75,18 +81,60 @@ class OtiumAudioProcessor(
         val startPos = inputBuffer.position()
         try {
             val inputSamples = remaining / bytesPerSample()
-            repeat(inputSamples) {
-                val channel = it % channelCount
-                var sample = readSample(inputBuffer, it)
+            val frames = inputSamples / channelCount
+            if (channelCount == 2) {
+                for (f in 0 until frames) {
+                    var left = readSample(inputBuffer, f * 2)
+                    var right = readSample(inputBuffer, f * 2 + 1)
 
-                sample = preAmp.process(sample)
-                val bandFilters = filters
-                for (band in bandFilters.indices) {
-                    sample = bandFilters[band][channel].process(sample)
+                    left = preAmp.process(left)
+                    right = preAmp.process(right)
+
+                    val bandFilters = filters
+                    for (band in bandFilters.indices) {
+                        left = bandFilters[band][0].process(left)
+                        right = bandFilters[band][1].process(right)
+                    }
+
+                    if (clarity.strength > 0) {
+                        left = clarity.process(left, 0)
+                        right = clarity.process(right, 1)
+                    }
+
+                    if (chorus.strength > 0) {
+                        val chorusPair = chorus.process(left, right)
+                        left = chorusPair.first
+                        right = chorusPair.second
+                    }
+
+                    if (reverb.strength > 0) {
+                        val reverbPair = reverb.process(left, right)
+                        left = reverbPair.first
+                        right = reverbPair.second
+                    }
+
+                    left = limiter.process(left, 0)
+                    right = limiter.process(right, 1)
+
+                    writeSample(output, left)
+                    writeSample(output, right)
                 }
-                sample = limiter.process(sample, channel)
+            } else {
+                repeat(inputSamples) {
+                    val channel = it % channelCount
+                    var sample = readSample(inputBuffer, it)
 
-                writeSample(output, sample)
+                    sample = preAmp.process(sample)
+                    val bandFilters = filters
+                    for (band in bandFilters.indices) {
+                        sample = bandFilters[band][channel].process(sample)
+                    }
+                    if (clarity.strength > 0) {
+                        sample = clarity.process(sample, channel)
+                    }
+                    sample = limiter.process(sample, channel)
+                    writeSample(output, sample)
+                }
             }
             output.flip()
         } catch (_: Throwable) {
@@ -135,9 +183,13 @@ class OtiumAudioProcessor(
             }
         }
 
-        // Limiting is only needed when something in the chain adds gain. With every
-        // band at zero and no pre-amp, the limiter must stay out of the way entirely.
-        val boosting = state.preAmpDb > 0.05f || levels.any { it.levelDb > 0.05f }
+        reverb.strength = if (state.isEnabled) state.reverbStrength else 0
+        reverb.preset = state.reverbPreset
+        chorus.strength = if (state.isEnabled) state.chorusStrength else 0
+        clarity.strength = if (state.isEnabled) state.clarityStrength else 0
+
+        // Limiting is needed when something in the chain adds gain or effects.
+        val boosting = state.preAmpDb > 0.05f || levels.any { it.levelDb > 0.05f } || reverb.strength > 0 || chorus.strength > 0 || clarity.strength > 0
         limiter.enabled = state.isEnabled && boosting
         bypass = !state.isEnabled || (!boosting && levels.none { it.levelDb < -0.05f })
     }
@@ -205,7 +257,6 @@ class OtiumAudioProcessor(
             gain = 1f
             channelGain.fill(1f)
         }
-
 
         private companion object {
             const val THRESHOLD = 0.985f

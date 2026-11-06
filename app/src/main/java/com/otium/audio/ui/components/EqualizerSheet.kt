@@ -65,6 +65,10 @@ fun EqualizerSheet(
     onVirtualizerChange: (Int) -> Unit,
     onPresetSelected: (String) -> Unit,
     onPreAmpChange: (Float) -> Unit = {},
+    onReverbChange: (Int) -> Unit = {},
+    onReverbPresetChange: (String) -> Unit = {},
+    onChorusChange: (Int) -> Unit = {},
+    onClarityChange: (Int) -> Unit = {},
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -350,6 +354,166 @@ fun EqualizerSheet(
                         )
                     )
                 }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+            HorizontalDivider(thickness = 0.5.dp, color = DarkCardBorder.copy(alpha = 0.4f))
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // DSP Studio Effects & Spatial Acoustics Section
+            Text(
+                text = "DSP EFFECTS & ACOUSTICS (المؤثرات والاستوديو)",
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+                color = AccentGold
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 1. REVERB (تردد فراغي / صدى)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(DarkSurfaceVariant)
+                    .padding(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "REVERB (صدى واستوديو فراغي)",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = AccentGold
+                    )
+                    Text(
+                        text = "${state.reverbStrength}%",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = if (state.reverbStrength > 0) AccentGold else TextSecondary
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Reverb Presets
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    listOf("Studio", "Room", "Hall", "Plate").forEach { preset ->
+                        val isSelected = state.reverbPreset == preset
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { onReverbPresetChange(preset) },
+                            label = { Text(preset, fontSize = 11.sp) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = AccentGold,
+                                selectedLabelColor = DarkSurface,
+                                containerColor = DarkSurfaceContainer,
+                                labelColor = TextSecondary
+                            )
+                        )
+                    }
+                }
+
+                Slider(
+                    value = state.reverbStrength.toFloat(),
+                    onValueChange = { onReverbChange(it.toInt()) },
+                    valueRange = 0f..100f,
+                    colors = SliderDefaults.colors(
+                        thumbColor = if (state.isEnabled) AccentGold else TextSecondary,
+                        activeTrackColor = if (state.isEnabled) AccentGold else TextSecondary.copy(alpha = 0.35f),
+                        inactiveTrackColor = DarkCardBorder
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 2. CHORUS (تأثير كورال احترافي متعدد الأصوات)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(DarkSurfaceVariant)
+                    .padding(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "STUDIO CHORUS (كورال احترافي ثلاثي الأبعاد)",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = AccentCyan
+                    )
+                    Text(
+                        text = "${state.chorusStrength}%",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = if (state.chorusStrength > 0) AccentCyan else TextSecondary
+                    )
+                }
+
+                Slider(
+                    value = state.chorusStrength.toFloat(),
+                    onValueChange = { onChorusChange(it.toInt()) },
+                    valueRange = 0f..100f,
+                    colors = SliderDefaults.colors(
+                        thumbColor = if (state.isEnabled) AccentCyan else TextSecondary,
+                        activeTrackColor = if (state.isEnabled) AccentCyan else TextSecondary.copy(alpha = 0.35f),
+                        inactiveTrackColor = DarkCardBorder
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 3. CLARITY & DE-HARSH (دقة الصوت وتنعيم الحدة)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(DarkSurfaceVariant)
+                    .padding(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "CLARITY & ANTI-FATIGUE (دقة الصوت وتنعيم الحدة)",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = AccentGold
+                        )
+                        Text(
+                            text = "إخماد الترددات المزعجة (6.2kHz) + تفتيح تفاصيل الهواء (12kHz)",
+                            fontSize = 9.5.sp,
+                            color = TextSecondary
+                        )
+                    }
+                    Text(
+                        text = "${state.clarityStrength}%",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = if (state.clarityStrength > 0) AccentGold else TextSecondary
+                    )
+                }
+
+                Slider(
+                    value = state.clarityStrength.toFloat(),
+                    onValueChange = { onClarityChange(it.toInt()) },
+                    valueRange = 0f..100f,
+                    colors = SliderDefaults.colors(
+                        thumbColor = if (state.isEnabled) AccentGold else TextSecondary,
+                        activeTrackColor = if (state.isEnabled) AccentGold else TextSecondary.copy(alpha = 0.35f),
+                        inactiveTrackColor = DarkCardBorder
+                    )
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))

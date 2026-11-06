@@ -19,7 +19,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
@@ -124,6 +125,7 @@ import com.otium.audio.ui.theme.TextPrimary
 import com.otium.audio.ui.theme.TextSecondary
 import com.otium.audio.ui.theme.rememberTrackColors
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -158,6 +160,10 @@ fun NowPlayingScreen(
     onVirtualizerChange: (Int) -> Unit,
     onEqualizerPresetSelected: (String) -> Unit,
     onPreAmpChange: (Float) -> Unit = {},
+    onReverbChange: (Int) -> Unit = {},
+    onReverbPresetChange: (String) -> Unit = {},
+    onChorusChange: (Int) -> Unit = {},
+    onClarityChange: (Int) -> Unit = {},
     onPlayQueueIndex: (Int) -> Unit = {},
     onRemoveQueueItem: (Int) -> Unit = {},
     onMoveQueueItem: (Int, Int) -> Unit = { _, _ -> },
@@ -203,6 +209,7 @@ fun NowPlayingScreen(
     }
 
     val dragX = remember { Animatable(0f) }
+    val dragY = remember { Animatable(0f) }
 
     val playBtnScale by animateFloatAsState(
         targetValue = if (isPlaying) 1.0f else 0.93f,
@@ -223,6 +230,7 @@ fun NowPlayingScreen(
         Box(
             modifier = modifier
                 .fillMaxSize()
+                .offset { IntOffset(0, dragY.value.coerceAtLeast(0f).roundToInt()) }
                 .background(AmbientBackdrop)
         ) {
             // Ambient Aura Glow behind artwork
@@ -248,11 +256,44 @@ fun NowPlayingScreen(
                     .navigationBarsPadding(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // ── Minimalist Poweramp Top Bar ──────────────────────────────
+                // Centered tactile swipe-down pull bar
+                Box(
+                    modifier = Modifier
+                        .padding(top = 6.dp, bottom = 2.dp)
+                        .size(width = 38.dp, height = 4.dp)
+                        .clip(CircleShape)
+                        .background(TextSecondary.copy(alpha = 0.35f))
+                )
+
+                // ── Minimalist Poweramp Top Bar with swipe-down dismiss ──────────────
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 2.dp),
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                        .pointerInput(Unit) {
+                            val threshold = with(density) { 90.dp.toPx() }
+                            detectVerticalDragGestures(
+                                onDragEnd = {
+                                    scope.launch {
+                                        if (dragY.value > threshold) {
+                                            onCollapse()
+                                            dragY.snapTo(0f)
+                                        } else {
+                                            dragY.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
+                                        }
+                                    }
+                                },
+                                onDragCancel = {
+                                    scope.launch { dragY.animateTo(0f) }
+                                },
+                                onVerticalDrag = { change, dragAmount ->
+                                    change.consume()
+                                    scope.launch {
+                                        dragY.snapTo((dragY.value + dragAmount).coerceAtLeast(0f))
+                                    }
+                                }
+                            )
+                        },
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -366,32 +407,48 @@ fun NowPlayingScreen(
                                     .clip(RoundedCornerShape(18.dp))
                                     .background(DarkSurfaceVariant)
                                     .pointerInput(Unit) {
-                                        val threshold = with(density) { SWIPE_THRESHOLD.roundToPx() }.toFloat()
-                                        detectHorizontalDragGestures(
+                                        val horizontalThreshold = with(density) { 60.dp.toPx() }
+                                        val verticalThreshold = with(density) { 95.dp.toPx() }
+                                        detectDragGestures(
                                             onDragCancel = {
                                                 scope.launch {
                                                     dragX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
+                                                    dragY.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
                                                 }
                                             },
                                             onDragEnd = {
                                                 scope.launch {
-                                                    if (dragX.value > threshold) {
-                                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                        onSkipPrevious()
-                                                    } else if (dragX.value < -threshold) {
-                                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                        onSkipNext()
+                                                    // Vertical swipe-down dismiss takes precedence if dragged down
+                                                    if (dragY.value > verticalThreshold) {
+                                                        onCollapse()
+                                                        dragY.snapTo(0f)
+                                                        dragX.snapTo(0f)
+                                                    } else {
+                                                        dragY.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
+
+                                                        // Horizontal track switching:
+                                                        // Swiping right -> Next song, Swiping left -> Previous song
+                                                        if (dragX.value > horizontalThreshold) {
+                                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                            onSkipNext()
+                                                        } else if (dragX.value < -horizontalThreshold) {
+                                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                            onSkipPrevious()
+                                                        }
+                                                        dragX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
                                                     }
-                                                    dragX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
                                                 }
                                             },
-                                            onHorizontalDrag = { change, amount ->
+                                            onDrag = { change, dragAmount ->
                                                 change.consume()
                                                 scope.launch {
-                                                    dragX.snapTo(
-                                                        (dragX.value + amount * DRAG_DAMPING)
-                                                            .coerceIn(-MAX_DRAG_PX, MAX_DRAG_PX)
-                                                    )
+                                                    if (abs(dragAmount.y) > abs(dragAmount.x) && (dragAmount.y > 0 || dragY.value > 0)) {
+                                                        // Vertical drag down
+                                                        dragY.snapTo((dragY.value + dragAmount.y).coerceAtLeast(0f))
+                                                    } else {
+                                                        // Horizontal 1:1 responsive drag
+                                                        dragX.snapTo((dragX.value + dragAmount.x).coerceIn(-1000f, 1000f))
+                                                    }
                                                 }
                                             }
                                         )
@@ -674,6 +731,10 @@ fun NowPlayingScreen(
                     onVirtualizerChange = onVirtualizerChange,
                     onPresetSelected = onEqualizerPresetSelected,
                     onPreAmpChange = onPreAmpChange,
+                    onReverbChange = onReverbChange,
+                    onReverbPresetChange = onReverbPresetChange,
+                    onChorusChange = onChorusChange,
+                    onClarityChange = onClarityChange,
                     onDismiss = { showEqualizer = false }
                 )
             }

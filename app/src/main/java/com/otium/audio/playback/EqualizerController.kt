@@ -44,6 +44,10 @@ data class EqualizerState(
     val bands: List<EqualizerBand> = DEFAULT_10_BANDS,
     val bassBoostStrength: Int = 0, // 0 to 1000
     val virtualizerStrength: Int = 0, // 0 to 1000
+    val reverbStrength: Int = 0, // 0 to 100
+    val reverbPreset: String = "Studio", // "Studio", "Room", "Hall", "Plate"
+    val chorusStrength: Int = 0, // 0 to 100
+    val clarityStrength: Int = 0, // 0 to 100
     val currentPreset: String = "Flat",
     val presets: List<String> = listOf(
         "Flat",
@@ -73,6 +77,10 @@ class EqualizerController(
                 preAmpDb = saved.preAmpDb,
                 bassBoostStrength = saved.bassBoost,
                 virtualizerStrength = saved.virtualizer,
+                reverbStrength = saved.reverb,
+                reverbPreset = saved.reverbPreset,
+                chorusStrength = saved.chorus,
+                clarityStrength = saved.clarity,
                 currentPreset = saved.preset ?: "Custom",
                 bands = DEFAULT_10_BANDS.mapIndexed { index, band ->
                     band.copy(levelDb = saved.bandLevels.getOrElse(index) { band.levelDb })
@@ -117,6 +125,12 @@ class EqualizerController(
                 deviceLabel = detected.label,
                 bands = bands,
                 preAmpDb = saved?.preAmpDb ?: 0f,
+                bassBoostStrength = saved?.bassBoost ?: 0,
+                virtualizerStrength = saved?.virtualizer ?: 0,
+                reverbStrength = saved?.reverb ?: 0,
+                reverbPreset = saved?.reverbPreset ?: "Studio",
+                chorusStrength = saved?.chorus ?: 0,
+                clarityStrength = saved?.clarity ?: 0,
                 currentPreset = saved?.preset ?: "Flat"
             )
         }
@@ -386,6 +400,34 @@ class EqualizerController(
 
         _state.update { it.copy(bands = updatedBands, currentPreset = presetName) }
         store.save(currentDevice.key, _state.value, force = true)
+    }
+
+    fun setReverb(strength: Int, preset: String? = null) {
+        val safeStrength = strength.coerceIn(0, 100)
+        _state.update {
+            it.copy(
+                reverbStrength = safeStrength,
+                reverbPreset = preset ?: it.reverbPreset
+            )
+        }
+        store.save(currentDevice.key, _state.value)
+    }
+
+    fun setReverbPreset(preset: String) {
+        _state.update { it.copy(reverbPreset = preset) }
+        store.save(currentDevice.key, _state.value)
+    }
+
+    fun setChorus(strength: Int) {
+        val safeStrength = strength.coerceIn(0, 100)
+        _state.update { it.copy(chorusStrength = safeStrength) }
+        store.save(currentDevice.key, _state.value)
+    }
+
+    fun setClarity(strength: Int) {
+        val safeStrength = strength.coerceIn(0, 100)
+        _state.update { it.copy(clarityStrength = safeStrength) }
+        store.save(currentDevice.key, _state.value)
     }
 
     fun release() {

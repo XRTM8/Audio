@@ -303,6 +303,10 @@ class MusicViewModel(
     fun setBassBoost(strength: Int) = equalizerController.setBassBoost(strength)
     fun setVirtualizer(strength: Int) = equalizerController.setVirtualizer(strength)
     fun applyEqualizerPreset(preset: String) = equalizerController.applyPreset(preset)
+    fun setReverb(strength: Int, preset: String? = null) = equalizerController.setReverb(strength, preset)
+    fun setReverbPreset(preset: String) = equalizerController.setReverbPreset(preset)
+    fun setChorus(strength: Int) = equalizerController.setChorus(strength)
+    fun setClarity(strength: Int) = equalizerController.setClarity(strength)
 
     // --- Sleep timer -------------------------------------------------------
 

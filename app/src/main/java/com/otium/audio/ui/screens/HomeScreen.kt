@@ -113,6 +113,7 @@ fun HomeScreen(
     onPlayPause: () -> Unit,
     onSkipNext: () -> Unit,
     onOpenNowPlaying: () -> Unit,
+    onSeekTo: (Long) -> Unit = {},
     onOpenEqualizer: () -> Unit = {},
     onEditTagClick: (Song) -> Unit = {},
     onSongLongPress: (Song) -> Unit = {},
@@ -401,6 +402,7 @@ fun HomeScreen(
                         onPlayPauseClick = onPlayPause,
                         onSkipNextClick = onSkipNext,
                         onPlayerClick = onOpenNowPlaying,
+                        onSeekTo = onSeekTo,
                         modifier = Modifier.navigationBarsPadding()
                     )
                 } else {

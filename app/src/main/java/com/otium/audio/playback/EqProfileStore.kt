@@ -26,6 +26,10 @@ class EqProfileStore(context: Context) {
             .putFloat(key(device, PREAMP), state.preAmpDb)
             .putBoolean(key(device, ENABLED), state.isEnabled)
             .putString(key(device, PRESET), state.currentPreset)
+            .putInt(key(device, REVERB), state.reverbStrength)
+            .putString(key(device, REVERB_PRESET), state.reverbPreset)
+            .putInt(key(device, CHORUS), state.chorusStrength)
+            .putInt(key(device, CLARITY), state.clarityStrength)
             .apply()
     }
 
@@ -39,7 +43,11 @@ class EqProfileStore(context: Context) {
             virtualizer = prefs.getInt(key(device, VIRTUALIZER), 0),
             preAmpDb = prefs.getFloat(key(device, PREAMP), 0f),
             enabled = prefs.getBoolean(key(device, ENABLED), true),
-            preset = prefs.getString(key(device, PRESET), null)
+            preset = prefs.getString(key(device, PRESET), null),
+            reverb = prefs.getInt(key(device, REVERB), 0),
+            reverbPreset = prefs.getString(key(device, REVERB_PRESET), "Studio") ?: "Studio",
+            chorus = prefs.getInt(key(device, CHORUS), 0),
+            clarity = prefs.getInt(key(device, CLARITY), 0)
         )
     }
 
@@ -49,7 +57,11 @@ class EqProfileStore(context: Context) {
         val virtualizer: Int,
         val preAmpDb: Float,
         val enabled: Boolean,
-        val preset: String?
+        val preset: String?,
+        val reverb: Int = 0,
+        val reverbPreset: String = "Studio",
+        val chorus: Int = 0,
+        val clarity: Int = 0
     )
 
     private fun key(device: String, field: String) = "${device}_$field"
@@ -62,6 +74,10 @@ class EqProfileStore(context: Context) {
         const val PREAMP = "preamp"
         const val ENABLED = "enabled"
         const val PRESET = "preset"
+        const val REVERB = "reverb"
+        const val REVERB_PRESET = "reverb_preset"
+        const val CHORUS = "chorus"
+        const val CLARITY = "clarity"
         const val WRITE_INTERVAL_MS = 600L
     }
 }

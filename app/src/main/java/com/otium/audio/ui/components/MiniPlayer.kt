@@ -6,6 +6,16 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -76,6 +86,7 @@ fun MiniPlayer(
     onPlayPauseClick: () -> Unit,
     onSkipNextClick: () -> Unit,
     onPlayerClick: () -> Unit,
+    onSeekTo: (Long) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -92,9 +103,14 @@ fun MiniPlayer(
             .build()
     }
 
-    val progress = if (durationMs > 0)
+    var isScrubbing by remember { mutableStateOf(false) }
+    var scrubProgress by remember { mutableFloatStateOf(0f) }
+
+    val rawProgress = if (durationMs > 0)
         (position.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
     else 0f
+
+    val activeProgress = if (isScrubbing) scrubProgress else rawProgress
 
     val btnScale by animateFloatAsState(
         targetValue = if (isPlaying) 1.0f else 0.93f,
@@ -108,16 +124,60 @@ fun MiniPlayer(
                 .background(DarkSurfaceContainer)
                 .clickable { onPlayerClick() }
         ) {
-            // The progress strip doubles as the only moving thing in the console.
-            ReactiveWaveform(
-                progress = progress.toFloat(),
-                accent = OtiumAccent.color,
-                trackColor = DarkCardBorder,
-                isPlaying = isPlaying,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(10.dp)
-            )
+            // Interactive tactile waveform strip: tap or scrub to seek smoothly
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(14.dp)
+                        .pointerInput(durationMs) {
+                            detectTapGestures { offset ->
+                                if (size.width > 0 && durationMs > 0) {
+                                    val frac = (offset.x / size.width).coerceIn(0f, 1f)
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onSeekTo((frac * durationMs).toLong())
+                                }
+                            }
+                        }
+                        .pointerInput(durationMs) {
+                            detectHorizontalDragGestures(
+                                onDragStart = { offset ->
+                                    isScrubbing = true
+                                    if (size.width > 0) {
+                                        scrubProgress = (offset.x / size.width).coerceIn(0f, 1f)
+                                    }
+                                },
+                                onHorizontalDrag = { change, _ ->
+                                    change.consume()
+                                    if (size.width > 0) {
+                                        scrubProgress = (change.position.x / size.width).coerceIn(0f, 1f)
+                                    }
+                                },
+                                onDragEnd = {
+                                    if (durationMs > 0) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        onSeekTo((scrubProgress * durationMs).toLong())
+                                    }
+                                    isScrubbing = false
+                                },
+                                onDragCancel = {
+                                    isScrubbing = false
+                                }
+                            )
+                        }
+                ) {
+                    ReactiveWaveform(
+                        progress = activeProgress,
+                        accent = if (isScrubbing) AccentGold else OtiumAccent.color,
+                        trackColor = DarkCardBorder,
+                        isPlaying = isPlaying,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(if (isScrubbing) 12.dp else 10.dp)
+                            .align(Alignment.Center)
+                    )
+                }
+            }
 
             Row(
                 modifier = Modifier

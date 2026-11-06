@@ -101,6 +101,7 @@ class MainActivity : ComponentActivity() {
                             onPlayPause = viewModel::togglePlayPause,
                             onSkipNext = viewModel::skipToNext,
                             onOpenNowPlaying = { viewModel.setNowPlayingExpanded(true) },
+                            onSeekTo = viewModel::seekTo,
                             onOpenEqualizer = { showHomeEqualizer = true },
                             onEditTagClick = viewModel::openTagEditor,
                             onSaveMetadata = viewModel::saveSongMetadata,
@@ -123,6 +124,10 @@ class MainActivity : ComponentActivity() {
                                 onVirtualizerChange = viewModel::setVirtualizer,
                                 onPresetSelected = viewModel::applyEqualizerPreset,
                                 onPreAmpChange = viewModel::setPreAmpGain,
+                                onReverbChange = viewModel::setReverb,
+                                onReverbPresetChange = viewModel::setReverbPreset,
+                                onChorusChange = viewModel::setChorus,
+                                onClarityChange = viewModel::setClarity,
                                 onDismiss = { showHomeEqualizer = false }
                             )
                         }
@@ -173,6 +178,10 @@ class MainActivity : ComponentActivity() {
                                     onVirtualizerChange = viewModel::setVirtualizer,
                                     onEqualizerPresetSelected = viewModel::applyEqualizerPreset,
                                     onPreAmpChange = viewModel::setPreAmpGain,
+                                    onReverbChange = viewModel::setReverb,
+                                    onReverbPresetChange = viewModel::setReverbPreset,
+                                    onChorusChange = viewModel::setChorus,
+                                    onClarityChange = viewModel::setClarity,
                                     onPlayQueueIndex = viewModel::playQueueIndex,
                                     onRemoveQueueItem = viewModel::removeQueueItem,
                                     onMoveQueueItem = viewModel::moveQueueItem,
