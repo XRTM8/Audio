@@ -1,8 +1,8 @@
 package com.otium.audio.ui
 
-import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.Manifest
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -15,10 +15,10 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -29,8 +29,11 @@ import com.otium.audio.ui.components.EqualizerSheet
 import com.otium.audio.ui.screens.HomeScreen
 import com.otium.audio.ui.screens.NowPlayingScreen
 import com.otium.audio.ui.screens.PermissionScreen
+import com.otium.audio.ui.theme.asReadableAccent
 import com.otium.audio.ui.theme.DarkSurface
+import com.otium.audio.ui.theme.OtiumAccent
 import com.otium.audio.ui.theme.OtiumAudioTheme
+import com.otium.audio.ui.theme.PaletteManager
 import com.otium.audio.ui.viewmodel.MusicViewModel
 
 class MainActivity : ComponentActivity() {
@@ -56,6 +59,15 @@ class MainActivity : ComponentActivity() {
                     color = DarkSurface
                 ) {
                     val uiState by viewModel.uiState.collectAsState()
+
+                    // One colour, taken from whatever is playing. Everything that means
+                    // "this is active" reads it, everything else stays neutral.
+                    val playing = uiState.playbackState.currentSong
+                    LaunchedEffect(playing?.albumArtUri) {
+                        val art = playing?.albumArtUri ?: return@LaunchedEffect
+                        val colors = PaletteManager.extractColors(this@MainActivity, art)
+                        OtiumAccent.color = colors.vibrant.asReadableAccent()
+                    }
                     var showHomeEqualizer by remember { mutableStateOf(false) }
 
                     LaunchedEffect(Unit) {

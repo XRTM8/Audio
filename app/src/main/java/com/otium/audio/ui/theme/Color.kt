@@ -18,13 +18,13 @@ val GlassSheen           = Color(0x1AFFFFFF)
 val GlassScrim           = Color(0xCC000000)
 
 // Accents — one warm, one cool, used sparingly
-val AccentGold           = Color(0xFFE8C67E)
-val AccentGoldLight      = Color(0xFFFFE3B0)
-val AccentGoldMuted      = Color(0x2EE8C67E)
-val AccentGoldDim        = Color(0xFF7A5F33)
+val AccentGold           = Color(0xFFF2F2F5)
+val AccentGoldLight      = Color(0xFFFFFFFF)
+val AccentGoldMuted      = Color(0x24FFFFFF)
+val AccentGoldDim        = Color(0xFF6E6E78)
 
-val AccentCyan           = Color(0xFF8FD8DD)
-val AccentCyanGlow       = Color(0x338FD8DD)
+val AccentCyan           = Color(0xFFA9B6BC)
+val AccentCyanGlow       = Color(0x33A9B6BC)
 
 // Text
 val TextPrimary          = Color(0xFFF7F7F9)

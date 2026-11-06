@@ -41,6 +41,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import com.otium.audio.ui.theme.OtiumAccent
 
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDirection
@@ -107,14 +108,15 @@ fun MiniPlayer(
                 .background(DarkSurfaceContainer)
                 .clickable { onPlayerClick() }
         ) {
-            // Micro Amber Seekbar at the top of the console
-            LinearProgressIndicator(
-                progress = { progress },
+            // The progress strip doubles as the only moving thing in the console.
+            ReactiveWaveform(
+                progress = progress.toFloat(),
+                accent = OtiumAccent.color,
+                trackColor = DarkCardBorder,
+                isPlaying = isPlaying,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(2.dp),
-                color = AccentGold,
-                trackColor = DarkCardBorder
+                    .height(10.dp)
             )
 
             Row(
