@@ -3,7 +3,12 @@ package com.otium.audio.ui.screens
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -71,9 +76,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -168,6 +175,19 @@ fun NowPlayingScreen(
     // Dynamic Palette extracted from album art
     val trackColors = rememberTrackColors(context, song.albumArtUri)
     val animatedDominant by animateColorAsState(trackColors.dominant, tween(600), label = "dom")
+
+    // A slow halo behind the cover. It deepens while playing and settles when paused,
+    // which is the whole animation budget: one float, one curve, no loops of effects.
+    val haloTransition = rememberInfiniteTransition(label = "halo")
+    val halo by haloTransition.animateFloat(
+        initialValue = 0.10f,
+        targetValue = 0.30f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 3400, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "halo_alpha"
+    )
     val animatedVibrant  by animateColorAsState(trackColors.vibrant,  tween(600), label = "vib")
 
     // State for Sheets & Overlays
@@ -319,6 +339,23 @@ fun NowPlayingScreen(
                                 modifier = Modifier
                                     .fillMaxWidth(0.92f)
                                     .aspectRatio(1f)
+                                    .drawBehind {
+                                        val reach = size.maxDimension * 0.78f
+                                        val strength = halo * if (isPlaying) 1f else 0.34f
+                                        drawCircle(
+                                            brush = Brush.radialGradient(
+                                                colors = listOf(
+                                                    animatedVibrant.copy(alpha = strength),
+                                                    animatedVibrant.copy(alpha = strength * 0.35f),
+                                                    Color.Transparent
+                                                ),
+                                                center = center,
+                                                radius = reach
+                                            ),
+                                            radius = reach,
+                                            center = center
+                                        )
+                                    }
                                     .offset { IntOffset(dragX.value.roundToInt(), 0) }
                                     .shadow(
                                         elevation = 28.dp,

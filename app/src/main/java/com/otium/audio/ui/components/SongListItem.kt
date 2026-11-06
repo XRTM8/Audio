@@ -1,28 +1,28 @@
 package com.otium.audio.ui.components
 
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,10 +33,11 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import com.otium.audio.ui.theme.OtiumAccent
 
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDirection
@@ -91,7 +92,10 @@ fun SongListItem(
             modifier = modifier
                 .fillMaxWidth()
                 .height(66.dp)
-                .background(if (isCurrentSong) AccentGoldMuted else DarkSurfaceVariant)
+                .background(
+                    if (isCurrentSong) OtiumAccent.color.copy(alpha = 0.10f)
+                    else DarkSurfaceVariant
+                )
                 .clickable { onSongClick() }
         ) {
             // Left active amber glow bar for playing track
@@ -101,7 +105,7 @@ fun SongListItem(
                         .width(3.5.dp)
                         .fillMaxHeight()
                         .align(Alignment.CenterStart)
-                        .background(AccentGold)
+                        .background(OtiumAccent.color)
                 )
             }
 
@@ -162,7 +166,7 @@ fun SongListItem(
                             fontSize = 14.5.sp,
                             textDirection = TextDirection.ContentOrLtr
                         ),
-                        color = if (isCurrentSong) AccentGold else TextPrimary,
+                        color = if (isCurrentSong) OtiumAccent.color else TextPrimary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -260,7 +264,7 @@ fun MiniEqBars() {
                     .width(2.5.dp)
                     .fillMaxHeight(frac)
                     .clip(RoundedCornerShape(topStart = 1.dp, topEnd = 1.dp))
-                    .background(AccentGold)
+                    .background(OtiumAccent.color)
             )
         }
     }
