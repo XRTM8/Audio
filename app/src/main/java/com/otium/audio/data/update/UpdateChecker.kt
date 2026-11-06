@@ -43,21 +43,25 @@ object UpdateChecker {
                 val body = json.optString("body", "")
 
                 // Find APK asset
+                // Prefer the APK built for this device, then the universal one.
+                val abi = android.os.Build.SUPPORTED_ABIS.firstOrNull().orEmpty()
                 var downloadUrl = ""
+                var universalUrl = ""
                 val assets = json.optJSONArray("assets")
                 if (assets != null) {
                     for (i in 0 until assets.length()) {
                         val asset = assets.getJSONObject(i)
                         val name = asset.optString("name", "")
-                        if (name.endsWith(".apk")) {
-                            downloadUrl = asset.optString("browser_download_url", "")
-                            // Prioritize arm64-v8a or universal APK if multiple exist
-                            if (name.contains("arm64") || name.contains("universal")) {
-                                break
-                            }
+                        if (!name.endsWith(".apk")) continue
+                        val url = asset.optString("browser_download_url", "")
+                        when {
+                            abi.isNotEmpty() && name.contains(abi) -> { downloadUrl = url; break }
+                            name.contains("universal") -> universalUrl = url
+                            downloadUrl.isEmpty() -> downloadUrl = url
                         }
                     }
                 }
+                if (downloadUrl.isEmpty()) downloadUrl = universalUrl
 
                 if (isNewerVersion(tagName, currentVersion.removePrefix("v").trim())) {
                     return@withContext UpdateInfo(

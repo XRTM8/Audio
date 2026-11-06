@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.sp
 import com.otium.audio.BuildConfig
 import com.otium.audio.data.update.UpdateChecker
 import com.otium.audio.data.update.UpdateInfo
+import com.otium.audio.data.update.UpdateInstaller
 import com.otium.audio.ui.theme.AccentCyan
 import com.otium.audio.ui.theme.AccentGold
 import com.otium.audio.ui.theme.DarkCardBorder
@@ -63,6 +64,7 @@ import com.otium.audio.ui.theme.DarkSurface
 import com.otium.audio.ui.theme.DarkSurfaceContainer
 import com.otium.audio.ui.theme.DarkSurfaceElevated
 import com.otium.audio.ui.theme.DarkSurfaceVariant
+import com.otium.audio.ui.theme.ErrorRed
 import com.otium.audio.ui.theme.TextPrimary
 import com.otium.audio.ui.theme.TextSecondary
 import kotlinx.coroutines.launch
@@ -81,6 +83,9 @@ fun SettingsSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     var isCheckingUpdate by remember { mutableStateOf(false) }
+    var isDownloading by remember { mutableStateOf(false) }
+    var downloadProgress by remember { mutableStateOf(0) }
+    var updateProblem by remember { mutableStateOf<String?>(null) }
     var updateResultText by remember { mutableStateOf<String?>(null) }
     var latestFoundUpdate by remember { mutableStateOf(availableUpdate) }
 
@@ -293,8 +298,28 @@ fun SettingsSheet(
                                     Spacer(modifier = Modifier.height(10.dp))
                                     Button(
                                         onClick = {
-                                            UpdateChecker.openDownload(context, update.downloadUrl)
+                                            if (!UpdateInstaller.canInstallPackages(context)) {
+                                                // Android 8+ requires a per-app grant before we may install.
+                                                UpdateInstaller.requestInstallPermission(context)
+                                                updateProblem = "اسمح للتطبيق بتثبيت الحزم ثم أعد المحاولة"
+                                            } else {
+                                                scope.launch {
+                                                    isDownloading = true
+                                                    downloadProgress = 0
+                                                    updateProblem = null
+                                                    val apk = UpdateInstaller.download(context, update.downloadUrl) { percent ->
+                                                        downloadProgress = percent
+                                                    }
+                                                    isDownloading = false
+                                                    if (apk == null) {
+                                                        updateProblem = "تعذّر التنزيل أو أن الملف غير موقّع بمفتاحك"
+                                                    } else if (!UpdateInstaller.install(context, apk)) {
+                                                        updateProblem = "تعذّر فتح المثبّت"
+                                                    }
+                                                }
+                                            }
                                         },
+                                        enabled = !isDownloading,
                                         colors = ButtonDefaults.buttonColors(containerColor = AccentGold),
                                         shape = RoundedCornerShape(8.dp)
                                     ) {
@@ -305,7 +330,16 @@ fun SettingsSheet(
                                             modifier = Modifier.size(18.dp)
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text("تنزيل وتثبيت التحديث مباشرة", color = DarkSurface, fontWeight = FontWeight.Bold)
+                                        Text(
+                                            if (isDownloading) "جاري التنزيل… $downloadProgress٪"
+                                            else "تحديث الآن",
+                                            color = DarkSurface,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                    updateProblem?.let { message ->
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(message, style = MaterialTheme.typography.bodySmall, color = ErrorRed)
                                     }
                                 }
                             }
