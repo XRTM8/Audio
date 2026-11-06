@@ -102,6 +102,8 @@ class MusicController(
         persistence.saveQueue(ids, controller.currentMediaItemIndex)
     }
 
+    fun hasSavedSession(): Boolean = persistence.hasSession()
+
     /** Rebuilds the last queue from the library, paused where the user left it. */
     fun restoreQueue(library: List<Song>): Boolean {
         val controller = mediaController ?: return false

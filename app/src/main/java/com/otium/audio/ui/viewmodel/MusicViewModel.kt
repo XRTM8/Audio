@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -55,6 +56,7 @@ class MusicViewModel(
     private var playlistSongsJob: Job? = null
 
     init {
+        restoreSession()
         observePlaybackState()
         observeEqualizer()
         observeSleepTimer()
@@ -93,11 +95,6 @@ class MusicViewModel(
                     lib.copy(recentlyAdded = added)
                 }
                 .collect { lib ->
-                    if (!sessionRestored && lib.songs.isNotEmpty()) {
-                        // Brings back the queue the user left behind when Android killed us.
-                        musicController.restoreQueue(lib.songs)
-                        sessionRestored = true
-                    }
                     _uiState.update {
                         it.copy(
                             songs = lib.songs,
@@ -109,6 +106,26 @@ class MusicViewModel(
                             recentlyAdded = lib.recentlyAdded
                         )
                     }
+                }
+        }
+    }
+
+    /**
+     * The queue can only be rebuilt once two separate things are ready: the library, and
+     * the media controller's connection to the service. On a cold start the connection is
+     * usually the slower of the two, so this waits for both and keeps trying; the earlier
+     * version gave up on the first attempt and marked itself done.
+     */
+    private fun restoreSession() {
+        if (!musicController.hasSavedSession()) return
+        viewModelScope.launch {
+            combine(
+                repository.getAllSongsFlow(),
+                musicController.playbackState.map { it.isConnected }.distinctUntilChanged()
+            ) { songs, connected -> songs to connected }
+                .collect { (songs, connected) ->
+                    if (sessionRestored || !connected || songs.isEmpty()) return@collect
+                    sessionRestored = musicController.restoreQueue(songs)
                 }
         }
     }

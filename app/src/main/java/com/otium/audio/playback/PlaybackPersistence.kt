@@ -27,6 +27,8 @@ class PlaybackPersistence(private val context: Context) {
         prefs.edit().remove(KEY_IDS).remove(KEY_INDEX).remove(KEY_POSITION).apply()
     }
 
+    fun hasSession(): Boolean = !prefs.getString(KEY_IDS, null).isNullOrEmpty()
+
     fun load(): Session? {
         val raw = prefs.getString(KEY_IDS, null) ?: return null
         val ids = raw.split(',').mapNotNull { it.toLongOrNull() }
