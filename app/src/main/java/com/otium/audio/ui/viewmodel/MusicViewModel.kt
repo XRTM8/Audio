@@ -51,6 +51,7 @@ class MusicViewModel(
 
     private var libraryLoaded = false
     private var lastRecordedSongId: Long? = null
+    private var sessionRestored = false
     private var playlistSongsJob: Job? = null
 
     init {
@@ -92,6 +93,11 @@ class MusicViewModel(
                     lib.copy(recentlyAdded = added)
                 }
                 .collect { lib ->
+                    if (!sessionRestored && lib.songs.isNotEmpty()) {
+                        // Brings back the queue the user left behind when Android killed us.
+                        musicController.restoreQueue(lib.songs)
+                        sessionRestored = true
+                    }
                     _uiState.update {
                         it.copy(
                             songs = lib.songs,

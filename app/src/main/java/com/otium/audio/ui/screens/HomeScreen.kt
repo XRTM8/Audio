@@ -61,6 +61,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import com.otium.audio.ui.theme.AmbientBackdrop
 import kotlinx.coroutines.flow.StateFlow
 
 import androidx.compose.ui.text.font.FontWeight
@@ -136,7 +137,7 @@ fun HomeScreen(
         Box(
             modifier = modifier
                 .fillMaxSize()
-                .background(DarkSurface)
+                .background(AmbientBackdrop)
                 .statusBarsPadding()
         ) {
             Column(modifier = Modifier.fillMaxSize()) {

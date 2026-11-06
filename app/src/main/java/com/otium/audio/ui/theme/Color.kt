@@ -1,34 +1,42 @@
 package com.otium.audio.ui.theme
 
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
-// ══════════════════════════════════════════════════════════
-//  OTIUM AUDIO — Audiophile Obsidian & Titanium Glass Theme
-//  Modeled after Poweramp v3, Sony Walkman NW-WM1ZM2 & Astell&Kern
-// ══════════════════════════════════════════════════════════
+// Otium Audio — dark glass.
+// Only DarkSurface is opaque. Everything else is translucent on purpose, so panels read as
+// frosted glass over the ambient backdrop instead of as flat rectangles.
 
-// Deep Pitch Obsidian & Titanium Foundations
-val DarkSurface          = Color(0xFF090A0F)   // True OLED obsidian base
-val DarkSurfaceVariant   = Color(0xFF13151D)   // Polished titanium row surface
-val DarkSurfaceContainer = Color(0xFF1B1E29)   // Elevated console & bottom bars
-val DarkSurfaceElevated  = Color(0xFF222634)   // Floating modal sheets & dialogs
-val DarkCardBorder       = Color(0xFF202433)   // Precision hairline studio dividers
+// Canvas
+val DarkSurface          = Color(0xFF06060A)
+val DarkSurfaceVariant   = Color(0x9E15151F)
+val DarkSurfaceContainer = Color(0xC414141D)
+val DarkSurfaceElevated  = Color(0xE6101017)
+val DarkCardBorder       = Color(0x24FFFFFF)
+val GlassSheen           = Color(0x14FFFFFF)
+val GlassScrim           = Color(0x99000000)
 
-// Poweramp Signature Amber & Warm Gold Accents
-val AccentGold           = Color(0xFFF59E0B)   // Vibrant Studio Amber
-val AccentGoldLight      = Color(0xFFFBBF24)   // High-voltage gold highlight
-val AccentGoldMuted      = Color(0x28F59E0B)   // 16% tinted ambient glow
-val AccentGoldDim        = Color(0xFF784503)   // Deep studio amber
+// Accents
+val AccentGold           = Color(0xFFE9C37C)
+val AccentGoldLight      = Color(0xFFFFDFA6)
+val AccentGoldMuted      = Color(0x29E9C37C)
+val AccentGoldDim        = Color(0xFF8A6A38)
 
-// Audiophile Secondary Accents
-val AccentCyan           = Color(0xFF06B6D4)   // 32-bit Float & Hi-Res Indicator
-val AccentCyanGlow       = Color(0x3306B6D4)   // Cyan glow aura
+val AccentCyan           = Color(0xFF6FE3E9)
+val AccentCyanGlow       = Color(0x336FE3E9)
 
-// Typography & Readability Hierarchy
-val TextPrimary          = Color(0xFFF8FAFC)   // Crisp studio white
-val TextSecondary        = Color(0xFF94A3B8)   // Muted slate subtitle
-val TextTertiary         = Color(0xFF64748B)   // Ultra-fine captions & indices
+// Text
+val TextPrimary          = Color(0xFFF6F6F8)
+val TextSecondary        = Color(0xFFA6A6B3)
+val TextTertiary         = Color(0xFF6C6C7A)
 
-// Semantic States
-val ErrorRed             = Color(0xFFEF4444)   // Crimson favorite / peak clip
-val SuccessGreen         = Color(0xFF10B981)   // Hi-Res lossless badge
+// Semantic
+val ErrorRed             = Color(0xFFFF6B6B)
+val SuccessGreen         = Color(0xFF4ADE9B)
+
+/** The backdrop the translucent panels sit on. */
+val AmbientBackdrop: Brush = Brush.verticalGradient(
+    0.0f to Color(0xFF0C0C15),
+    0.35f to Color(0xFF090A0F),
+    1.0f to DarkSurface
+)

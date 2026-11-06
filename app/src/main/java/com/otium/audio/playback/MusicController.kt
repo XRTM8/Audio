@@ -41,6 +41,8 @@ class MusicController(
     /** Set by the application so the sleep timer can stop at the end of a track. */
     var onTrackEnded: (() -> Unit)? = null
 
+    private val persistence = PlaybackPersistence(context)
+
     init {
         initializeController()
     }
@@ -88,17 +90,55 @@ class MusicController(
             startProgressTracker()
         } else {
             stopProgressTracker()
+            persistence.savePosition(_position.value)
         }
+        persistQueue()
+    }
+
+    private fun persistQueue() {
+        val controller = mediaController ?: return
+        val ids = currentPlaylistSongs.map { it.id }
+        if (ids.isEmpty()) return
+        persistence.saveQueue(ids, controller.currentMediaItemIndex)
+    }
+
+    /** Rebuilds the last queue from the library, paused where the user left it. */
+    fun restoreQueue(library: List<Song>): Boolean {
+        val controller = mediaController ?: return false
+        if (controller.mediaItemCount > 0) return false
+        val session = persistence.load() ?: return false
+
+        val byId = library.associateBy { it.id }
+        val queue = session.songIds.mapNotNull { byId[it] }
+        if (queue.isEmpty()) {
+            persistence.clearQueue()
+            return false
+        }
+
+        val index = session.index.coerceIn(0, queue.lastIndex)
+        currentPlaylistSongs = queue
+        controller.setMediaItems(queue.map { it.toMediaItem() }, index, session.positionMs)
+        controller.prepare()
+        _position.value = session.positionMs
+        _playbackState.update {
+            it.copy(currentSong = queue[index], durationMs = queue[index].durationMs, queue = queue)
+        }
+        return true
     }
 
     private fun startProgressTracker() {
         progressTrackingJob?.cancel()
         progressTrackingJob = coroutineScope.launch(Dispatchers.Main) {
+            var ticks = 0
             while (isActive) {
                 val controller = mediaController
                 if (controller != null && controller.isPlaying) {
                     _position.value = controller.currentPosition.coerceAtLeast(0L)
+                    if (ticks % POSITION_SAVE_TICKS == 0) {
+                        persistence.savePosition(_position.value)
+                    }
                 }
+                ticks++
                 delay(250L)
             }
         }
@@ -294,6 +334,11 @@ class MusicController(
             controller.seekToDefaultPosition(index)
             controller.play()
         }
+    }
+
+    private companion object {
+        /** 250 ms per tick, so twenty ticks is roughly five seconds. */
+        const val POSITION_SAVE_TICKS = 20
     }
 
     fun release() {
