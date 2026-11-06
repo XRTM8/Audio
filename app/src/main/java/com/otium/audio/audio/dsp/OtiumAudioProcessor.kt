@@ -32,6 +32,7 @@ class OtiumAudioProcessor(
     private var limiter = PeakLimiter()
 
     private var appliedGains = FloatArray(BAND_FREQUENCIES_HZ.size)
+    private var bypass = true
     private var appliedPreAmpDb = Float.NaN
 
     override fun onConfigure(inputAudioFormat: androidx.media3.common.audio.AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
@@ -60,8 +61,14 @@ class OtiumAudioProcessor(
     override fun queueInput(inputBuffer: ByteBuffer) {
         syncFromController()
 
-        val inputSamples = inputBuffer.remaining() / bytesPerSample()
         val output = replaceOutputBuffer(inputBuffer.remaining())
+        if (bypass) {
+            // Bit for bit. A flat equalizer should cost nothing at all.
+            output.put(inputBuffer)
+            output.flip()
+            return
+        }
+        val inputSamples = inputBuffer.remaining() / bytesPerSample()
 
         repeat(inputSamples) { index ->
             val channel = index % channelCount
@@ -118,7 +125,11 @@ class OtiumAudioProcessor(
             }
         }
 
-        limiter.enabled = state.isEnabled
+        // Limiting is only needed when something in the chain adds gain. With every
+        // band at zero and no pre-amp, the limiter must stay out of the way entirely.
+        val boosting = state.preAmpDb > 0.05f || levels.any { it.levelDb > 0.05f }
+        limiter.enabled = state.isEnabled && boosting
+        bypass = !state.isEnabled || (!boosting && levels.none { it.levelDb < -0.05f })
     }
 
     private fun bytesPerSample(): Int =
@@ -165,7 +176,7 @@ class OtiumAudioProcessor(
         fun process(sample: Float, channel: Int): Float {
             if (!enabled) {
                 channelGain[channel] = 1f
-                return softClip(sample)
+                return sample
             }
 
             val magnitude = abs(sample)
@@ -178,7 +189,7 @@ class OtiumAudioProcessor(
                 releaseCoefficient * (current - desired) + desired
             }
             channelGain[channel] = smoothed
-            return softClip(sample * smoothed)
+            return sample * smoothed
         }
 
         fun reset() {
@@ -186,11 +197,9 @@ class OtiumAudioProcessor(
             channelGain.fill(1f)
         }
 
-        private fun softClip(value: Float): Float =
-            if (abs(value) <= 0.98f) value else (0.98f * kotlin.math.tanh(value / 0.98f))
 
         private companion object {
-            const val THRESHOLD = 0.95f
+            const val THRESHOLD = 0.985f
         }
     }
 

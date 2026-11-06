@@ -271,8 +271,9 @@ class MusicViewModel(
 
     fun toggleEqualizer(enabled: Boolean) = equalizerController.setEnabled(enabled)
     fun setPreAmpGain(gainDb: Float) {
+        // Only the DSP applies gain. Doing it here as well made every boost twice as loud,
+        // which is exactly what a clipped, dirty sound feels like.
         equalizerController.setPreAmpGain(gainDb)
-        musicController.setHeadroomDb(gainDb)
     }
     fun setEqualizerBandLevel(bandIndex: Short, level: Float) =
         equalizerController.setBandLevel(bandIndex, level)

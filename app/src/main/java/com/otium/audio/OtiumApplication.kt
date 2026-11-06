@@ -59,8 +59,6 @@ class OtiumApplication : Application() {
         // repository registers a content observer, and the base context does not exist
         // until attachBaseContext has run. Touching either in the constructor crashes.
         musicController.onTrackEnded = { sleepTimerController.onTrackEnded() }
-        // Re-apply the saved pre-amp to the freshly created player.
-        musicController.setHeadroomDb(equalizerController.state.value.preAmpDb)
         applicationScope.launch { repository.pruneHistory(HISTORY_RETENTION_DAYS) }
     }
 

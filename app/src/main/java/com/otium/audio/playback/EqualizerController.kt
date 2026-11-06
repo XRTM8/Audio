@@ -42,16 +42,11 @@ data class EqualizerState(
     val currentPreset: String = "Flat",
     val presets: List<String> = listOf(
         "Flat",
-        "Harman Target (Audiophile)",
-        "Sennheiser HD-Series",
-        "Sony WH-1000XM Series",
-        "AirPods Pro Reference",
-        "Bass Boost Extreme",
-        "Acoustic & Vocals",
-        "Rock & Metal",
-        "Electronic Club",
-        "Pop & Modern",
-        "Jazz & Warm",
+        "Warm",
+        "Bass",
+        "Vocal",
+        "Bright",
+        "Loudness",
         "Custom"
     )
 )
@@ -305,18 +300,16 @@ class EqualizerController(private val store: EqProfileStore? = null) {
         val bands = _state.value.bands
 
         // Reference 10-band target curves
+        // Deliberately gentle. Anything past four decibels stops being a tone control and
+        // starts being distortion, and the "headphone target" curves that used to live here
+        // were fiction without a measured impulse response behind them.
         val target10Levels = when (presetName) {
             "Flat" -> listOf(0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f)
-            "Harman Target (Audiophile)" -> listOf(6.0f, 4.5f, 2.0f, 0.0f, -0.5f, 1.0f, 2.5f, 3.5f, 2.5f, 1.5f)
-            "Sennheiser HD-Series" -> listOf(3.5f, 2.5f, 1.0f, 0.0f, 0.0f, 0.5f, 1.5f, 2.0f, 2.5f, 3.0f)
-            "Sony WH-1000XM Series" -> listOf(-1.5f, -2.5f, -1.0f, 0.5f, 2.0f, 2.5f, 3.5f, 4.0f, 3.5f, 2.0f)
-            "AirPods Pro Reference" -> listOf(3.0f, 2.0f, 0.5f, 0.0f, 0.0f, 0.5f, 1.0f, 1.5f, 2.0f, 1.5f)
-            "Bass Boost Extreme" -> listOf(9.0f, 7.5f, 5.0f, 2.0f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f)
-            "Acoustic & Vocals" -> listOf(-1.5f, -1.0f, 0.5f, 1.5f, 3.5f, 4.0f, 3.5f, 2.5f, 2.0f, 1.5f)
-            "Rock & Metal" -> listOf(6.0f, 5.0f, 3.0f, -1.0f, -1.5f, 0.5f, 2.0f, 4.0f, 5.5f, 6.0f)
-            "Electronic Club" -> listOf(7.0f, 6.0f, 4.0f, 1.0f, 0.0f, 0.5f, 2.0f, 3.5f, 5.5f, 6.5f)
-            "Pop & Modern" -> listOf(-1.0f, 0.5f, 2.0f, 4.0f, 5.0f, 4.5f, 3.0f, 2.0f, 0.5f, -1.0f)
-            "Jazz & Warm" -> listOf(4.5f, 4.0f, 2.0f, 0.0f, -0.5f, 1.0f, 2.0f, 3.0f, 3.5f, 4.0f)
+            "Warm" -> listOf(2.5f, 2.0f, 1.0f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, 1.0f, 1.5f)
+            "Bass" -> listOf(3.5f, 3.0f, 1.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 0.0f)
+            "Vocal" -> listOf(-1.0f, -0.5f, 0.0f, 1.0f, 2.5f, 3.0f, 2.0f, 1.0f, 0.0f, -0.5f)
+            "Bright" -> listOf(0.0f, 0.0f, 0.0f, -0.5f, 0.0f, 0.5f, 1.0f, 2.5f, 3.0f, 3.0f)
+            "Loudness" -> listOf(3.0f, 2.5f, 1.0f, 0.0f, -1.0f, -1.0f, 0.0f, 1.5f, 2.5f, 2.5f)
             else -> return
         }
 
