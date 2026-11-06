@@ -418,11 +418,11 @@ fun HomeScreen(
                 )
             }
 
-            if (uiState.songToEdit != null) {
+            uiState.songToEdit?.let { targetSong ->
                 TagEditorSheet(
-                    song = uiState.songToEdit,
+                    song = targetSong,
                     onSave = { title, artist, album ->
-                        onSaveMetadata(uiState.songToEdit.id, title, artist, album)
+                        onSaveMetadata(targetSong.id, title, artist, album)
                     },
                     onDismiss = onDismissTagEditor
                 )

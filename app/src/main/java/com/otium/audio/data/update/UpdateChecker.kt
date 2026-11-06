@@ -20,7 +20,7 @@ data class UpdateInfo(
 
 object UpdateChecker {
 
-    private const val GITHUB_API_URL = "https://api.github.com/repos/XRTM8/Otium-Music/releases/latest"
+    private const val GITHUB_API_URL = "https://api.github.com/repos/XRTM8/Audio/releases/latest"
 
     suspend fun checkLatestRelease(currentVersion: String): UpdateInfo? = withContext(Dispatchers.IO) {
         try {

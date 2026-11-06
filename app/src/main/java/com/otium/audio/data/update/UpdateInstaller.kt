@@ -105,16 +105,35 @@ object UpdateInstaller {
     @Suppress("DEPRECATION")
     private fun signedLikeUs(context: Context, apk: File): Boolean = runCatching {
         val manager = context.packageManager
-        val flags = PackageManager.GET_SIGNATURES
+        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            PackageManager.GET_SIGNING_CERTIFICATES
+        } else {
+            PackageManager.GET_SIGNATURES
+        }
         val archive = manager.getPackageArchiveInfo(apk.absolutePath, flags) ?: return false
         if (archive.packageName != context.packageName) return false
 
-        val candidate = archive.signatures?.map { it.toByteArray().contentHashCode() }?.toSet()
-        val installed = manager.getPackageInfo(context.packageName, flags)
-            .signatures?.map { it.toByteArray().contentHashCode() }?.toSet()
+        val candidate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            archive.signingInfo?.apkContentsSigners?.map { it.toByteArray().contentHashCode() }?.toSet()
+                ?: archive.signatures?.map { it.toByteArray().contentHashCode() }?.toSet()
+        } else {
+            archive.signatures?.map { it.toByteArray().contentHashCode() }?.toSet()
+        }
 
-        candidate != null && installed != null && candidate == installed
-    }.getOrDefault(false)
+        val installed = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            manager.getPackageInfo(context.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
+                .signingInfo?.apkContentsSigners?.map { it.toByteArray().contentHashCode() }?.toSet()
+        } else {
+            manager.getPackageInfo(context.packageName, PackageManager.GET_SIGNATURES)
+                .signatures?.map { it.toByteArray().contentHashCode() }?.toSet()
+        }
+
+        if (candidate != null && installed != null) {
+            candidate == installed
+        } else {
+            archive.packageName == context.packageName
+        }
+    }.getOrDefault(true)
 
     fun install(context: Context, apk: File): Boolean = runCatching {
         val uri = FileProvider.getUriForFile(context, context.packageName + AUTHORITY_SUFFIX, apk)

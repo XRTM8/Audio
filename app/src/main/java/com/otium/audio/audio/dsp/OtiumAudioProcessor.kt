@@ -49,6 +49,7 @@ class OtiumAudioProcessor(
 
         appliedPreAmpDb = Float.NaN
         rebuildFilters()
+        limiter.configure(sampleRateHz)
         return inputAudioFormat
     }
 
@@ -159,10 +160,9 @@ class OtiumAudioProcessor(
     private class PeakLimiter {
         var enabled = true
 
-        private val attack = 0.0f
         private var attackCoefficient = 0f
         private var releaseCoefficient = 0f
-        private var sampleRate = 44_100
+        private var sampleRate = 0
         private var gain = 1f
         private val channelGain = FloatArray(CHANNELS_MAX) { 1f }
 

@@ -398,7 +398,7 @@ fun SettingsSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable {
-                        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/XRTM8/Otium-Music"))
+                        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/XRTM8/Audio"))
                         context.startActivity(browserIntent)
                     },
                 shape = RoundedCornerShape(16.dp),
