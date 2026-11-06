@@ -126,7 +126,7 @@ fun SettingsSheet(
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "Settings & Engine",
+                        text = "الإعدادات ومحرك الصوت",
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         color = TextPrimary
                     )
@@ -203,7 +203,7 @@ fun SettingsSheet(
 
             // Section: Automatic Updates
             Text(
-                text = "AUTOMATIC UPDATES (التحديث التلقائي)",
+                text = "تحديثات التطبيق",
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                 color = AccentGold
             )
@@ -352,7 +352,7 @@ fun SettingsSheet(
 
             // Section: Audio DSP & Playback
             Text(
-                text = "AUDIO ENGINE & DSP (محرك الصوت)",
+                text = "معالجة الصوت (DSP)",
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                 color = AccentGold
             )
@@ -381,8 +381,8 @@ fun SettingsSheet(
                             Icon(imageVector = Icons.Default.Equalizer, contentDescription = null, tint = AccentGold)
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
-                                Text("Equalizer & Presets", fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                                Text("فتح الموازن الصوتي ومؤثرات 3D والـ Bass", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                                Text("المعادل الصوتي والمؤثرات", fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                                Text("المعادل الصوتي، تضخيم البيس، الصدى، والكورال", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
                             }
                         }
                         Icon(imageVector = Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(18.dp))
@@ -413,7 +413,7 @@ fun SettingsSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text("Otium Audio on GitHub", fontWeight = FontWeight.Bold, color = TextPrimary)
+                        Text("مشروع Otium Audio على GitHub", fontWeight = FontWeight.Bold, color = TextPrimary)
                         Text("مستودع المشروع والتحديثات الرسمية", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
                     }
                     Icon(imageVector = Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, tint = AccentGold)

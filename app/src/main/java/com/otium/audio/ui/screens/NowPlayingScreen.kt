@@ -18,6 +18,16 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
+import kotlin.math.absoluteValue
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -208,7 +218,6 @@ fun NowPlayingScreen(
         LrcParser.findLrcForAudio(song.relativePath) ?: TrackLyrics()
     }
 
-    val dragX = remember { Animatable(0f) }
     val dragY = remember { Animatable(0f) }
 
     val playBtnScale by animateFloatAsState(
@@ -260,43 +269,44 @@ fun NowPlayingScreen(
                 Box(
                     modifier = Modifier
                         .padding(top = 6.dp, bottom = 2.dp)
-                        .size(width = 38.dp, height = 4.dp)
+                        .size(width = 40.dp, height = 4.dp)
                         .clip(CircleShape)
-                        .background(TextSecondary.copy(alpha = 0.35f))
+                        .background(TextSecondary.copy(alpha = 0.4f))
                 )
 
                 // ── Minimalist Poweramp Top Bar with swipe-down dismiss ──────────────
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 2.dp)
-                        .pointerInput(Unit) {
-                            val threshold = with(density) { 90.dp.toPx() }
-                            detectVerticalDragGestures(
-                                onDragEnd = {
-                                    scope.launch {
-                                        if (dragY.value > threshold) {
-                                            onCollapse()
-                                            dragY.snapTo(0f)
-                                        } else {
-                                            dragY.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                            .pointerInput(Unit) {
+                                val threshold = with(density) { 90.dp.toPx() }
+                                detectVerticalDragGestures(
+                                    onDragEnd = {
+                                        scope.launch {
+                                            if (dragY.value > threshold) {
+                                                onCollapse()
+                                                dragY.snapTo(0f)
+                                            } else {
+                                                dragY.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
+                                            }
+                                        }
+                                    },
+                                    onDragCancel = {
+                                        scope.launch { dragY.animateTo(0f) }
+                                    },
+                                    onVerticalDrag = { change, dragAmount ->
+                                        change.consume()
+                                        scope.launch {
+                                            dragY.snapTo((dragY.value + dragAmount).coerceAtLeast(0f))
                                         }
                                     }
-                                },
-                                onDragCancel = {
-                                    scope.launch { dragY.animateTo(0f) }
-                                },
-                                onVerticalDrag = { change, dragAmount ->
-                                    change.consume()
-                                    scope.launch {
-                                        dragY.snapTo((dragY.value + dragAmount).coerceAtLeast(0f))
-                                    }
-                                }
-                            )
-                        },
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                                )
+                            },
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                     IconButton(onClick = onCollapse) {
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowDown,
@@ -354,13 +364,14 @@ fun NowPlayingScreen(
                         }
                     }
                 }
+            }
 
-                // ── Large Cinematic Artwork with Swipe-To-Skip Physics ───────
+                // ── Cinematic Artwork HorizontalPager Carousel ───────────────
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 8.dp),
+                        .padding(vertical = 6.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     AnimatedContent(
@@ -369,141 +380,176 @@ fun NowPlayingScreen(
                         label = "art_lyrics"
                     ) { isLyricsMode ->
                         if (isLyricsMode) {
-                            LyricsSheet(
-                                lyrics = lyrics,
-                                positionFlow = positionFlow,
-                                onSeekTo = onSeekTo,
-                                activeColor = animatedVibrant
-                            )
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth(0.92f)
-                                    .aspectRatio(1f)
-                                    .drawBehind {
-                                        val reach = size.maxDimension * 0.78f
-                                        val strength = halo * if (isPlaying) 1f else 0.34f
-                                        drawCircle(
-                                            brush = Brush.radialGradient(
-                                                colors = listOf(
-                                                    animatedVibrant.copy(alpha = strength),
-                                                    animatedVibrant.copy(alpha = strength * 0.35f),
-                                                    Color.Transparent
-                                                ),
-                                                center = center,
-                                                radius = reach
-                                            ),
-                                            radius = reach,
-                                            center = center
-                                        )
-                                    }
-                                    .offset { IntOffset(dragX.value.roundToInt(), 0) }
-                                    .shadow(
-                                        elevation = 28.dp,
-                                        shape = RoundedCornerShape(18.dp),
-                                        ambientColor = animatedDominant.copy(alpha = 0.5f),
-                                        spotColor = animatedDominant.copy(alpha = 0.4f)
-                                    )
-                                    .clip(RoundedCornerShape(18.dp))
-                                    .background(DarkSurfaceVariant)
-                                    .pointerInput(Unit) {
-                                        val horizontalThreshold = with(density) { 60.dp.toPx() }
-                                        val verticalThreshold = with(density) { 95.dp.toPx() }
-                                        detectDragGestures(
-                                            onDragCancel = {
-                                                scope.launch {
-                                                    dragX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
-                                                    dragY.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
-                                                }
-                                            },
-                                            onDragEnd = {
-                                                scope.launch {
-                                                    // Vertical swipe-down dismiss takes precedence if dragged down
-                                                    if (dragY.value > verticalThreshold) {
-                                                        onCollapse()
-                                                        dragY.snapTo(0f)
-                                                        dragX.snapTo(0f)
-                                                    } else {
-                                                        dragY.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
-
-                                                        // Horizontal track switching:
-                                                        // Swiping right -> Next song, Swiping left -> Previous song
-                                                        if (dragX.value > horizontalThreshold) {
-                                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                            onSkipNext()
-                                                        } else if (dragX.value < -horizontalThreshold) {
-                                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                            onSkipPrevious()
-                                                        }
-                                                        dragX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
-                                                    }
-                                                }
-                                            },
-                                            onDrag = { change, dragAmount ->
-                                                change.consume()
-                                                scope.launch {
-                                                    if (abs(dragAmount.y) > abs(dragAmount.x) && (dragAmount.y > 0 || dragY.value > 0)) {
-                                                        // Vertical drag down
-                                                        dragY.snapTo((dragY.value + dragAmount.y).coerceAtLeast(0f))
-                                                    } else {
-                                                        // Horizontal 1:1 responsive drag
-                                                        dragX.snapTo((dragX.value + dragAmount.x).coerceIn(-1000f, 1000f))
-                                                    }
-                                                }
-                                            }
-                                        )
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                // High-End Audiophile Vinyl Placeholder if artwork is absent or loading
-                                AudiophileVinylCover()
-
-                                AsyncImage(
-                                    model = highResArtworkRequest,
-                                    contentDescription = song.title,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.matchParentSize()
+                            Box(modifier = Modifier.padding(horizontal = 24.dp)) {
+                                LyricsSheet(
+                                    lyrics = lyrics,
+                                    positionFlow = positionFlow,
+                                    onSeekTo = onSeekTo,
+                                    activeColor = animatedVibrant
                                 )
+                            }
+                        } else {
+                            val playlist = remember(queue, song) {
+                                if (queue.isNotEmpty()) queue else listOf(song)
+                            }
+                            val currentTrackIndex = remember(playlist, song.id) {
+                                playlist.indexOfFirst { it.id == song.id }.coerceAtLeast(0)
+                            }
+                            val pagerState = rememberPagerState(initialPage = currentTrackIndex) {
+                                playlist.size
+                            }
+
+                            // Keep pager in sync with active playing track
+                            LaunchedEffect(currentTrackIndex) {
+                                if (pagerState.currentPage != currentTrackIndex && !pagerState.isScrollInProgress) {
+                                    pagerState.animateScrollToPage(
+                                        page = currentTrackIndex,
+                                        animationSpec = spring(
+                                            stiffness = Spring.StiffnessMediumLow,
+                                            dampingRatio = Spring.DampingRatioNoBouncy
+                                        )
+                                    )
+                                }
+                            }
+
+                            // Switch tracks when user settles on a new page
+                            LaunchedEffect(pagerState) {
+                                snapshotFlow { pagerState.settledPage }.collect { settledPage ->
+                                    if (settledPage in playlist.indices && playlist[settledPage].id != song.id) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        onPlayQueueIndex(settledPage)
+                                    }
+                                }
+                            }
+
+                            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                                HorizontalPager(
+                                    state = pagerState,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .fillMaxHeight(),
+                                    contentPadding = PaddingValues(horizontal = 36.dp),
+                                    pageSpacing = 16.dp,
+                                    key = { page -> if (page in playlist.indices) playlist[page].id else page }
+                                ) { page ->
+                                    val pageSong = playlist.getOrElse(page) { song }
+                                    val isCurrent = page == pagerState.currentPage
+
+                                    // Dynamic 3D carousel depth calculation
+                                    val pageOffset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).absoluteValue
+                                    val pageScale = (1f - (pageOffset * 0.12f)).coerceIn(0.86f, 1f)
+                                    val pageAlpha = (1f - (pageOffset * 0.40f)).coerceIn(0.55f, 1f)
+
+                                    val pageCoverRequest = remember(pageSong.albumArtUri) {
+                                        ImageRequest.Builder(context)
+                                            .data(pageSong.albumArtUri)
+                                            .size(1080, 1080)
+                                            .crossfade(200)
+                                            .memoryCachePolicy(CachePolicy.ENABLED)
+                                            .diskCachePolicy(CachePolicy.ENABLED)
+                                            .build()
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .graphicsLayer {
+                                                scaleX = pageScale
+                                                scaleY = pageScale
+                                                alpha = pageAlpha
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth(0.96f)
+                                                .aspectRatio(1f)
+                                                .drawBehind {
+                                                    if (isCurrent) {
+                                                        val reach = size.maxDimension * 0.78f
+                                                        val strength = halo * if (isPlaying) 1f else 0.34f
+                                                        drawCircle(
+                                                            brush = Brush.radialGradient(
+                                                                colors = listOf(
+                                                                    animatedVibrant.copy(alpha = strength),
+                                                                    animatedVibrant.copy(alpha = strength * 0.35f),
+                                                                    Color.Transparent
+                                                                ),
+                                                                center = center,
+                                                                radius = reach
+                                                            ),
+                                                            radius = reach,
+                                                            center = center
+                                                        )
+                                                    }
+                                                }
+                                                .shadow(
+                                                    elevation = if (isCurrent) 24.dp else 6.dp,
+                                                    shape = RoundedCornerShape(20.dp),
+                                                    ambientColor = animatedDominant.copy(alpha = 0.5f),
+                                                    spotColor = animatedDominant.copy(alpha = 0.4f)
+                                                )
+                                                .clip(RoundedCornerShape(20.dp))
+                                                .background(DarkSurfaceVariant),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            AudiophileVinylCover()
+
+                                            AsyncImage(
+                                                model = pageCoverRequest,
+                                                contentDescription = pageSong.title,
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier.matchParentSize()
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 }
 
-                // ── Track Title & Artist Information ────────────────────────
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp),
-                    horizontalAlignment = Alignment.Start
-                ) {
-                    Text(
-                        text = song.title,
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp,
-                            textDirection = TextDirection.ContentOrLtr
-                        ),
-                        color = TextPrimary,
-                        maxLines = 1,
-                        modifier = Modifier.basicMarquee()
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = buildString {
-                            append(song.artist)
-                            if (song.album.isNotBlank() && song.album != "<unknown>") {
-                                append("  •  ")
-                                append(song.album)
-                            }
-                        },
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            textDirection = TextDirection.ContentOrLtr,
-                            fontSize = 13.5.sp
-                        ),
-                        color = TextSecondary,
-                        maxLines = 1,
-                        modifier = Modifier.basicMarquee()
-                    )
+                // ── Track Title & Artist Information with Crossfade ─────────
+                AnimatedContent(
+                    targetState = song,
+                    transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(180)) },
+                    label = "track_title_crossfade"
+                ) { targetSong ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp),
+                        horizontalAlignment = Alignment.Start
+                    ) {
+                        Text(
+                            text = targetSong.title,
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 20.sp,
+                                textDirection = TextDirection.ContentOrLtr
+                            ),
+                            color = TextPrimary,
+                            maxLines = 1,
+                            modifier = Modifier.basicMarquee()
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = buildString {
+                                append(targetSong.artist)
+                                if (targetSong.album.isNotBlank() && targetSong.album != "<unknown>") {
+                                    append("  •  ")
+                                    append(targetSong.album)
+                                }
+                            },
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                textDirection = TextDirection.ContentOrLtr,
+                                fontSize = 13.5.sp
+                            ),
+                            color = TextSecondary,
+                            maxLines = 1,
+                            modifier = Modifier.basicMarquee()
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
@@ -519,13 +565,14 @@ fun NowPlayingScreen(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 // ── Main Audio Playback Controls ────────────────────────────
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                     IconButton(onClick = onToggleShuffle) {
                         Icon(
                             imageVector = Icons.Default.Shuffle,
@@ -609,6 +656,7 @@ fun NowPlayingScreen(
                         )
                     }
                 }
+            }
 
                 Spacer(modifier = Modifier.height(10.dp))
             }
@@ -627,26 +675,26 @@ fun NowPlayingScreen(
                             .padding(horizontal = 20.dp, vertical = 8.dp)
                     ) {
                         Text(
-                            text = "Track Actions",
+                            text = "خيارات المقطع",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             color = TextPrimary,
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
 
                         val actions = listOf(
-                            Triple(Icons.Default.Lyrics, if (showLyrics) "Hide Lyrics" else "Synchronized Lyrics") {
+                            Triple(Icons.Default.Lyrics, if (showLyrics) "إخفاء الكلمات" else "كلمات الأغنية") {
                                 showMoreSheet = false; showLyrics = !showLyrics
                             },
-                            Triple(Icons.Default.Speed, "Playback Speed  (${playbackSpeed}x)") {
+                            Triple(Icons.Default.Speed, "سرعة التشغيل (${playbackSpeed}x)") {
                                 showMoreSheet = false; showSpeedDialog = true
                             },
-                            Triple(Icons.Default.Bedtime, if (sleepTimerState.isActive) "Sleep Timer (${sleepTimerState.remainingSeconds}s remaining)" else "Sleep Timer") {
+                            Triple(Icons.Default.Bedtime, if (sleepTimerState.isActive) "مؤقت النوم (${sleepTimerState.remainingSeconds} ثانية)" else "مؤقت النوم") {
                                 showMoreSheet = false; showSleepTimer = true
                             },
-                            Triple(Icons.AutoMirrored.Filled.QueueMusic, "Up Next Queue  (${queue.size} tracks)") {
+                            Triple(Icons.AutoMirrored.Filled.QueueMusic, "قائمة التشغيل الحالية (${queue.size} مقطع)") {
                                 showMoreSheet = false; showQueue = true
                             },
-                            Triple(Icons.Default.EditNote, "Edit Audio Tag Metadata") {
+                            Triple(Icons.Default.EditNote, "تعديل بيانات المقطع الصوتي") {
                                 showMoreSheet = false; onEditTagClick()
                             }
                         )
@@ -691,7 +739,7 @@ fun NowPlayingScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            "Playback Speed",
+                            "سرعة التشغيل",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             color = TextPrimary
                         )

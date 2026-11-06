@@ -115,7 +115,7 @@ fun EqualizerSheet(
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = "Audiophile DSP Engine",
+                            text = "المعادل الصوتي ومحرك الاستوديو",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             color = TextPrimary
                         )
@@ -136,7 +136,7 @@ fun EqualizerSheet(
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = if (state.isBound) {
-                                    "${state.bands.size}-Band Studio Matrix"
+                                    "معادل ${state.bands.size} نطاقات"
                                 } else {
                                     // There is no audio session to attach to until something plays.
                                     "يعمل بعد تشغيل أغنية"
@@ -238,7 +238,7 @@ fun EqualizerSheet(
 
             // Equalizer Frequency Bands
             Text(
-                text = "FREQUENCY BANDS (${state.bands.size}-Band Parametric)",
+                text = "نطاقات التردد المعادل (${state.bands.size} نطاقات)",
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
                 color = AccentGold
             )
@@ -362,7 +362,7 @@ fun EqualizerSheet(
 
             // DSP Studio Effects & Spatial Acoustics Section
             Text(
-                text = "DSP EFFECTS & ACOUSTICS (المؤثرات والاستوديو)",
+                text = "المؤثرات الصوتية (DSP)",
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
                 color = AccentGold
             )
@@ -383,7 +383,7 @@ fun EqualizerSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "REVERB (صدى واستوديو فراغي)",
+                        text = "التردد الفراغي (REVERB)",
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                         color = AccentGold
                     )
@@ -447,7 +447,7 @@ fun EqualizerSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "STUDIO CHORUS (كورال احترافي ثلاثي الأبعاد)",
+                        text = "تأثير الكورال (CHORUS)",
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                         color = AccentCyan
                     )
@@ -487,12 +487,12 @@ fun EqualizerSheet(
                 ) {
                     Column {
                         Text(
-                            text = "CLARITY & ANTI-FATIGUE (دقة الصوت وتنعيم الحدة)",
+                            text = "نقاء الصوت وتنعيم الحدة (CLARITY)",
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                             color = AccentGold
                         )
                         Text(
-                            text = "إخماد الترددات المزعجة (6.2kHz) + تفتيح تفاصيل الهواء (12kHz)",
+                            text = "إخماد الترددات الحادة والمؤذية للسمع (6.2kHz) مع إبراز التفاصيل الدقيقة",
                             fontSize = 9.5.sp,
                             color = TextSecondary
                         )

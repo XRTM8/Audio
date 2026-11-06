@@ -97,12 +97,12 @@ fun QueueSheet(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = "Up Next",
+                            text = "قائمة التشغيل",
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                             color = TextPrimary
                         )
                         Text(
-                            text = "${queue.size} tracks queued",
+                            text = "${queue.size} مقطع في القائمة",
                             style = MaterialTheme.typography.labelSmall,
                             color = TextSecondary
                         )
@@ -124,7 +124,7 @@ fun QueueSheet(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Queue is empty",
+                        text = "قائمة التشغيل فارغة",
                         style = MaterialTheme.typography.bodyLarge,
                         color = TextSecondary
                     )
