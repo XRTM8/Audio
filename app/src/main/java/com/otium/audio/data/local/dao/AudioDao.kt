@@ -13,7 +13,8 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface AudioDao {
 
-    // --- Favorites ---
+    // --- Favorites ---------------------------------------------------------
+
     @Query("SELECT songId FROM favorites ORDER BY addedAt DESC")
     fun getAllFavoriteIdsFlow(): Flow<List<Long>>
 
@@ -26,7 +27,8 @@ interface AudioDao {
     @Query("DELETE FROM favorites WHERE songId = :songId")
     suspend fun removeFavorite(songId: Long)
 
-    // --- Playlists ---
+    // --- Playlists ---------------------------------------------------------
+
     @Query("SELECT * FROM playlists ORDER BY createdAt DESC")
     fun getAllPlaylistsFlow(): Flow<List<PlaylistEntity>>
 
@@ -45,16 +47,41 @@ interface AudioDao {
     @Query("SELECT songId FROM playlist_songs WHERE playlistId = :playlistId ORDER BY orderIndex ASC")
     fun getSongIdsForPlaylistFlow(playlistId: Long): Flow<List<Long>>
 
+    // orderIndex was never written, so every row kept the default 0 and the ORDER BY
+    // above sorted nothing. New rows now get the next free index.
+    @Query("SELECT COALESCE(MAX(orderIndex), -1) + 1 FROM playlist_songs WHERE playlistId = :playlistId")
+    suspend fun getNextOrderIndex(playlistId: Long): Int
+
     @Query("DELETE FROM playlist_songs WHERE playlistId = :playlistId")
     suspend fun clearPlaylistSongs(playlistId: Long)
 
-    // --- History & Analytics ---
+    // --- Playback history --------------------------------------------------
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun recordHistory(history: HistoryEntity)
 
-    @Query("SELECT songId FROM playback_history ORDER BY playedAt DESC LIMIT :limit")
+    // GROUP BY keeps the newest timestamp per song, so a song played five times does not
+    // occupy five of the fifty "recently played" slots.
+    @Query(
+        """
+        SELECT songId FROM playback_history
+        GROUP BY songId
+        ORDER BY MAX(playedAt) DESC
+        LIMIT :limit
+        """
+    )
     fun getRecentHistorySongIdsFlow(limit: Int = 50): Flow<List<Long>>
 
-    @Query("SELECT songId FROM playback_history GROUP BY songId ORDER BY COUNT(historyId) DESC LIMIT :limit")
+    @Query(
+        """
+        SELECT songId FROM playback_history
+        GROUP BY songId
+        ORDER BY COUNT(historyId) DESC
+        LIMIT :limit
+        """
+    )
     fun getMostPlayedSongIdsFlow(limit: Int = 50): Flow<List<Long>>
+
+    @Query("DELETE FROM playback_history WHERE playedAt < :cutoff")
+    suspend fun pruneHistory(cutoff: Long)
 }

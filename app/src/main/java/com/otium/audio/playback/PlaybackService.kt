@@ -73,13 +73,18 @@ class PlaybackService : MediaSessionService() {
             setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF)
         }
 
+        // A library refresh or a burst of downloads can stall the disk for a second or two.
+        // Starting (or resuming) too eagerly turns that stall into an audible gap, so the
+        // player is given more slack than the defaults once it has something to play.
         val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()
             .setBufferDurationsMs(
                 /* minBufferMs = */ 30_000,
-                /* maxBufferMs = */ 60_000,
-                /* bufferForPlaybackMs = */ 500,
-                /* bufferForPlaybackAfterRebufferMs = */ 1_000
+                /* maxBufferMs = */ 120_000,
+                /* bufferForPlaybackMs = */ 2_500,
+                /* bufferForPlaybackAfterRebufferMs = */ 5_000
             )
+            .setPrioritizeTimeOverSizeThresholds(true)
+            .setBackBuffer(/* backBufferMs = */ 30_000, /* retainBackBufferFromKeyframe = */ true)
             .build()
 
         player = ExoPlayer.Builder(this, renderersFactory)

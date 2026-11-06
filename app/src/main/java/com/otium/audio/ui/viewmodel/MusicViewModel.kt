@@ -10,19 +10,23 @@ import com.otium.audio.data.local.entity.PlaylistEntity
 import com.otium.audio.data.model.AudioFolder
 import com.otium.audio.data.model.Song
 import com.otium.audio.data.repository.AudioRepository
+import com.otium.audio.data.update.UpdateChecker
 import com.otium.audio.playback.EqualizerController
 import com.otium.audio.playback.MusicController
 import com.otium.audio.playback.SleepTimerController
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+@OptIn(FlowPreview::class)
 class MusicViewModel(
     private val repository: AudioRepository,
     private val musicController: MusicController,
@@ -31,14 +35,18 @@ class MusicViewModel(
     private val savedStateHandle: SavedStateHandle? = null
 ) : ViewModel() {
 
-    private val initialTab = savedStateHandle?.get<String>("selected_tab")?.let {
-        runCatching { LibraryTab.valueOf(it) }.getOrNull()
-    } ?: LibraryTab.TRACKS
+    private val initialTab = savedStateHandle?.get<String>("selected_tab")
+        ?.let { runCatching { LibraryTab.valueOf(it) }.getOrNull() }
+        ?: LibraryTab.TRACKS
 
     private val _uiState = MutableStateFlow(MusicUiState(selectedTab = initialTab))
     val uiState: StateFlow<MusicUiState> = _uiState.asStateFlow()
 
-    private val searchQueryFlow = MutableStateFlow("")
+    private val searchQuery = MutableStateFlow("")
+
+    private var libraryLoaded = false
+    private var lastRecordedSongId: Long? = null
+    private var playlistSongsJob: Job? = null
 
     init {
         observePlaybackState()
@@ -48,74 +56,63 @@ class MusicViewModel(
         checkForUpdates()
     }
 
-    fun checkForUpdates() {
-        viewModelScope.launch {
-            val update = com.otium.audio.data.update.UpdateChecker.checkLatestRelease("1.5.1")
-            if (update != null) {
-                _uiState.update { it.copy(availableUpdate = update) }
-            }
-        }
-    }
-
-    fun dismissUpdate() {
-        _uiState.update { it.copy(availableUpdate = null) }
-    }
+    // --- Library -----------------------------------------------------------
 
     fun onPermissionGranted() {
         _uiState.update { it.copy(hasStoragePermission = true) }
-        loadLibraryData()
+        if (libraryLoaded) return
+        libraryLoaded = true
+        loadLibrary()
     }
 
-    private fun loadLibraryData() {
+    // Seven independent collectors used to drive seven separate state writes, and every
+    // derived flow re-opened its own MediaStore observer upstream. One combine, one write.
+    private fun loadLibrary() {
         viewModelScope.launch {
-            repository.getAllSongsFlow().collectLatest { songs ->
-                _uiState.update { it.copy(songs = songs) }
+            combine(
+                repository.getAllSongsFlow(),
+                repository.getFavoritesFlow(),
+                repository.getFoldersFlow(),
+                repository.getPlaylistsFlow()
+            ) { songs, favorites, folders, playlists ->
+                Library(songs, favorites, folders, playlists)
             }
-        }
-
-        viewModelScope.launch {
-            repository.getFavoritesFlow().collectLatest { favorites ->
-                _uiState.update { it.copy(favorites = favorites) }
-            }
-        }
-
-        viewModelScope.launch {
-            repository.getFoldersFlow().collectLatest { folders ->
-                _uiState.update { it.copy(folders = folders) }
-            }
-        }
-
-        viewModelScope.launch {
-            repository.getPlaylistsFlow().collectLatest { playlists ->
-                _uiState.update { it.copy(playlists = playlists) }
-            }
-        }
-
-        viewModelScope.launch {
-            repository.getRecentlyPlayedFlow().collectLatest { history ->
-                _uiState.update { it.copy(history = history) }
-            }
-        }
-
-        viewModelScope.launch {
-            repository.getMostPlayedFlow().collectLatest { mostPlayed ->
-                _uiState.update { it.copy(mostPlayed = mostPlayed) }
-            }
-        }
-
-        viewModelScope.launch {
-            repository.getRecentlyAddedFlow().collectLatest { recentlyAdded ->
-                _uiState.update { it.copy(recentlyAdded = recentlyAdded) }
-            }
+                .combine(repository.getRecentlyPlayedFlow()) { lib, played ->
+                    lib.copy(recentlyPlayed = played)
+                }
+                .combine(repository.getMostPlayedFlow(MOST_PLAYED_LIMIT)) { lib, top ->
+                    lib.copy(mostPlayed = top)
+                }
+                .combine(repository.getRecentlyAddedFlow()) { lib, added ->
+                    lib.copy(recentlyAdded = added)
+                }
+                .collect { lib ->
+                    _uiState.update {
+                        it.copy(
+                            songs = lib.songs,
+                            favorites = lib.favorites,
+                            folders = lib.folders,
+                            playlists = lib.playlists,
+                            history = lib.recentlyPlayed,
+                            mostPlayed = lib.mostPlayed,
+                            recentlyAdded = lib.recentlyAdded
+                        )
+                    }
+                }
         }
     }
 
     private fun observePlaybackState() {
         viewModelScope.launch {
-            musicController.playbackState.collectLatest { playbackState ->
-                _uiState.update { it.copy(playbackState = playbackState) }
-                playbackState.currentSong?.let { song ->
-                    repository.recordHistory(song.id)
+            musicController.playbackState.collectLatest { playback ->
+                _uiState.update { it.copy(playbackState = playback) }
+
+                // This used to run on every position tick — four history rows per second,
+                // colliding with the media scanner. Record once per track instead.
+                val songId = playback.currentSong?.id ?: return@collectLatest
+                if (songId != lastRecordedSongId) {
+                    lastRecordedSongId = songId
+                    repository.recordHistory(songId)
                 }
             }
         }
@@ -123,164 +120,131 @@ class MusicViewModel(
 
     private fun observeEqualizer() {
         viewModelScope.launch {
-            equalizerController.state.collectLatest { eqState ->
-                _uiState.update { it.copy(equalizerState = eqState) }
+            equalizerController.state.collectLatest { state ->
+                _uiState.update { it.copy(equalizerState = state) }
             }
         }
     }
 
     private fun observeSleepTimer() {
         viewModelScope.launch {
-            sleepTimerController.state.collectLatest { timerState ->
-                _uiState.update { it.copy(sleepTimerState = timerState) }
+            sleepTimerController.state.collectLatest { state ->
+                _uiState.update { it.copy(sleepTimerState = state) }
             }
         }
     }
 
     private fun observeSearch() {
         viewModelScope.launch {
-            searchQueryFlow
-                .debounce(200L)
+            searchQuery
+                .debounce(SEARCH_DEBOUNCE_MS)
                 .distinctUntilChanged()
                 .collectLatest { query ->
                     if (query.isBlank()) {
                         _uiState.update { it.copy(searchResults = emptyList(), isSearching = false) }
                     } else {
+                        _uiState.update { it.copy(isSearching = true) }
                         repository.searchSongs(query).collectLatest { results ->
-                            _uiState.update { it.copy(searchResults = results, isSearching = true) }
+                            _uiState.update { it.copy(searchResults = results) }
                         }
                     }
                 }
         }
     }
 
+    fun checkForUpdates() {
+        viewModelScope.launch {
+            UpdateChecker.checkLatestRelease(VERSION_NAME)?.let { update ->
+                _uiState.update { it.copy(availableUpdate = update) }
+            }
+        }
+    }
+
+    fun dismissUpdate() = _uiState.update { it.copy(availableUpdate = null) }
+
+    // --- Navigation --------------------------------------------------------
+
     fun onSearchQueryChanged(query: String) {
         _uiState.update { it.copy(searchQuery = query) }
-        searchQueryFlow.value = query
+        searchQuery.value = query
     }
 
     fun selectTab(tab: LibraryTab) {
         savedStateHandle?.set("selected_tab", tab.name)
-        _uiState.update { it.copy(selectedTab = tab, selectedPlaylist = null, selectedFolder = null) }
+        _uiState.update {
+            it.copy(selectedTab = tab, selectedPlaylist = null, selectedFolder = null)
+        }
+        playlistSongsJob?.cancel()
     }
 
-    fun selectFolder(folder: AudioFolder) {
-        _uiState.update { it.copy(selectedFolder = folder) }
-    }
+    fun selectFolder(folder: AudioFolder) = _uiState.update { it.copy(selectedFolder = folder) }
 
-    fun clearSelectedFolder() {
-        _uiState.update { it.copy(selectedFolder = null) }
-    }
+    fun clearSelectedFolder() = _uiState.update { it.copy(selectedFolder = null) }
 
     fun selectPlaylist(playlist: PlaylistEntity) {
         _uiState.update { it.copy(selectedPlaylist = playlist) }
-        viewModelScope.launch {
-            repository.getSongsForPlaylistFlow(playlist.playlistId).collectLatest { songs ->
+        playlistSongsJob?.cancel()
+        playlistSongsJob = viewModelScope.launch {
+            repository.getSongsForPlaylistFlow(playlist.playlistId).collect { songs ->
                 _uiState.update { it.copy(selectedPlaylistSongs = songs) }
             }
         }
     }
 
     fun clearSelectedPlaylist() {
+        playlistSongsJob?.cancel()
+        playlistSongsJob = null
         _uiState.update { it.copy(selectedPlaylist = null, selectedPlaylistSongs = emptyList()) }
     }
 
-    fun playSong(song: Song, playlist: List<Song>) {
-        musicController.playSong(song, playlist)
-    }
+    fun setNowPlayingExpanded(expanded: Boolean) =
+        _uiState.update { it.copy(isNowPlayingExpanded = expanded) }
 
-    fun togglePlayPause() {
-        musicController.togglePlayPause()
-    }
+    fun openTagEditor(song: Song?) = _uiState.update { it.copy(songToEdit = song) }
 
-    fun seekTo(positionMs: Long) {
-        musicController.seekTo(positionMs)
-    }
+    // --- Playback ----------------------------------------------------------
 
-    fun skipToNext() {
-        musicController.skipToNext()
-    }
+    fun playSong(song: Song, playlist: List<Song>) = musicController.playSong(song, playlist)
+    fun togglePlayPause() = musicController.togglePlayPause()
+    fun seekTo(positionMs: Long) = musicController.seekTo(positionMs)
+    fun skipToNext() = musicController.skipToNext()
+    fun skipToPrevious() = musicController.skipToPrevious()
+    fun toggleRepeatMode() = musicController.toggleRepeatMode()
+    fun toggleShuffle() = musicController.toggleShuffle()
+    fun setPlaybackSpeed(speed: Float) = musicController.setPlaybackSpeed(speed)
 
-    fun skipToPrevious() {
-        musicController.skipToPrevious()
-    }
+    fun playNext(song: Song) = musicController.playNext(song)
+    fun addToQueue(song: Song) = musicController.addToQueue(song)
+    fun removeQueueItem(index: Int) = musicController.removeQueueItem(index)
+    fun moveQueueItem(fromIndex: Int, toIndex: Int) =
+        musicController.moveQueueItem(fromIndex, toIndex)
+    fun playQueueIndex(index: Int) = musicController.playQueueIndex(index)
 
-    fun toggleRepeatMode() {
-        musicController.toggleRepeatMode()
-    }
-
-    fun toggleShuffle() {
-        musicController.toggleShuffle()
-    }
+    // --- Library mutation --------------------------------------------------
 
     fun toggleFavorite(song: Song) {
-        viewModelScope.launch {
-            repository.toggleFavorite(song.id)
-        }
+        viewModelScope.launch { repository.toggleFavorite(song.id) }
     }
 
     fun createPlaylist(name: String) {
-        if (name.isBlank()) return
-        viewModelScope.launch {
-            repository.createPlaylist(name.trim())
-        }
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return
+        viewModelScope.launch { repository.createPlaylist(trimmed) }
     }
 
     fun deletePlaylist(playlistId: Long) {
         viewModelScope.launch {
             repository.deletePlaylist(playlistId)
-            if (_uiState.value.selectedPlaylist?.playlistId == playlistId) {
-                clearSelectedPlaylist()
-            }
+            if (_uiState.value.selectedPlaylist?.playlistId == playlistId) clearSelectedPlaylist()
         }
     }
 
     fun addSongToPlaylist(playlistId: Long, songId: Long) {
-        viewModelScope.launch {
-            repository.addSongToPlaylist(playlistId, songId)
-        }
+        viewModelScope.launch { repository.addSongToPlaylist(playlistId, songId) }
     }
 
     fun removeSongFromPlaylist(playlistId: Long, songId: Long) {
-        viewModelScope.launch {
-            repository.removeSongFromPlaylist(playlistId, songId)
-        }
-    }
-
-    fun setNowPlayingExpanded(expanded: Boolean) {
-        _uiState.update { it.copy(isNowPlayingExpanded = expanded) }
-    }
-
-    fun setPlaybackSpeed(speed: Float) {
-        musicController.setPlaybackSpeed(speed)
-    }
-
-    fun toggleEqualizer(enabled: Boolean) {
-        equalizerController.setEnabled(enabled)
-    }
-
-    fun setPreAmpGain(gainDb: Float) {
-        equalizerController.setPreAmpGain(gainDb)
-    }
-
-    fun setEqualizerBandLevel(bandIndex: Short, level: Float) {
-        equalizerController.setBandLevel(bandIndex, level)
-    }
-
-    fun setBassBoost(strength: Int) {
-        equalizerController.setBassBoost(strength)
-    }
-
-    fun setVirtualizer(strength: Int) {
-        equalizerController.setVirtualizer(strength)
-    }
-
-    fun applyEqualizerPreset(preset: String) {
-        equalizerController.applyPreset(preset)
-    }
-
-    fun openTagEditor(song: Song?) {
-        _uiState.update { it.copy(songToEdit = song) }
+        viewModelScope.launch { repository.removeSongFromPlaylist(playlistId, songId) }
     }
 
     fun saveSongMetadata(songId: Long, title: String, artist: String, album: String) {
@@ -290,17 +254,31 @@ class MusicViewModel(
         }
     }
 
-    // --- Sleep Timer ---
+    // --- Equalizer ---------------------------------------------------------
+
+    fun toggleEqualizer(enabled: Boolean) = equalizerController.setEnabled(enabled)
+    fun setPreAmpGain(gainDb: Float) = equalizerController.setPreAmpGain(gainDb)
+    fun setEqualizerBandLevel(bandIndex: Short, level: Float) =
+        equalizerController.setBandLevel(bandIndex, level)
+    fun setBassBoost(strength: Int) = equalizerController.setBassBoost(strength)
+    fun setVirtualizer(strength: Int) = equalizerController.setVirtualizer(strength)
+    fun applyEqualizerPreset(preset: String) = equalizerController.applyPreset(preset)
+
+    // --- Sleep timer -------------------------------------------------------
+
     fun startSleepTimer(minutes: Int) = sleepTimerController.startTimer(minutes)
     fun startSleepEndOfTrack() = sleepTimerController.startEndOfTrackTimer()
     fun cancelSleepTimer() = sleepTimerController.cancelTimer()
 
-    // --- Queue Management ---
-    fun playNext(song: Song) = musicController.playNext(song)
-    fun addToQueue(song: Song) = musicController.addToQueue(song)
-    fun removeQueueItem(index: Int) = musicController.removeQueueItem(index)
-    fun moveQueueItem(fromIndex: Int, toIndex: Int) = musicController.moveQueueItem(fromIndex, toIndex)
-    fun playQueueIndex(index: Int) = musicController.playQueueIndex(index)
+    private data class Library(
+        val songs: List<Song>,
+        val favorites: List<Song>,
+        val folders: List<AudioFolder>,
+        val playlists: List<PlaylistEntity>,
+        val recentlyPlayed: List<Song> = emptyList(),
+        val mostPlayed: List<Song> = emptyList(),
+        val recentlyAdded: List<Song> = emptyList()
+    )
 
     class Factory(
         private val repository: AudioRepository,
@@ -308,18 +286,29 @@ class MusicViewModel(
         private val equalizerController: EqualizerController,
         private val sleepTimerController: SleepTimerController
     ) : ViewModelProvider.Factory {
+
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
-            if (modelClass.isAssignableFrom(MusicViewModel::class.java)) {
-                val savedStateHandle = extras.createSavedStateHandle()
-                return MusicViewModel(repository, musicController, equalizerController, sleepTimerController, savedStateHandle) as T
+            require(modelClass.isAssignableFrom(MusicViewModel::class.java)) {
+                "Unknown ViewModel class: ${modelClass.name}"
             }
-            throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
+            return MusicViewModel(
+                repository,
+                musicController,
+                equalizerController,
+                sleepTimerController,
+                extras.createSavedStateHandle()
+            ) as T
         }
 
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return MusicViewModel(repository, musicController, equalizerController, sleepTimerController, null) as T
-        }
+        override fun <T : ViewModel> create(modelClass: Class<T>): T =
+            MusicViewModel(repository, musicController, equalizerController, sleepTimerController) as T
+    }
+
+    private companion object {
+        const val SEARCH_DEBOUNCE_MS = 200L
+        const val MOST_PLAYED_LIMIT = 50
+        const val VERSION_NAME = "1.5.1"
     }
 }

@@ -1,8 +1,19 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+}
+
+// Signing material lives outside the repository. Without it the release variant still
+// builds, it just stays unsigned (handy for CI on a fork without secrets).
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) {
+        keystorePropertiesFile.inputStream().use { load(it) }
+    }
 }
 
 android {
@@ -17,6 +28,17 @@ android {
         versionName = "1.5.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        if (keystorePropertiesFile.exists()) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
     }
 
     splits {
@@ -36,6 +58,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
         debug {
             isMinifyEnabled = false

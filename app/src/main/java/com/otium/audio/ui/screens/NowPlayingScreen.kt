@@ -79,11 +79,11 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.LocalLayoutDirection
+
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.LayoutDirection
+
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
@@ -192,7 +192,6 @@ fun NowPlayingScreen(
             .build()
     }
 
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Box(
             modifier = modifier
                 .fillMaxSize()
@@ -645,7 +644,7 @@ fun NowPlayingScreen(
                 )
             }
         }
-    }
+
 }
 
 @Composable
