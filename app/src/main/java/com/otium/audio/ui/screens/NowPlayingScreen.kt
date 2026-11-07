@@ -6,6 +6,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.RepeatMode
@@ -14,6 +15,8 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
@@ -26,13 +29,16 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import kotlin.math.absoluteValue
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
@@ -141,10 +147,6 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
-private val SWIPE_THRESHOLD = 72.dp
-private const val DRAG_DAMPING = 0.55f
-private const val MAX_DRAG_PX = 320f
-
 @Composable
 fun NowPlayingScreen(
     song: Song,
@@ -281,39 +283,65 @@ fun NowPlayingScreen(
             .build()
     }
 
-        Box(
-            modifier = modifier
-                .fillMaxSize()
-                .offset { IntOffset(0, dragY.value.coerceAtLeast(0f).roundToInt()) }
-                .pointerInput(Unit) {
-                    val threshold = with(density) { 90.dp.toPx() }
-                    detectVerticalDragGestures(
-                        onDragEnd = {
-                            scope.launch {
-                                if (dragY.value > threshold) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    onCollapse()
-                                    dragY.snapTo(0f)
-                                } else {
-                                    dragY.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
-                                }
-                            }
-                        },
-                        onDragCancel = {
-                            scope.launch { dragY.animateTo(0f) }
-                        },
-                        onVerticalDrag = { change, dragAmount ->
-                            if (dragAmount > 0 || dragY.value > 0) {
-                                change.consume()
-                                scope.launch {
-                                    dragY.snapTo((dragY.value + dragAmount * DRAG_DAMPING).coerceAtLeast(0f))
-                                }
-                            }
+    val screenHeightPx = with(density) {
+        context.resources.displayMetrics.heightPixels.toFloat()
+    }
+    val dismissThreshold = with(density) { 68.dp.toPx() }
+    var isDismissing by remember { mutableStateOf(false) }
+
+    fun triggerDismiss() {
+        if (isDismissing) return
+        isDismissing = true
+        scope.launch {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            dragY.animateTo(
+                targetValue = screenHeightPx,
+                animationSpec = tween(durationMillis = 200, easing = FastOutLinearInEasing)
+            )
+            onCollapse()
+            dragY.snapTo(0f)
+            isDismissing = false
+        }
+    }
+
+    val verticalDraggableState = rememberDraggableState { delta ->
+        if (!isDismissing) {
+            val newY = (dragY.value + delta).coerceAtLeast(0f)
+            scope.launch { dragY.snapTo(newY) }
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .offset { IntOffset(0, dragY.value.roundToInt()) }
+            .graphicsLayer {
+                val progress = (dragY.value / (screenHeightPx * 0.45f)).coerceIn(0f, 1f)
+                scaleX = 1f - progress * 0.08f
+                scaleY = 1f - progress * 0.08f
+                alpha = 1f - progress * 0.5f
+            }
+            .draggable(
+                state = verticalDraggableState,
+                orientation = Orientation.Vertical,
+                onDragStopped = { velocity ->
+                    if (dragY.value > dismissThreshold || velocity > 800f) {
+                        triggerDismiss()
+                    } else {
+                        scope.launch {
+                            dragY.animateTo(
+                                targetValue = 0f,
+                                animationSpec = spring(
+                                    stiffness = Spring.StiffnessMediumLow,
+                                    dampingRatio = Spring.DampingRatioMediumBouncy
+                                )
+                            )
                         }
-                    )
+                    }
                 }
-                .background(AmbientBackdrop)
-        ) {
+            )
+            .background(AmbientBackdrop)
+    ) {
             // Ambient Aura Glow behind artwork
             Box(
                 modifier = Modifier
@@ -340,10 +368,11 @@ fun NowPlayingScreen(
                 // Centered tactile swipe-down pull bar
                 Box(
                     modifier = Modifier
-                        .padding(top = 6.dp, bottom = 2.dp)
-                        .size(width = 40.dp, height = 4.dp)
+                        .padding(top = 8.dp, bottom = 4.dp)
+                        .size(width = 44.dp, height = 4.5.dp)
                         .clip(CircleShape)
-                        .background(TextSecondary.copy(alpha = 0.4f))
+                        .background(TextSecondary.copy(alpha = 0.5f))
+                        .clickable { triggerDismiss() }
                 )
 
                 // ── Minimalist Poweramp Top Bar with swipe-down dismiss ──────────────
@@ -355,7 +384,7 @@ fun NowPlayingScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                    IconButton(onClick = onCollapse) {
+                    IconButton(onClick = ::triggerDismiss) {
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowDown,
                             contentDescription = "Collapse",
@@ -443,8 +472,8 @@ fun NowPlayingScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .fillMaxHeight(),
-                                contentPadding = PaddingValues(horizontal = 36.dp),
-                                pageSpacing = 16.dp,
+                                contentPadding = PaddingValues(horizontal = 42.dp),
+                                pageSpacing = 18.dp,
                                 key = { page ->
                                     if (page in playlist.indices) playlist[page].id else page
                                 }
@@ -453,9 +482,11 @@ fun NowPlayingScreen(
                                 val isCurrent = page == pagerState.currentPage
 
                                 // Dynamic 3D carousel depth calculation
-                                val pageOffset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).absoluteValue
-                                val pageScale = (1f - (pageOffset * 0.10f)).coerceIn(0.88f, 1f)
-                                val pageAlpha = (1f - (pageOffset * 0.35f)).coerceIn(0.65f, 1f)
+                                val rawOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
+                                val pageOffset = rawOffset.absoluteValue
+                                val pageScale = (1f - (pageOffset * 0.12f)).coerceIn(0.85f, 1f)
+                                val pageAlpha = (1f - (pageOffset * 0.40f)).coerceIn(0.55f, 1f)
+                                val pageRotation = (rawOffset * -10f).coerceIn(-18f, 18f)
 
                                 val pageCoverRequest = remember(pageSong.albumArtUri) {
                                     ImageRequest.Builder(context)
@@ -474,6 +505,8 @@ fun NowPlayingScreen(
                                                 scaleX = pageScale
                                                 scaleY = pageScale
                                                 alpha = pageAlpha
+                                                rotationY = pageRotation
+                                                cameraDistance = 16f * density.density
                                             },
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -538,13 +571,46 @@ fun NowPlayingScreen(
 
                 AnimatedContent(
                     targetState = activeDisplaySong,
-                    transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(180)) },
+                    transitionSpec = {
+                        if (targetState.id != initialState.id) {
+                            (slideInHorizontally(
+                                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                                initialOffsetX = { fullWidth -> fullWidth / 5 }
+                            ) + fadeIn(tween(220))) togetherWith
+                            (slideOutHorizontally(
+                                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                                targetOffsetX = { fullWidth -> -fullWidth / 5 }
+                            ) + fadeOut(tween(160)))
+                        } else {
+                            fadeIn(tween(200)) togetherWith fadeOut(tween(160))
+                        }
+                    },
                     label = "track_title_crossfade"
                 ) { targetSong ->
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 24.dp),
+                            .padding(horizontal = 24.dp)
+                            .pointerInput(playlist.size, pagerState.currentPage) {
+                                var totalX = 0f
+                                detectHorizontalDragGestures(
+                                    onDragStart = { totalX = 0f },
+                                    onHorizontalDrag = { change, dragAmount ->
+                                        change.consume()
+                                        totalX += dragAmount
+                                    },
+                                    onDragEnd = {
+                                        val swipeThreshold = 45.dp.toPx()
+                                        if (totalX < -swipeThreshold) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            onSkipNext()
+                                        } else if (totalX > swipeThreshold) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            onSkipPrevious()
+                                        }
+                                    }
+                                )
+                            },
                         horizontalAlignment = Alignment.Start
                     ) {
                         Text(
