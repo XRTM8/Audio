@@ -161,7 +161,7 @@ class MainActivity : ComponentActivity() {
                                     isShuffleEnabled = uiState.playbackState.isShuffleEnabled,
                                     playbackSpeed = uiState.playbackState.playbackSpeed,
                                     equalizerState = uiState.equalizerState,
-                                    queue = uiState.playbackState.queue,
+                                    queue = if (uiState.playbackState.queue.isNotEmpty()) uiState.playbackState.queue else uiState.songs,
                                     sleepTimerState = uiState.sleepTimerState,
                                     onCollapse = { viewModel.setNowPlayingExpanded(false) },
                                     onPlayPause = viewModel::togglePlayPause,

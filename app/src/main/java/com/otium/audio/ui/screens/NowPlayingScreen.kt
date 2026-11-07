@@ -242,6 +242,33 @@ fun NowPlayingScreen(
             modifier = modifier
                 .fillMaxSize()
                 .offset { IntOffset(0, dragY.value.coerceAtLeast(0f).roundToInt()) }
+                .pointerInput(Unit) {
+                    val threshold = with(density) { 90.dp.toPx() }
+                    detectVerticalDragGestures(
+                        onDragEnd = {
+                            scope.launch {
+                                if (dragY.value > threshold) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onCollapse()
+                                    dragY.snapTo(0f)
+                                } else {
+                                    dragY.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
+                                }
+                            }
+                        },
+                        onDragCancel = {
+                            scope.launch { dragY.animateTo(0f) }
+                        },
+                        onVerticalDrag = { change, dragAmount ->
+                            if (dragAmount > 0 || dragY.value > 0) {
+                                change.consume()
+                                scope.launch {
+                                    dragY.snapTo((dragY.value + dragAmount * DRAG_DAMPING).coerceAtLeast(0f))
+                                }
+                            }
+                        }
+                    )
+                }
                 .background(AmbientBackdrop)
         ) {
             // Ambient Aura Glow behind artwork
@@ -281,31 +308,7 @@ fun NowPlayingScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 2.dp)
-                            .pointerInput(Unit) {
-                                val threshold = with(density) { 90.dp.toPx() }
-                                detectVerticalDragGestures(
-                                    onDragEnd = {
-                                        scope.launch {
-                                            if (dragY.value > threshold) {
-                                                onCollapse()
-                                                dragY.snapTo(0f)
-                                            } else {
-                                                dragY.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
-                                            }
-                                        }
-                                    },
-                                    onDragCancel = {
-                                        scope.launch { dragY.animateTo(0f) }
-                                    },
-                                    onVerticalDrag = { change, dragAmount ->
-                                        change.consume()
-                                        scope.launch {
-                                            dragY.snapTo((dragY.value + dragAmount).coerceAtLeast(0f))
-                                        }
-                                    }
-                                )
-                            },
+                            .padding(horizontal = 8.dp, vertical = 2.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -397,29 +400,49 @@ fun NowPlayingScreen(
                             val currentTrackIndex = remember(playlist, song.id) {
                                 playlist.indexOfFirst { it.id == song.id }.coerceAtLeast(0)
                             }
-                            val pagerState = rememberPagerState(initialPage = currentTrackIndex) {
-                                playlist.size
+                            val isLooping = playlist.size > 1
+                            val pageMultiplier = if (isLooping) 400 else 1
+                            val virtualPageCount = playlist.size * pageMultiplier
+                            val virtualInitialPage = if (isLooping) {
+                                (pageMultiplier / 2) * playlist.size + currentTrackIndex
+                            } else {
+                                0
+                            }
+                            val pagerState = rememberPagerState(initialPage = virtualInitialPage) {
+                                virtualPageCount
                             }
 
                             // Keep pager in sync with active playing track
                             LaunchedEffect(currentTrackIndex) {
-                                if (pagerState.currentPage != currentTrackIndex && !pagerState.isScrollInProgress) {
-                                    pagerState.animateScrollToPage(
-                                        page = currentTrackIndex,
-                                        animationSpec = spring(
-                                            stiffness = Spring.StiffnessMediumLow,
-                                            dampingRatio = Spring.DampingRatioNoBouncy
+                                if (playlist.isNotEmpty() && !pagerState.isScrollInProgress) {
+                                    val currentVirtual = pagerState.currentPage
+                                    val currentActual = (currentVirtual % playlist.size + playlist.size) % playlist.size
+                                    var diff = currentTrackIndex - currentActual
+                                    if (isLooping) {
+                                        if (diff > playlist.size / 2) diff -= playlist.size
+                                        else if (diff < -playlist.size / 2) diff += playlist.size
+                                    }
+                                    if (diff != 0) {
+                                        pagerState.animateScrollToPage(
+                                            page = currentVirtual + diff,
+                                            animationSpec = spring(
+                                                stiffness = Spring.StiffnessMediumLow,
+                                                dampingRatio = Spring.DampingRatioNoBouncy
+                                            )
                                         )
-                                    )
+                                    }
                                 }
                             }
 
                             // Switch tracks when user settles on a new page
                             LaunchedEffect(pagerState) {
-                                snapshotFlow { pagerState.settledPage }.collect { settledPage ->
-                                    if (settledPage in playlist.indices && playlist[settledPage].id != song.id) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        onPlayQueueIndex(settledPage)
+                                snapshotFlow { pagerState.settledPage }.collect { settledVirtualPage ->
+                                    if (playlist.isNotEmpty()) {
+                                        val actualIndex = (settledVirtualPage % playlist.size + playlist.size) % playlist.size
+                                        if (actualIndex in playlist.indices && playlist[actualIndex].id != song.id) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            onPlayQueueIndex(actualIndex)
+                                        }
                                     }
                                 }
                             }
@@ -427,14 +450,21 @@ fun NowPlayingScreen(
                             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                                 HorizontalPager(
                                     state = pagerState,
+                                    userScrollEnabled = playlist.size > 1,
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .fillMaxHeight(),
                                     contentPadding = PaddingValues(horizontal = 36.dp),
                                     pageSpacing = 16.dp,
-                                    key = { page -> if (page in playlist.indices) playlist[page].id else page }
+                                    key = { page ->
+                                        if (playlist.isNotEmpty()) {
+                                            val actual = (page % playlist.size + playlist.size) % playlist.size
+                                            "${playlist[actual].id}_$page"
+                                        } else page
+                                    }
                                 ) { page ->
-                                    val pageSong = playlist.getOrElse(page) { song }
+                                    val actualIndex = if (playlist.isNotEmpty()) (page % playlist.size + playlist.size) % playlist.size else 0
+                                    val pageSong = playlist.getOrElse(actualIndex) { song }
                                     val isCurrent = page == pagerState.currentPage
 
                                     // Dynamic 3D carousel depth calculation
@@ -516,8 +546,15 @@ fun NowPlayingScreen(
                 }
 
                 // ── Track Title & Artist Information with Crossfade ─────────
+                val activeDisplaySong = remember(pagerState.currentPage, playlist, song) {
+                    if (playlist.isNotEmpty()) {
+                        val idx = (pagerState.currentPage % playlist.size + playlist.size) % playlist.size
+                        playlist.getOrElse(idx) { song }
+                    } else song
+                }
+
                 AnimatedContent(
-                    targetState = song,
+                    targetState = activeDisplaySong,
                     transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(180)) },
                     label = "track_title_crossfade"
                 ) { targetSong ->
@@ -541,12 +578,17 @@ fun NowPlayingScreen(
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = buildString {
-                                val cleanArtist = targetSong.artist.trim()
-                                val cleanAlbum = targetSong.album.trim()
+                                val cleanArtist = targetSong.artist.replace(Regex("[\\p{C}\\p{Z}]+"), " ").trim()
+                                val cleanAlbum = targetSong.album.replace(Regex("[\\p{C}\\p{Z}]+"), " ").trim()
+
+                                fun norm(s: String) = s.replace(Regex("[\\p{C}\\p{Z}|\\-_]+"), "").lowercase()
+                                val isSame = norm(cleanArtist).isNotBlank() && norm(cleanArtist) == norm(cleanAlbum)
+
                                 append(if (cleanArtist.isNotBlank()) cleanArtist else "فنان غير معروف")
                                 if (cleanAlbum.isNotBlank() &&
-                                    cleanAlbum != "<unknown>" &&
-                                    !cleanAlbum.equals(cleanArtist, ignoreCase = true)
+                                    !cleanAlbum.equals("<unknown>", ignoreCase = true) &&
+                                    !cleanAlbum.equals("unknown", ignoreCase = true) &&
+                                    !isSame
                                 ) {
                                     append("  •  ")
                                     append(cleanAlbum)

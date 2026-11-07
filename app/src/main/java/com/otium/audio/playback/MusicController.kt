@@ -107,10 +107,35 @@ class MusicController(
     /** Rebuilds the last queue from the library, paused where the user left it. */
     fun restoreQueue(library: List<Song>): Boolean {
         val controller = mediaController ?: return false
-        if (controller.mediaItemCount > 0) return false
-        val session = persistence.load() ?: return false
-
         val byId = library.associateBy { it.id }
+
+        if (controller.mediaItemCount > 0) {
+            // Player is already active from background service!
+            // Reconstruct in-memory queue so it is never empty on screen
+            val session = persistence.load()
+            val queue = if (session != null && session.songIds.isNotEmpty()) {
+                session.songIds.mapNotNull { byId[it] }
+            } else {
+                (0 until controller.mediaItemCount).mapNotNull { idx ->
+                    val mediaId = controller.getMediaItemAt(idx).mediaId.toLongOrNull()
+                    byId[mediaId]
+                }
+            }
+            if (queue.isNotEmpty()) {
+                currentPlaylistSongs = queue
+                val currentMediaId = controller.currentMediaItem?.mediaId
+                val curSong = queue.find { it.id.toString() == currentMediaId }
+                _playbackState.update {
+                    it.copy(
+                        currentSong = curSong ?: it.currentSong,
+                        queue = queue
+                    )
+                }
+            }
+            return true
+        }
+
+        val session = persistence.load() ?: return false
         val queue = session.songIds.mapNotNull { byId[it] }
         if (queue.isEmpty()) {
             persistence.clearQueue()

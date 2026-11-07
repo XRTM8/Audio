@@ -19,3 +19,7 @@ keystore.properties
 *.jks
 *.keystore
 !app/distribution.keystore
+
+# Rust build artifacts
+rust/**/target/
+target/

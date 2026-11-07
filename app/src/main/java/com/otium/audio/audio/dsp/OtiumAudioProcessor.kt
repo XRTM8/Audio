@@ -34,6 +34,7 @@ class OtiumAudioProcessor(
     private var appliedGains = FloatArray(BAND_FREQUENCIES_HZ.size)
     private var bypass = true
     private var appliedPreAmpDb = Float.NaN
+    private var nativeEnginePtr: Long = 0L
 
     override fun onConfigure(inputAudioFormat: androidx.media3.common.audio.AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         channelCount = inputAudioFormat.channelCount
@@ -53,16 +54,35 @@ class OtiumAudioProcessor(
         reverb.configure(sampleRateHz)
         chorus.configure(sampleRateHz)
         clarity.configure(sampleRateHz)
+
+        if (NativeAudioDsp.isAvailable) {
+            if (nativeEnginePtr != 0L) {
+                NativeAudioDsp.destroyEngine(nativeEnginePtr)
+            }
+            nativeEnginePtr = NativeAudioDsp.createEngine(sampleRateHz)
+        }
+
         return inputAudioFormat
     }
 
     override fun onFlush() {
+        if (nativeEnginePtr != 0L) {
+            NativeAudioDsp.resetEngine(nativeEnginePtr)
+        }
         filters.forEach { perChannel -> perChannel.forEach { it.reset() } }
         preAmp.reset()
         limiter.reset()
         reverb.reset()
         chorus.reset()
         clarity.reset()
+    }
+
+    override fun onReset() {
+        if (nativeEnginePtr != 0L) {
+            NativeAudioDsp.destroyEngine(nativeEnginePtr)
+            nativeEnginePtr = 0L
+        }
+        onFlush()
     }
 
     override fun queueInput(inputBuffer: ByteBuffer) {
@@ -76,6 +96,28 @@ class OtiumAudioProcessor(
             output.put(inputBuffer)
             output.flip()
             return
+        }
+
+        // --- Fast Path: High-Performance Rust SIMD DSP Engine ---
+        if (nativeEnginePtr != 0L && channelCount == 2 && output.isDirect) {
+            val startPos = inputBuffer.position()
+            try {
+                output.put(inputBuffer)
+                output.flip()
+                val isFloat = encoding == C.ENCODING_PCM_FLOAT
+                NativeAudioDsp.processDirectBuffer(
+                    enginePtr = nativeEnginePtr,
+                    buffer = output,
+                    byteOffset = 0,
+                    byteLength = remaining,
+                    isFloat = isFloat
+                )
+                return
+            } catch (_: Throwable) {
+                // Graceful fallback to Kotlin engine on unexpected JNI boundary error
+                inputBuffer.position(startPos)
+                output.clear()
+            }
         }
 
         val startPos = inputBuffer.position()
@@ -192,6 +234,28 @@ class OtiumAudioProcessor(
         val boosting = state.preAmpDb > 0.05f || levels.any { it.levelDb > 0.05f } || reverb.strength > 0 || chorus.strength > 0 || clarity.strength > 0
         limiter.enabled = state.isEnabled && boosting
         bypass = !state.isEnabled || (!boosting && levels.none { it.levelDb < -0.05f })
+
+        if (nativeEnginePtr != 0L) {
+            val presetIdx = when (state.reverbPreset.lowercase()) {
+                "room" -> 1
+                "hall" -> 2
+                "plate" -> 3
+                else -> 0
+            }
+            val gains = FloatArray(BAND_FREQUENCIES_HZ.size) { i ->
+                if (state.isEnabled) levels.getOrNull(i)?.levelDb ?: 0f else 0f
+            }
+            NativeAudioDsp.setParameters(
+                enginePtr = nativeEnginePtr,
+                preAmpDb = state.preAmpDb,
+                bandGainsDb = gains,
+                reverbStrength = if (state.isEnabled) state.reverbStrength else 0,
+                reverbPreset = presetIdx,
+                chorusStrength = if (state.isEnabled) state.chorusStrength else 0,
+                clarityStrength = if (state.isEnabled) state.clarityStrength else 0,
+                isEnabled = state.isEnabled
+            )
+        }
     }
 
     private fun bytesPerSample(): Int =
