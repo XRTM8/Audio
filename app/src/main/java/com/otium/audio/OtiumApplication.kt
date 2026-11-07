@@ -23,15 +23,17 @@ class OtiumApplication : Application(), ImageLoaderFactory {
         return ImageLoader.Builder(this)
             .memoryCache {
                 MemoryCache.Builder(this)
-                    .maxSizePercent(0.20)
+                    .maxSizePercent(0.25)
+                    .strongReferencesEnabled(true)
                     .build()
             }
             .diskCache {
                 DiskCache.Builder()
                     .directory(cacheDir.resolve("image_cache"))
-                    .maxSizePercent(0.04)
+                    .maxSizePercent(0.05)
                     .build()
             }
+            .allowHardware(true)
             .crossfade(false)
             .respectCacheHeaders(false)
             .build()

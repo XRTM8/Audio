@@ -159,19 +159,21 @@ fun QueueSheet(
                                     tint = if (isPlaying) AccentGold else TextSecondary,
                                     modifier = Modifier.size(20.dp)
                                 )
-                                AsyncImage(
-                                    model = song.albumArtUri,
-                                    contentDescription = song.title,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.matchParentSize()
-                                )
+                                if (song.albumArtUri != android.net.Uri.EMPTY) {
+                                    AsyncImage(
+                                        model = song.albumArtUri,
+                                        contentDescription = song.displayTitle,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.matchParentSize()
+                                    )
+                                }
                             }
 
                             Spacer(modifier = Modifier.width(12.dp))
 
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = song.title,
+                                    text = song.displayTitle,
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.Medium
                                     ),

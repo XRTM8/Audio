@@ -491,8 +491,7 @@ private fun MasterSongListView(
 
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
-    val haptic = LocalHapticFeedback.current
-    val hasScroller = showAlphabetScroller && songs.size >= 12
+    val hasScroller = showAlphabetScroller && songs.size >= 25
 
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
@@ -509,16 +508,10 @@ private fun MasterSongListView(
                 SongListItem(
                     song = song,
                     isCurrentSong = currentSong?.id == song.id,
-                    onSongClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        onSongClick(song)
-                    },
-                    onFavoriteClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onFavoriteClick(song)
-                    },
-                    onEditTagClick = onEditTagClick?.let { { it(song) } },
-                    onLongClick = { onSongLongPress(song) }
+                    onSongClick = onSongClick,
+                    onFavoriteClick = onFavoriteClick,
+                    onEditTagClick = onEditTagClick,
+                    onLongClick = onSongLongPress
                 )
             }
             item { Spacer(modifier = Modifier.height(10.dp)) }

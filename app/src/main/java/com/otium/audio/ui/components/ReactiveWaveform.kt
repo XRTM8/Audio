@@ -31,9 +31,9 @@ fun ReactiveWaveform(
     isPlaying: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val phase = if (isPlaying) {
-        val transition = rememberInfiniteTransition(label = "waveform")
-        val animatedPhase by transition.animateFloat(
+    val transition = rememberInfiniteTransition(label = "waveform")
+    val animatedPhase = if (isPlaying) {
+        transition.animateFloat(
             initialValue = 0f,
             targetValue = (2 * Math.PI).toFloat(),
             animationSpec = infiniteRepeatable(
@@ -42,10 +42,10 @@ fun ReactiveWaveform(
             ),
             label = "waveform_phase"
         )
-        animatedPhase
-    } else 0f
+    } else null
 
     Canvas(modifier = modifier) {
+        val phase = animatedPhase?.value ?: 0f
         val barCount = 56
         val gap = 2.dp.toPx()
         val barWidth = ((size.width - gap * (barCount - 1)) / barCount).coerceAtLeast(1.5f)

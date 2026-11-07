@@ -76,15 +76,6 @@ import com.otium.audio.ui.theme.TextTertiary
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.math.abs
 
-private fun cleanDisplayTitle(raw: String): String {
-    var s = raw.trim()
-    if (s.startsWith("(") && s.endsWith(")") && s.length > 2) {
-        s = s.substring(1, s.length - 1).trim()
-    } else if (s.startsWith("[") && s.endsWith("]") && s.length > 2) {
-        s = s.substring(1, s.length - 1).trim()
-    }
-    return s
-}
 
 /**
  * Poweramp-grade Full-Width Flat Bottom Console Player.
@@ -108,15 +99,18 @@ fun MiniPlayer(
     val haptic = LocalHapticFeedback.current
     val position by positionFlow.collectAsState()
 
-    val thumbReq = remember(currentSong.albumArtUri) {
-        ImageRequest.Builder(context)
-            .data(currentSong.albumArtUri)
-            .size(160, 160)
-            .crossfade(false)
-            .memoryCachePolicy(CachePolicy.ENABLED)
-            .diskCachePolicy(CachePolicy.ENABLED)
-            .build()
-    }
+    val hasAlbumArt = currentSong.albumArtUri != android.net.Uri.EMPTY
+    val thumbReq = if (hasAlbumArt) {
+        remember(currentSong.albumArtUri) {
+            ImageRequest.Builder(context)
+                .data(currentSong.albumArtUri)
+                .size(160, 160)
+                .crossfade(false)
+                .memoryCachePolicy(CachePolicy.ENABLED)
+                .diskCachePolicy(CachePolicy.ENABLED)
+                .build()
+        }
+    } else null
 
     var isScrubbing by remember { mutableStateOf(false) }
     var scrubProgress by remember { mutableFloatStateOf(0f) }
@@ -263,12 +257,14 @@ fun MiniPlayer(
                     modifier = Modifier.size(24.dp)
                 )
 
-                AsyncImage(
-                    model = thumbReq,
-                    contentDescription = currentSong.title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.matchParentSize()
-                )
+                if (thumbReq != null) {
+                    AsyncImage(
+                        model = thumbReq,
+                        contentDescription = currentSong.displayTitle,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.matchParentSize()
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(12.dp))
@@ -278,9 +274,8 @@ fun MiniPlayer(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center
             ) {
-                val displayTitle = remember(currentSong.title) { cleanDisplayTitle(currentSong.title) }
                 Text(
-                    text = displayTitle,
+                    text = currentSong.displayTitle,
                     style = MaterialTheme.typography.bodyLarge.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,

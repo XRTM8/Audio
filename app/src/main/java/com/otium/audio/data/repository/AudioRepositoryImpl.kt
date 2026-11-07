@@ -290,6 +290,8 @@ class AudioRepositoryImpl(
         val selection = "${MediaStore.Audio.Media.DURATION} >= ?"
         val args = arrayOf(MIN_DURATION_MS.toString())
 
+        val checkedAlbumArt = HashMap<Long, Uri>()
+
         runCatching {
             resolver.query(collection, projection, selection, args, SORT_ORDER)?.use { c ->
                 val idCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
@@ -310,6 +312,21 @@ class AudioRepositoryImpl(
                     val album = c.getString(albumCol) ?: UNKNOWN_ALBUM
                     val duration = c.getLong(durationCol)
                     val added = c.getLong(addedCol)
+                    val albumId = c.getLong(albumIdCol)
+
+                    val verifiedArtUri = checkedAlbumArt.getOrPut(albumId) {
+                        if (albumId <= 0) {
+                            Uri.EMPTY
+                        } else {
+                            val candidate = ContentUris.withAppendedId(ALBUM_ART_URI, albumId)
+                            val exists = try {
+                                resolver.openFileDescriptor(candidate, "r")?.use { true } ?: false
+                            } catch (_: Throwable) {
+                                false
+                            }
+                            if (exists) candidate else Uri.EMPTY
+                        }
+                    }
 
                     val old = byId[id]
                     val same = old != null &&
@@ -317,7 +334,8 @@ class AudioRepositoryImpl(
                         old.artist == artist &&
                         old.album == album &&
                         old.durationMs == duration &&
-                        old.dateAdded == added
+                        old.dateAdded == added &&
+                        old.albumArtUri == verifiedArtUri
 
                     result += (old?.takeIf { same } ?: Song(
                         id = id,
@@ -326,9 +344,7 @@ class AudioRepositoryImpl(
                         album = album,
                         durationMs = duration,
                         contentUri = ContentUris.withAppendedId(collection, id),
-                        albumArtUri = ContentUris.withAppendedId(
-                            ALBUM_ART_URI, c.getLong(albumIdCol)
-                        ),
+                        albumArtUri = verifiedArtUri,
                         size = c.getLong(sizeCol),
                         relativePath = c.getString(pathCol) ?: "",
                         dateAdded = added,

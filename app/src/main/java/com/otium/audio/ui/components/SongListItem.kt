@@ -64,18 +64,6 @@ import com.otium.audio.ui.theme.TextPrimary
 import com.otium.audio.ui.theme.TextSecondary
 import com.otium.audio.ui.theme.TextTertiary
 
-/**
- * Clean up noisy titles (e.g. removes ugly enclosing parentheses e.g. "( سورة الكهف )" -> "سورة الكهف")
- */
-private fun cleanDisplayTitle(raw: String): String {
-    var s = raw.trim()
-    if (s.startsWith("(") && s.endsWith(")") && s.length > 2) {
-        s = s.substring(1, s.length - 1).trim()
-    } else if (s.startsWith("[") && s.endsWith("]") && s.length > 2) {
-        s = s.substring(1, s.length - 1).trim()
-    }
-    return s
-}
 
 /**
  * Ultra-optimized 120 FPS Audiophile Track Row.
@@ -87,27 +75,36 @@ private fun cleanDisplayTitle(raw: String): String {
 fun SongListItem(
     song: Song,
     isCurrentSong: Boolean,
-    onSongClick: () -> Unit,
-    onFavoriteClick: () -> Unit,
-    onEditTagClick: (() -> Unit)? = null,
-    onLongClick: (() -> Unit)? = null,
+    onSongClick: (Song) -> Unit,
+    onFavoriteClick: (Song) -> Unit,
+    onEditTagClick: ((Song) -> Unit)? = null,
+    onLongClick: ((Song) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
 
-    // Memory-pooled direct GPU hardware thumbnail for zero-jank 120Hz fling scrolling
-    val thumbnailRequest = remember(song.albumArtUri) {
-        ImageRequest.Builder(context)
-            .data(song.albumArtUri)
-            .size(120, 120)
-            .allowHardware(true)
-            .crossfade(false)
-            .memoryCachePolicy(CachePolicy.ENABLED)
-            .diskCachePolicy(CachePolicy.ENABLED)
-            .build()
-    }
+    val hasAlbumArt = song.albumArtUri != android.net.Uri.EMPTY
 
-    val displayTitle = remember(song.title) { cleanDisplayTitle(song.title) }
+    // Memory-pooled direct GPU hardware thumbnail for zero-jank 120Hz fling scrolling.
+    // Skips Coil entirely if the track has no artwork (zero IPC, zero FileNotFoundException).
+    val thumbnailRequest = if (hasAlbumArt) {
+        remember(song.albumArtUri) {
+            ImageRequest.Builder(context)
+                .data(song.albumArtUri)
+                .size(144, 144)
+                .allowHardware(true)
+                .crossfade(false)
+                .memoryCachePolicy(CachePolicy.ENABLED)
+                .diskCachePolicy(CachePolicy.ENABLED)
+                .build()
+        }
+    } else null
+
+    val onRowClick = remember(song, onSongClick) { { onSongClick(song) } }
+    val onFavClick = remember(song, onFavoriteClick) { { onFavoriteClick(song) } }
+    val onRowLongClick = remember(song, onLongClick) {
+        if (onLongClick != null) { { onLongClick(song) } } else null
+    }
 
     Box(
         modifier = modifier
@@ -118,8 +115,8 @@ fun SongListItem(
                 else Color.Transparent
             )
             .combinedClickable(
-                onClick = { onSongClick() },
-                onLongClick = onLongClick
+                onClick = onRowClick,
+                onLongClick = onRowLongClick
             )
     ) {
         // Subtle Titanium White active indicator line on start edge
@@ -157,12 +154,14 @@ fun SongListItem(
                     modifier = Modifier.size(20.dp)
                 )
 
-                AsyncImage(
-                    model = thumbnailRequest,
-                    contentDescription = displayTitle,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.matchParentSize()
-                )
+                if (thumbnailRequest != null) {
+                    AsyncImage(
+                        model = thumbnailRequest,
+                        contentDescription = song.displayTitle,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.matchParentSize()
+                    )
+                }
 
                 if (isCurrentSong) {
                     Box(
@@ -184,7 +183,7 @@ fun SongListItem(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = displayTitle,
+                    text = song.displayTitle,
                     style = MaterialTheme.typography.bodyLarge.copy(
                         fontWeight = if (isCurrentSong) FontWeight.Bold else FontWeight.Medium,
                         fontSize = 14.sp,
@@ -230,7 +229,7 @@ fun SongListItem(
 
             // Quick Favorite Icon
             IconButton(
-                onClick = onFavoriteClick,
+                onClick = onFavClick,
                 modifier = Modifier.size(38.dp)
             ) {
                 Icon(
@@ -256,23 +255,24 @@ fun SongListItem(
 /**
  * Precision Titanium Studio Equalizer Bars.
  * Solid crystalline white bars with studio motion, zero rainbow RGB.
+ * Reads animated state exclusively within DrawScope to achieve zero recomposition overhead.
  */
 @Composable
 fun MiniEqBars(modifier: Modifier = Modifier) {
     val inf = rememberInfiniteTransition(label = "eq_bars")
-    val b1 by inf.animateFloat(
+    val b1 = inf.animateFloat(
         initialValue = 0.15f, targetValue = 0.90f,
         animationSpec = infiniteRepeatable(tween(350), RepeatMode.Reverse), label = "b1"
     )
-    val b2 by inf.animateFloat(
+    val b2 = inf.animateFloat(
         initialValue = 0.50f, targetValue = 1.0f,
         animationSpec = infiniteRepeatable(tween(270), RepeatMode.Reverse), label = "b2"
     )
-    val b3 by inf.animateFloat(
+    val b3 = inf.animateFloat(
         initialValue = 0.20f, targetValue = 0.80f,
         animationSpec = infiniteRepeatable(tween(420), RepeatMode.Reverse), label = "b3"
     )
-    val b4 by inf.animateFloat(
+    val b4 = inf.animateFloat(
         initialValue = 0.60f, targetValue = 0.95f,
         animationSpec = infiniteRepeatable(tween(310), RepeatMode.Reverse), label = "b4"
     )
@@ -288,16 +288,16 @@ fun MiniEqBars(modifier: Modifier = Modifier) {
 
         val c = Color.White
 
-        val h1 = totalHeight * b1
+        val h1 = totalHeight * b1.value
         drawRoundRect(color = c, topLeft = Offset(0f, totalHeight - h1), size = Size(barWidth, h1), cornerRadius = radius)
 
-        val h2 = totalHeight * b2
+        val h2 = totalHeight * b2.value
         drawRoundRect(color = c, topLeft = Offset(stride, totalHeight - h2), size = Size(barWidth, h2), cornerRadius = radius)
 
-        val h3 = totalHeight * b3
+        val h3 = totalHeight * b3.value
         drawRoundRect(color = c, topLeft = Offset(stride * 2f, totalHeight - h3), size = Size(barWidth, h3), cornerRadius = radius)
 
-        val h4 = totalHeight * b4
+        val h4 = totalHeight * b4.value
         drawRoundRect(color = c, topLeft = Offset(stride * 3f, totalHeight - h4), size = Size(barWidth, h4), cornerRadius = radius)
     }
 }

@@ -21,9 +21,20 @@ data class Song(
     val dateAdded: Long,
     val isFavorite: Boolean = false,
     val formattedDuration: String = formatDurationFast(durationMs),
-    val audioFormatBadge: String = determineAudioBadgeFast(relativePath, contentUri)
+    val audioFormatBadge: String = determineAudioBadgeFast(relativePath, contentUri),
+    val displayTitle: String = cleanDisplayTitleFast(title)
 ) {
     companion object {
+        fun cleanDisplayTitleFast(raw: String): String {
+            var s = raw.trim()
+            if (s.startsWith("(") && s.endsWith(")") && s.length > 2) {
+                s = s.substring(1, s.length - 1).trim()
+            } else if (s.startsWith("[") && s.endsWith("]") && s.length > 2) {
+                s = s.substring(1, s.length - 1).trim()
+            }
+            return s
+        }
+
         fun formatDurationFast(durationMs: Long): String {
             val totalSec = (durationMs / 1000).coerceAtLeast(0)
             val min = totalSec / 60

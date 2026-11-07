@@ -63,7 +63,7 @@ fun FastAlphabetScroller(
     onIndexSelected: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    if (songs.size < 15) return // Only for long lists
+    if (songs.size < 25) return // Only for long libraries
 
     val haptic = LocalHapticFeedback.current
 
@@ -105,20 +105,17 @@ fun FastAlphabetScroller(
 
     var isDragging by remember { mutableStateOf(false) }
     var selectedLetter by remember { mutableStateOf("") }
-    var columnHeightPx by remember { mutableFloatStateOf(1f) }
     var currentTouchY by remember { mutableFloatStateOf(0f) }
 
     Box(
         modifier = modifier
-            .onGloballyPositioned { coordinates ->
-                columnHeightPx = coordinates.size.height.toFloat()
-            }
             .pointerInput(alphabet, letterIndexMap) {
+                val totalH = size.height.toFloat().coerceAtLeast(1f)
                 detectVerticalDragGestures(
                     onDragStart = { offset ->
                         isDragging = true
                         currentTouchY = offset.y
-                        val fraction = (offset.y / columnHeightPx).coerceIn(0f, 0.999f)
+                        val fraction = (offset.y / totalH).coerceIn(0f, 0.999f)
                         val letterIndex = (fraction * alphabet.size).toInt()
                         val letter = alphabet.getOrElse(letterIndex) { "#" }
                         if (letter != selectedLetter) {
@@ -137,7 +134,7 @@ fun FastAlphabetScroller(
                     },
                     onVerticalDrag = { change, _ ->
                         currentTouchY = change.position.y
-                        val fraction = (change.position.y / columnHeightPx).coerceIn(0f, 0.999f)
+                        val fraction = (change.position.y / totalH).coerceIn(0f, 0.999f)
                         val letterIndex = (fraction * alphabet.size).toInt()
                         val letter = alphabet.getOrElse(letterIndex) { "#" }
                         if (letter != selectedLetter) {
@@ -159,7 +156,7 @@ fun FastAlphabetScroller(
                 .offset {
                     IntOffset(
                         x = (-44).dp.roundToPx(),
-                        y = (currentTouchY - 24.dp.toPx()).coerceIn(0f, (columnHeightPx - 48.dp.toPx()).coerceAtLeast(0f)).roundToInt()
+                        y = (currentTouchY - 24.dp.toPx()).coerceAtLeast(0f).roundToInt()
                     )
                 }
         ) {

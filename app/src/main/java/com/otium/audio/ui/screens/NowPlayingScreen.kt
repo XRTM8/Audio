@@ -147,15 +147,6 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-private fun cleanDisplayTitle(raw: String): String {
-    var s = raw.trim()
-    if (s.startsWith("(") && s.endsWith(")") && s.length > 2) {
-        s = s.substring(1, s.length - 1).trim()
-    } else if (s.startsWith("[") && s.endsWith("]") && s.length > 2) {
-        s = s.substring(1, s.length - 1).trim()
-    }
-    return s
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -638,7 +629,7 @@ fun NowPlayingScreen(
                         horizontalAlignment = Alignment.Start
                     ) {
                         Text(
-                            text = cleanDisplayTitle(targetSong.title),
+                            text = targetSong.displayTitle,
                             style = MaterialTheme.typography.headlineMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 20.sp,
