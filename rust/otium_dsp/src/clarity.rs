@@ -21,6 +21,7 @@ impl ClarityEnhancer {
         ce
     }
 
+    #[allow(dead_code)]
     pub fn configure(&mut self, sample_rate_hz: f32) {
         if sample_rate_hz > 0.0 {
             self.sample_rate_hz = sample_rate_hz;

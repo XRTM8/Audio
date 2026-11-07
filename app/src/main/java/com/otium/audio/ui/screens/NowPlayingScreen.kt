@@ -228,49 +228,39 @@ fun NowPlayingScreen(
     val currentTrackIndex = remember(playlist, song.id) {
         playlist.indexOfFirst { it.id == song.id }.coerceAtLeast(0)
     }
-    val isLooping = playlist.size > 1
-    val pageMultiplier = if (isLooping) 400 else 1
-    val virtualPageCount = playlist.size * pageMultiplier
-    val virtualInitialPage = if (isLooping) {
-        (pageMultiplier / 2) * playlist.size + currentTrackIndex
-    } else {
-        0
-    }
-    val pagerState = rememberPagerState(initialPage = virtualInitialPage) {
-        virtualPageCount
+
+    val pagerState = rememberPagerState(
+        initialPage = currentTrackIndex.coerceIn(0, (playlist.size - 1).coerceAtLeast(0))
+    ) {
+        playlist.size
     }
 
-    // Keep pager in sync with active playing track
+    // Keep pager in sync with active playing track when changed externally
     LaunchedEffect(currentTrackIndex) {
-        if (playlist.isNotEmpty() && !pagerState.isScrollInProgress) {
-            val currentVirtual = pagerState.currentPage
-            val currentActual = (currentVirtual % playlist.size + playlist.size) % playlist.size
-            var diff = currentTrackIndex - currentActual
-            if (isLooping) {
-                if (diff > playlist.size / 2) diff -= playlist.size
-                else if (diff < -playlist.size / 2) diff += playlist.size
-            }
-            if (diff != 0) {
-                pagerState.animateScrollToPage(
-                    page = currentVirtual + diff,
-                    animationSpec = spring(
-                        stiffness = Spring.StiffnessMediumLow,
-                        dampingRatio = Spring.DampingRatioNoBouncy
-                    )
+        if (playlist.isNotEmpty() &&
+            currentTrackIndex in playlist.indices &&
+            pagerState.currentPage != currentTrackIndex &&
+            !pagerState.isScrollInProgress
+        ) {
+            pagerState.animateScrollToPage(
+                page = currentTrackIndex,
+                animationSpec = spring(
+                    stiffness = Spring.StiffnessMediumLow,
+                    dampingRatio = Spring.DampingRatioNoBouncy
                 )
-            }
+            )
         }
     }
 
-    // Switch tracks when user settles on a new page
+    // Switch tracks when user settles on a new page via gesture
     LaunchedEffect(pagerState) {
-        snapshotFlow { pagerState.settledPage }.collect { settledVirtualPage ->
-            if (playlist.isNotEmpty()) {
-                val actualIndex = (settledVirtualPage % playlist.size + playlist.size) % playlist.size
-                if (actualIndex in playlist.indices && playlist[actualIndex].id != song.id) {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    onPlayQueueIndex(actualIndex)
-                }
+        snapshotFlow { pagerState.settledPage }.collect { settledPage ->
+            if (playlist.isNotEmpty() &&
+                settledPage in playlist.indices &&
+                playlist[settledPage].id != song.id
+            ) {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onPlayQueueIndex(settledPage)
             }
         }
     }
@@ -447,40 +437,36 @@ fun NowPlayingScreen(
                                 )
                             }
                         } else {
-                            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                                HorizontalPager(
-                                    state = pagerState,
-                                    userScrollEnabled = playlist.size > 1,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .fillMaxHeight(),
-                                    contentPadding = PaddingValues(horizontal = 36.dp),
-                                    pageSpacing = 16.dp,
-                                    key = { page ->
-                                        if (playlist.isNotEmpty()) {
-                                            val actual = (page % playlist.size + playlist.size) % playlist.size
-                                            "${playlist[actual].id}_$page"
-                                        } else page
-                                    }
-                                ) { page ->
-                                    val actualIndex = if (playlist.isNotEmpty()) (page % playlist.size + playlist.size) % playlist.size else 0
-                                    val pageSong = playlist.getOrElse(actualIndex) { song }
-                                    val isCurrent = page == pagerState.currentPage
+                            HorizontalPager(
+                                state = pagerState,
+                                userScrollEnabled = playlist.size > 1,
+                                beyondBoundsPageCount = 1,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .fillMaxHeight(),
+                                contentPadding = PaddingValues(horizontal = 36.dp),
+                                pageSpacing = 16.dp,
+                                key = { page ->
+                                    if (page in playlist.indices) playlist[page].id else page
+                                }
+                            ) { page ->
+                                val pageSong = playlist.getOrElse(page) { song }
+                                val isCurrent = page == pagerState.currentPage
 
-                                    // Dynamic 3D carousel depth calculation
-                                    val pageOffset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).absoluteValue
-                                    val pageScale = (1f - (pageOffset * 0.12f)).coerceIn(0.86f, 1f)
-                                    val pageAlpha = (1f - (pageOffset * 0.40f)).coerceIn(0.55f, 1f)
+                                // Dynamic 3D carousel depth calculation
+                                val pageOffset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).absoluteValue
+                                val pageScale = (1f - (pageOffset * 0.10f)).coerceIn(0.88f, 1f)
+                                val pageAlpha = (1f - (pageOffset * 0.35f)).coerceIn(0.65f, 1f)
 
-                                    val pageCoverRequest = remember(pageSong.albumArtUri) {
-                                        ImageRequest.Builder(context)
-                                            .data(pageSong.albumArtUri)
-                                            .size(540, 540)
-                                            .crossfade(150)
-                                            .memoryCachePolicy(CachePolicy.ENABLED)
-                                            .diskCachePolicy(CachePolicy.ENABLED)
-                                            .build()
-                                    }
+                                val pageCoverRequest = remember(pageSong.albumArtUri) {
+                                    ImageRequest.Builder(context)
+                                        .data(pageSong.albumArtUri)
+                                        .size(540, 540)
+                                        .crossfade(150)
+                                        .memoryCachePolicy(CachePolicy.ENABLED)
+                                        .diskCachePolicy(CachePolicy.ENABLED)
+                                        .build()
+                                }
 
                                     Box(
                                         modifier = Modifier
@@ -547,9 +533,8 @@ fun NowPlayingScreen(
 
                 // ── Track Title & Artist Information with Crossfade ─────────
                 val activeDisplaySong = remember(pagerState.currentPage, playlist, song) {
-                    if (playlist.isNotEmpty()) {
-                        val idx = (pagerState.currentPage % playlist.size + playlist.size) % playlist.size
-                        playlist.getOrElse(idx) { song }
+                    if (playlist.isNotEmpty() && pagerState.currentPage in playlist.indices) {
+                        playlist[pagerState.currentPage]
                     } else song
                 }
 

@@ -22,6 +22,7 @@ object NativeAudioDsp {
         isAvailable = loaded
     }
 
+    // --- 1. Audio Processing & DSP Engine ---
     external fun createEngine(sampleRate: Int): Long
     external fun destroyEngine(enginePtr: Long)
     external fun resetEngine(enginePtr: Long)
@@ -42,4 +43,28 @@ object NativeAudioDsp {
         byteLength: Int,
         isFloat: Boolean
     )
+
+    // --- 2. Fast Audio Metadata & Tag Scanner (Lofty) ---
+    external fun scanAudioFile(path: String): String?
+    external fun extractArtwork(path: String): ByteArray?
+    external fun writeAudioTags(path: String, title: String, artist: String, album: String): Boolean
+
+    // --- 3. In-Memory Intelligent Arabic Fuzzy Search Engine ---
+    external fun searchIndexInit(
+        ids: LongArray,
+        titles: Array<String>,
+        artists: Array<String>,
+        albums: Array<String>
+    )
+    external fun searchIndexQuery(query: String, limit: Int): LongArray
+    external fun searchIndexAddOrUpdate(id: Long, title: String, artist: String, album: String)
+    external fun searchIndexRemove(id: Long)
+
+    // --- 4. Waveform & FFT Spectrum Analyzer ---
+    external fun computeSpectrum(samples: FloatArray, bandCount: Int): FloatArray?
+    external fun computeWaveformPeaks(pcmData: ByteArray, isFloat: Boolean, points: Int): FloatArray?
+
+    // --- 5. High-Speed LRC Lyrics Parser & Synchronizer ---
+    external fun parseLrc(lrcText: String): String?
+    external fun findActiveLrcLine(timestamps: LongArray, positionMs: Long): Int
 }

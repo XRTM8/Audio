@@ -10,6 +10,7 @@ import android.os.HandlerThread
 import android.os.Process
 import android.provider.MediaStore
 import android.content.ContentUris
+import com.otium.audio.audio.dsp.NativeAudioDsp
 import com.otium.audio.data.local.dao.AudioDao
 import com.otium.audio.data.local.entity.FavoriteEntity
 import com.otium.audio.data.local.entity.HistoryEntity
@@ -67,16 +68,29 @@ class AudioRepositoryImpl(
         }
     }
 
+    private fun updateLibrary(newSongs: List<Song>) {
+        songs.value = newSongs
+        if (NativeAudioDsp.isAvailable && newSongs.isNotEmpty()) {
+            try {
+                val ids = LongArray(newSongs.size) { newSongs[it].id }
+                val titles = Array(newSongs.size) { newSongs[it].title }
+                val artists = Array(newSongs.size) { newSongs[it].artist }
+                val albums = Array(newSongs.size) { newSongs[it].album }
+                NativeAudioDsp.searchIndexInit(ids, titles, artists, albums)
+            } catch (_: Throwable) {}
+        }
+    }
+
     init {
         resolver.registerContentObserver(collection, true, observer)
 
         scope.launch {
-            songs.value = readLibrary(songs.value)
+            updateLibrary(readLibrary(songs.value))
             stale.filter { it }
                 .debounce(RESCAN_WINDOW_MS)
                 .collect {
                     stale.value = false
-                    songs.value = readLibrary(songs.value)
+                    updateLibrary(readLibrary(songs.value))
                 }
         }
 
@@ -87,7 +101,7 @@ class AudioRepositoryImpl(
 
     override fun refresh() {
         scope.launch {
-            songs.value = readLibrary(songs.value)
+            updateLibrary(readLibrary(songs.value))
         }
     }
 
@@ -116,22 +130,40 @@ class AudioRepositoryImpl(
 
     override fun searchSongs(query: String): Flow<List<Song>> =
         getAllSongsFlow().map { list ->
-            val normalizedQuery = normalizeArabicForSearch(query)
-            if (normalizedQuery.isBlank()) list
-            else {
-                val queryTokens = normalizedQuery.split(" ").filter { it.isNotBlank() }
-                list.filter { song ->
-                    val normTitle = normalizeArabicForSearch(song.title)
-                    val normArtist = normalizeArabicForSearch(song.artist)
-                    val normAlbum = normalizeArabicForSearch(song.album)
-                    queryTokens.all { token ->
-                        normTitle.contains(token) ||
-                            normArtist.contains(token) ||
-                            normAlbum.contains(token)
+            val trimmed = query.trim()
+            if (trimmed.isBlank()) {
+                list
+            } else if (NativeAudioDsp.isAvailable) {
+                try {
+                    val matchedIds = NativeAudioDsp.searchIndexQuery(trimmed, 500)
+                    if (matchedIds.isNotEmpty()) {
+                        val byId = list.associateBy { it.id }
+                        matchedIds.mapNotNull { byId[it] }
+                    } else {
+                        emptyList()
                     }
+                } catch (_: Throwable) {
+                    fallbackSearch(list, trimmed)
                 }
+            } else {
+                fallbackSearch(list, trimmed)
             }
         }
+
+    private fun fallbackSearch(list: List<Song>, query: String): List<Song> {
+        val normalizedQuery = normalizeArabicForSearch(query)
+        val queryTokens = normalizedQuery.split(" ").filter { it.isNotBlank() }
+        return list.filter { song ->
+            val normTitle = normalizeArabicForSearch(song.title)
+            val normArtist = normalizeArabicForSearch(song.artist)
+            val normAlbum = normalizeArabicForSearch(song.album)
+            queryTokens.all { token ->
+                normTitle.contains(token) ||
+                    normArtist.contains(token) ||
+                    normAlbum.contains(token)
+            }
+        }
+    }
 
     override suspend fun toggleFavorite(songId: Long) = withContext(io) {
         if (audioDao.isFavorite(songId)) audioDao.removeFavorite(songId)
@@ -194,14 +226,27 @@ class AudioRepositoryImpl(
         artist: String,
         album: String
     ): Boolean = withContext(io) {
+        val song = songs.value.find { it.id == songId }
+        if (song != null && NativeAudioDsp.isAvailable && song.relativePath.isNotBlank()) {
+            try {
+                NativeAudioDsp.writeAudioTags(song.relativePath, title, artist, album)
+                NativeAudioDsp.searchIndexAddOrUpdate(songId, title, artist, album)
+            } catch (_: Throwable) {}
+        }
+
         val values = ContentValues().apply {
             put(MediaStore.Audio.Media.TITLE, title)
             put(MediaStore.Audio.Media.ARTIST, artist)
             put(MediaStore.Audio.Media.ALBUM, album)
         }
-        runCatching {
+        val updated = runCatching {
             resolver.update(ContentUris.withAppendedId(collection, songId), values, null, null) > 0
         }.getOrDefault(false)
+
+        if (updated) {
+            refresh()
+        }
+        updated
     }
 
     // Keeps identity for unchanged rows. Compose can then skip those items entirely
