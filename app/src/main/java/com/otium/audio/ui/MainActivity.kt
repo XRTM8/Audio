@@ -233,10 +233,6 @@ class MainActivity : ComponentActivity() {
                     val lp = window.attributes
                     lp.preferredDisplayModeId = highest.modeId
                     lp.preferredRefreshRate = highest.refreshRate
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                        lp.preferredMinDisplayRefreshRate = highest.refreshRate
-                        lp.preferredMaxDisplayRefreshRate = highest.refreshRate
-                    }
                     window.attributes = lp
                 }
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
