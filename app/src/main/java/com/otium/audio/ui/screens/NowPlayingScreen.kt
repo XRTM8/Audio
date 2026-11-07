@@ -440,7 +440,6 @@ fun NowPlayingScreen(
                             HorizontalPager(
                                 state = pagerState,
                                 userScrollEnabled = playlist.size > 1,
-                                beyondBoundsPageCount = 1,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .fillMaxHeight(),

@@ -138,7 +138,7 @@ class AudioRepositoryImpl(
                     val matchedIds = NativeAudioDsp.searchIndexQuery(trimmed, 500)
                     if (matchedIds.isNotEmpty()) {
                         val byId = list.associateBy { it.id }
-                        matchedIds.mapNotNull { byId[it] }
+                        matchedIds.map { byId[it] }.filterNotNull()
                     } else {
                         emptyList()
                     }
