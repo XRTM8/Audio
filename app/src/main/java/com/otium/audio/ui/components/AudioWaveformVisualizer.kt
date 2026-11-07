@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.otium.audio.ui.theme.AccentGold
 import com.otium.audio.ui.theme.AccentGoldLight
+import com.otium.audio.ui.theme.AccentPowerRed
 
 @Composable
 fun AudioWaveformVisualizer(
