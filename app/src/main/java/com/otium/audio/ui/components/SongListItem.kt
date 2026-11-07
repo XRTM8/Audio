@@ -276,16 +276,21 @@ fun MiniEqBars(modifier: Modifier = Modifier) {
 
         val stride = barWidth + gap
 
+        val c1 = Color(0xFFFF0033)
+        val c2 = Color(0xFFFF007F)
+        val c3 = Color(0xFF9D00FF)
+        val c4 = Color(0xFF00E5FF)
+
         val h1 = totalHeight * b1
-        drawRoundRect(color = barColor, topLeft = Offset(0f, totalHeight - h1), size = Size(barWidth, h1), cornerRadius = radius)
+        drawRoundRect(color = c1, topLeft = Offset(0f, totalHeight - h1), size = Size(barWidth, h1), cornerRadius = radius)
 
         val h2 = totalHeight * b2
-        drawRoundRect(color = barColor, topLeft = Offset(stride, totalHeight - h2), size = Size(barWidth, h2), cornerRadius = radius)
+        drawRoundRect(color = c2, topLeft = Offset(stride, totalHeight - h2), size = Size(barWidth, h2), cornerRadius = radius)
 
         val h3 = totalHeight * b3
-        drawRoundRect(color = barColor, topLeft = Offset(stride * 2f, totalHeight - h3), size = Size(barWidth, h3), cornerRadius = radius)
+        drawRoundRect(color = c3, topLeft = Offset(stride * 2f, totalHeight - h3), size = Size(barWidth, h3), cornerRadius = radius)
 
         val h4 = totalHeight * b4
-        drawRoundRect(color = barColor, topLeft = Offset(stride * 3f, totalHeight - h4), size = Size(barWidth, h4), cornerRadius = radius)
+        drawRoundRect(color = c4, topLeft = Offset(stride * 3f, totalHeight - h4), size = Size(barWidth, h4), cornerRadius = radius)
     }
 }

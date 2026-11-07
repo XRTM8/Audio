@@ -1,6 +1,7 @@
 package com.otium.audio.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -139,6 +140,7 @@ fun TrackSlider(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
                             .background(DarkSurfaceVariant)
+                            .border(1.dp, DarkCardBorder.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
                             .clickable {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 if (onSeekBy != null) {
@@ -163,6 +165,7 @@ fun TrackSlider(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
                             .background(DarkSurfaceVariant)
+                            .border(1.dp, DarkCardBorder.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
                             .clickable {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 if (onSeekBy != null) {

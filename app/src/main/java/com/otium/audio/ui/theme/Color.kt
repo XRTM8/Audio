@@ -3,34 +3,36 @@ package com.otium.audio.ui.theme
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
-// Otium Audio — AMOLED glass.
-// The canvas is true black so an OLED panel switches those pixels off. Panels sit a few
-// steps above it and keep a translucent edge, which is what reads as glass on a black
-// background: the light comes from the hairline, not from the fill.
+// Otium Audio — Pure AMOLED Black Canvas with Translucent Frosted Dark Glass.
+// True black switches OLED pixels off completely.
+// Panels and sheets float above it with translucent frosted glass and hairline edge sheen.
 
-// Canvas
+// Canvas — Pure AMOLED Black
 val DarkSurface          = Color(0xFF000000)
-val DarkSurfaceVariant   = Color(0xD9141419)
-val DarkSurfaceContainer = Color(0xE61A1A21)
-val DarkSurfaceElevated  = Color(0xD216161C)
-val DarkCardBorder       = Color(0x24FFFFFF)
-val GlassSheen           = Color(0x1AFFFFFF)
-val GlassScrim           = Color(0xCC000000)
 
-// Accents — Audiophile Crimson Ruby (vibrant, elegant contrast on AMOLED true black)
-val AccentCrimson        = Color(0xFFFF2A55)
-val AccentCrimsonLight   = Color(0xFFFF5E7E)
-val AccentCrimsonMuted   = Color(0x33FF2A55)
-val AccentCrimsonDim     = Color(0xFF8A1830)
+// Frosted Translucent Dark Glass (قوائم وزجاج معتم شفاف)
+val DarkSurfaceVariant   = Color(0x66181824) // 40% translucent smoky obsidian glass
+val DarkSurfaceContainer = Color(0x8014141E) // 50% translucent frosted dark glass
+val DarkSurfaceElevated  = Color(0x99161622) // 60% translucent frosted elevated sheet
+val DarkCardBorder       = Color(0x33FFFFFF) // 20% crisp white frosted glass edge highlight
+val GlassSheen           = Color(0x24FFFFFF) // 14% subtle glass specular sheen
+val GlassScrim           = Color(0xCC000000) // 80% deep AMOLED scrim
 
-// Main Theme Accent — Audiophile Crimson
-val AccentGold           = AccentCrimson
-val AccentGoldLight      = AccentCrimsonLight
-val AccentGoldMuted      = AccentCrimsonMuted
-val AccentGoldDim        = AccentCrimsonDim
+// Accents — Audiophile Ultra Power Red (أحمر قوي جداً وساطع يتناسب مع السواد الخالص)
+val AccentPowerRed       = Color(0xFFFF0033) // Blazing pure vivid red (0% pink, 100% intensity)
+val AccentPowerRedLight  = Color(0xFFFF3355)
+val AccentPowerRedMuted  = Color(0x33FF0033)
+val AccentPowerRedDim    = Color(0xFF990022)
 
-val AccentCyan           = Color(0xFFA9B6BC)
-val AccentCyanGlow       = Color(0x33A9B6BC)
+// Theme compatibility aliases
+val AccentGold           = AccentPowerRed
+val AccentCrimson        = AccentPowerRed
+val AccentGoldLight      = AccentPowerRedLight
+val AccentGoldMuted      = AccentPowerRedMuted
+val AccentGoldDim        = AccentPowerRedDim
+
+val AccentCyan           = Color(0xFF00E5FF) // Electric Cyber Cyan
+val AccentCyanGlow       = Color(0x3300E5FF)
 
 // Text
 val TextPrimary          = Color(0xFFF7F7F9)
@@ -38,12 +40,11 @@ val TextSecondary        = Color(0xFF9C9CA8)
 val TextTertiary         = Color(0xFF66666F)
 
 // Semantic
-val ErrorRed             = Color(0xFFFF6F6F)
-val SuccessGreen         = Color(0xFF57D9A3)
+val ErrorRed             = Color(0xFFFF0033)
+val SuccessGreen         = Color(0xFF00E676)
 
-/** Barely-there backdrop: enough gradient for glass to read, dark enough for OLED. */
+/** Pure AMOLED Black backdrop (true #000000) */
 val AmbientBackdrop: Brush = Brush.verticalGradient(
-    0.0f to Color(0xFF0B0B12),
-    0.42f to Color(0xFF050508),
+    0.0f to DarkSurface,
     1.0f to DarkSurface
 )

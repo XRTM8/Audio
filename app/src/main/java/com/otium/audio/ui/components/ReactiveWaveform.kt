@@ -14,15 +14,29 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.ColorUtils
 import kotlin.math.abs
 import kotlin.math.sin
 
 /**
- * A thin progress strip drawn as a waveform. Bars behind the playhead are dim, the rest
- * carry the accent. While playing the whole strip breathes slowly, so the console looks
- * alive without faking a spectrum analyser we cannot measure.
+ * High-performance dynamic anti-boredom spectrum waveform.
+ * Guaranteed 0% yellow or gold. Smoothly cycles through vibrant audiophile neon hues
+ * (Intense Power Red, Electric Magenta, Neon Violet, Cyber Cyan, Emerald Mint, Vivid Scarlet).
  */
+private val ANTI_BOREDOM_HUES = longArrayOf(
+    0xFFFF0033L, // Intense Pure Power Red
+    0xFFFF0055L, // Vivid Scarlet
+    0xFFFF007FL, // Electric Magenta
+    0xFFD500F9L, // Vivid Orchid
+    0xFF9D00FFL, // Neon Purple
+    0xFF651FFFL, // Deep Royal Violet
+    0xFF00B0FFL, // Cyber Blue
+    0xFF00E5FFL, // Electric Cyan
+    0xFF00E676L  // Neon Mint
+)
+
 @Composable
 fun ReactiveWaveform(
     progress: Float,
@@ -53,6 +67,7 @@ fun ReactiveWaveform(
         val centreY = size.height / 2f
         val maxHeight = size.height
         val swing = if (isPlaying) 1f else 0.35f
+        val phaseShift = (phase * 3.5f).toInt()
 
         for (index in 0 until barCount) {
             val position = index / (barCount - 1f)
@@ -65,8 +80,16 @@ fun ReactiveWaveform(
             val left = index * (barWidth + gap)
             val played = position <= progress
 
+            // Dynamic anti-boredom color selection across bars (strictly zero yellow/gold)
+            val barColor = if (played) {
+                val colorIdx = ((index + phaseShift) % ANTI_BOREDOM_HUES.size + ANTI_BOREDOM_HUES.size) % ANTI_BOREDOM_HUES.size
+                Color(ANTI_BOREDOM_HUES[colorIdx])
+            } else {
+                trackColor
+            }
+
             drawRoundRect(
-                color = if (played) accent else trackColor,
+                color = barColor,
                 topLeft = Offset(left, centreY - height / 2f),
                 size = Size(barWidth, height),
                 cornerRadius = radius

@@ -26,8 +26,8 @@ import com.otium.audio.ui.theme.AccentGoldLight
 @Composable
 fun AudioWaveformVisualizer(
     isPlaying: Boolean,
-    primaryColor: Color = AccentGold,
-    secondaryColor: Color = AccentGoldLight,
+    primaryColor: Color = AccentPowerRed,
+    secondaryColor: Color = Color(0xFF00E5FF),
     barCount: Int = 28,
     maxHeight: Dp = 36.dp,
     modifier: Modifier = Modifier

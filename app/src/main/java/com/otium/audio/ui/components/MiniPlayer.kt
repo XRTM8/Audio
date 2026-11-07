@@ -5,6 +5,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -66,6 +67,7 @@ import com.otium.audio.ui.theme.AccentGold
 import com.otium.audio.ui.theme.DarkCardBorder
 import com.otium.audio.ui.theme.DarkSurface
 import com.otium.audio.ui.theme.DarkSurfaceContainer
+import com.otium.audio.ui.theme.DarkSurfaceElevated
 import com.otium.audio.ui.theme.DarkSurfaceVariant
 import com.otium.audio.ui.theme.OtiumAccent
 import com.otium.audio.ui.theme.TextPrimary
@@ -213,7 +215,8 @@ fun MiniPlayer(
                             .offset(y = (-30).dp)
                             .shadow(elevation = 6.dp, shape = RoundedCornerShape(12.dp))
                             .clip(RoundedCornerShape(12.dp))
-                            .background(DarkSurfaceVariant)
+                            .background(DarkSurfaceElevated)
+                            .border(1.dp, DarkCardBorder, RoundedCornerShape(12.dp))
                             .padding(horizontal = 12.dp, vertical = 3.dp)
                     ) {
                         Text(

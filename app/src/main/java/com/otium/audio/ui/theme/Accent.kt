@@ -11,31 +11,35 @@ import androidx.core.graphics.ColorUtils
  * The single moving colour of the interface. The chrome is neutral; this value is derived
  * from the current artwork and used only for things that mean "this is playing": progress,
  * the play control, active states.
- *
- * It is a state object rather than a CompositionLocal because it is updated from the
- * activity and read from anywhere below it without threading it through every signature.
  */
 object OtiumAccent {
     var color: Color by mutableStateOf(AccentFallback)
         internal set
 }
 
-val AccentFallback = Color(0xFFFF2A55)
+// Default Fallback: Blazing Vivid Power Red
+val AccentFallback = Color(0xFFFF0033)
 
 /**
- * Clamps a palette colour into a range that stays legible on an OLED black surface.
- * Greyscale or nearly black artwork falls back to the neutral accent instead of producing
- * a muddy highlight.
+ * Clamps a palette colour into an intense, punchy range that stays vibrant on an OLED black surface.
+ * Strictly eliminates any yellow or gold tones, shifting them to bold Power Red.
  */
 fun Color.asReadableAccent(): Color {
     val hsl = FloatArray(3)
     ColorUtils.colorToHSL(toArgb(), hsl)
-    val lightness = hsl[2]
+    val hue = hsl[0]
     val saturation = hsl[1]
+    val lightness = hsl[2]
 
-    if (lightness < 0.18f || saturation < 0.10f) return AccentFallback
+    if (lightness < 0.15f || saturation < 0.10f) return AccentFallback
 
-    hsl[1] = saturation.coerceIn(0.42f, 0.68f)
-    hsl[2] = lightness.coerceIn(0.62f, 0.74f)
+    // Strict filter: banish yellow, amber, and gold (hue 24° to 72°)
+    // Replace with intense pure vivid red
+    if (hue in 24f..72f) {
+        hsl[0] = 352f // Pure Power Red
+    }
+
+    hsl[1] = saturation.coerceIn(0.70f, 1.0f) // Maximum punchy saturation
+    hsl[2] = lightness.coerceIn(0.48f, 0.65f)  // High-contrast legible luminosity
     return Color(ColorUtils.HSLToColor(hsl))
 }

@@ -947,7 +947,7 @@ private fun AudiophileVinylCover() {
             )
         }
 
-        // Center Gold Label
+        // Center Vinyl Label
         Box(
             modifier = Modifier
                 .fillMaxSize(0.32f)
