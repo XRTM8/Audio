@@ -55,6 +55,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        enableHighRefreshRate()
 
         setContent {
             OtiumAudioTheme {
@@ -220,6 +221,40 @@ class MainActivity : ComponentActivity() {
         // The user may have granted the permission from system settings while the
         // app was backgrounded; without this the library stays empty forever.
         if (hasRequiredAudioPermission(this)) viewModel.onPermissionGranted()
+    }
+
+    private fun enableHighRefreshRate() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val display = this.display
+                val modes = display?.supportedModes ?: emptyArray()
+                val highest = modes.maxByOrNull { it.refreshRate }
+                if (highest != null && highest.refreshRate >= 85f) {
+                    val lp = window.attributes
+                    lp.preferredDisplayModeId = highest.modeId
+                    lp.preferredRefreshRate = highest.refreshRate
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                        lp.preferredMinDisplayRefreshRate = highest.refreshRate
+                        lp.preferredMaxDisplayRefreshRate = highest.refreshRate
+                    }
+                    window.attributes = lp
+                }
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                @Suppress("DEPRECATION")
+                val display = windowManager.defaultDisplay
+                @Suppress("DEPRECATION")
+                val modes = display?.supportedModes ?: emptyArray()
+                val highest = modes.maxByOrNull { it.refreshRate }
+                if (highest != null && highest.refreshRate >= 85f) {
+                    val lp = window.attributes
+                    lp.preferredDisplayModeId = highest.modeId
+                    lp.preferredRefreshRate = highest.refreshRate
+                    window.attributes = lp
+                }
+            }
+        } catch (_: Throwable) {
+            // Graceful fallback if device vendor locks display attributes
+        }
     }
 
     private fun hasRequiredAudioPermission(context: Context): Boolean {

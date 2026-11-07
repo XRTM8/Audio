@@ -22,7 +22,8 @@ data class Song(
     val isFavorite: Boolean = false,
     val formattedDuration: String = formatDurationFast(durationMs),
     val audioFormatBadge: String = determineAudioBadgeFast(relativePath, contentUri),
-    val displayTitle: String = cleanDisplayTitleFast(title)
+    val displayTitle: String = cleanDisplayTitleFast(title),
+    val subtitle: String = "$artist  ·  $formattedDuration"
 ) {
     companion object {
         fun cleanDisplayTitleFast(raw: String): String {
