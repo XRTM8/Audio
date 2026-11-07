@@ -38,6 +38,7 @@ class OtiumAudioProcessor(
     private var bypass = true
     private var appliedPreAmpDb = Float.NaN
     private var nativeEnginePtr: Long = 0L
+    private var lastSyncedState: com.otium.audio.playback.EqualizerState? = null
 
     override fun onConfigure(inputAudioFormat: androidx.media3.common.audio.AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         channelCount = inputAudioFormat.channelCount
@@ -52,6 +53,7 @@ class OtiumAudioProcessor(
         }
 
         appliedPreAmpDb = Float.NaN
+        lastSyncedState = null
         rebuildFilters()
         limiter.configure(sampleRateHz)
         reverb.configure(sampleRateHz)
@@ -69,6 +71,7 @@ class OtiumAudioProcessor(
     }
 
     override fun onFlush() {
+        lastSyncedState = null
         if (nativeEnginePtr != 0L) {
             NativeAudioDsp.resetEngine(nativeEnginePtr)
         }
@@ -232,6 +235,8 @@ class OtiumAudioProcessor(
     /** Copies the live UI state into coefficients, only when something actually changed. */
     private fun syncFromController() {
         val state = controller.state.value
+        if (state == lastSyncedState) return
+        lastSyncedState = state
 
         if (state.preAmpDb != appliedPreAmpDb) {
             appliedPreAmpDb = state.preAmpDb

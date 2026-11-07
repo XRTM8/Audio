@@ -274,16 +274,18 @@ fun MiniEqBars(modifier: Modifier = Modifier) {
         val barWidth = ((totalWidth - gap * (barCount - 1)) / barCount).coerceAtLeast(1f)
         val radius = CornerRadius(barWidth / 2f, barWidth / 2f)
 
-        val heights = floatArrayOf(b1, b2, b3, b4)
-        for (i in 0 until barCount) {
-            val h = totalHeight * heights[i]
-            val left = i * (barWidth + gap)
-            drawRoundRect(
-                color = barColor,
-                topLeft = Offset(left, totalHeight - h),
-                size = Size(barWidth, h),
-                cornerRadius = radius
-            )
-        }
+        val stride = barWidth + gap
+
+        val h1 = totalHeight * b1
+        drawRoundRect(color = barColor, topLeft = Offset(0f, totalHeight - h1), size = Size(barWidth, h1), cornerRadius = radius)
+
+        val h2 = totalHeight * b2
+        drawRoundRect(color = barColor, topLeft = Offset(stride, totalHeight - h2), size = Size(barWidth, h2), cornerRadius = radius)
+
+        val h3 = totalHeight * b3
+        drawRoundRect(color = barColor, topLeft = Offset(stride * 2f, totalHeight - h3), size = Size(barWidth, h3), cornerRadius = radius)
+
+        val h4 = totalHeight * b4
+        drawRoundRect(color = barColor, topLeft = Offset(stride * 3f, totalHeight - h4), size = Size(barWidth, h4), cornerRadius = radius)
     }
 }

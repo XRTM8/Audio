@@ -1,5 +1,6 @@
 package com.otium.audio.ui.viewmodel
 
+import androidx.compose.runtime.Immutable
 import com.otium.audio.data.local.entity.PlaylistEntity
 import com.otium.audio.data.model.AudioFolder
 import com.otium.audio.data.model.Song
@@ -17,6 +18,7 @@ enum class LibraryTab {
     HISTORY
 }
 
+@Immutable
 data class MusicUiState(
     val selectedTab: LibraryTab = LibraryTab.TRACKS,
     val songs: List<Song> = emptyList(),

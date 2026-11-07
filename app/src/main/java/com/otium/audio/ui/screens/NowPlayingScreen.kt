@@ -325,8 +325,8 @@ fun NowPlayingScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .offset { IntOffset(0, dragY.value.roundToInt()) }
             .graphicsLayer {
+                translationY = dragY.value
                 val progress = (dragY.value / (screenHeightPx * 0.45f)).coerceIn(0f, 1f)
                 scaleX = 1f - progress * 0.08f
                 scaleY = 1f - progress * 0.08f

@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -13,12 +14,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.palette.graphics.Palette
 import coil.ImageLoader
+import coil.imageLoader
 import coil.request.ImageRequest
 import coil.request.SuccessResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 
+@Immutable
 data class TrackColors(
     val dominant: Color = DarkSurface,
     val vibrant: Color = AccentGold,
@@ -27,13 +30,8 @@ data class TrackColors(
 
 object PaletteManager {
     private val colorCache = ConcurrentHashMap<String, TrackColors>()
-    @Volatile private var cachedLoader: ImageLoader? = null
 
-    private fun getImageLoader(context: Context): ImageLoader {
-        return cachedLoader ?: synchronized(this) {
-            cachedLoader ?: ImageLoader.Builder(context.applicationContext).build().also { cachedLoader = it }
-        }
-    }
+    private fun getImageLoader(context: Context): ImageLoader = context.imageLoader
 
     fun getCached(key: String): TrackColors? = colorCache[key]
 

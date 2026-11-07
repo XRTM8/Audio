@@ -9,11 +9,13 @@ import android.media.audiofx.Virtualizer
 import android.media.AudioManager
 import android.util.Log
 import androidx.media3.common.C
+import androidx.compose.runtime.Immutable
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 
+@Immutable
 data class EqualizerBand(
     val bandIndex: Short,
     val centerFreqHz: Int,
@@ -36,6 +38,7 @@ private val DEFAULT_10_BANDS = listOf(
     EqualizerBand(9, 16000, 0f, -15f, 15f)
 )
 
+@Immutable
 data class EqualizerState(
     val isEnabled: Boolean = true,
     val isBound: Boolean = false,

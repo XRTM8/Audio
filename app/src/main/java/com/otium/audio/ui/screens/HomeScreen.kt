@@ -268,15 +268,25 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        val filterPills = listOf(
-                            Triple(LibraryTab.TRACKS, "جميع المقاطع", uiState.songs.size),
-                            Triple(LibraryTab.FAVORITES, "المفضلة", uiState.favorites.size),
-                            Triple(LibraryTab.FOLDERS, "المجلدات", uiState.folders.size),
-                            Triple(LibraryTab.RECENTLY_ADDED, "المضافة حديثاً", uiState.recentlyAdded.size),
-                            Triple(LibraryTab.PLAYLISTS, "قوائم التشغيل", uiState.playlists.size),
-                            Triple(LibraryTab.MOST_PLAYED, "الأكثر استماعاً", uiState.mostPlayed.size),
-                            Triple(LibraryTab.HISTORY, "سجل التشغيل", uiState.history.size)
-                        )
+                        val filterPills = remember(
+                            uiState.songs.size,
+                            uiState.favorites.size,
+                            uiState.folders.size,
+                            uiState.recentlyAdded.size,
+                            uiState.playlists.size,
+                            uiState.mostPlayed.size,
+                            uiState.history.size
+                        ) {
+                            listOf(
+                                Triple(LibraryTab.TRACKS, "جميع المقاطع", uiState.songs.size),
+                                Triple(LibraryTab.FAVORITES, "المفضلة", uiState.favorites.size),
+                                Triple(LibraryTab.FOLDERS, "المجلدات", uiState.folders.size),
+                                Triple(LibraryTab.RECENTLY_ADDED, "المضافة حديثاً", uiState.recentlyAdded.size),
+                                Triple(LibraryTab.PLAYLISTS, "قوائم التشغيل", uiState.playlists.size),
+                                Triple(LibraryTab.MOST_PLAYED, "الأكثر استماعاً", uiState.mostPlayed.size),
+                                Triple(LibraryTab.HISTORY, "سجل التشغيل", uiState.history.size)
+                            )
+                        }
 
                         filterPills.forEach { (tab, label, count) ->
                             val isSelected = uiState.selectedTab == tab

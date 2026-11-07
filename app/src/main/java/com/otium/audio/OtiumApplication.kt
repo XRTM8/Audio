@@ -1,6 +1,10 @@
 package com.otium.audio
 
 import android.app.Application
+import coil.ImageLoader
+import coil.ImageLoaderFactory
+import coil.disk.DiskCache
+import coil.memory.MemoryCache
 import com.otium.audio.data.local.OtiumDatabase
 import com.otium.audio.data.repository.AudioRepository
 import com.otium.audio.data.repository.AudioRepositoryImpl
@@ -13,7 +17,25 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.SupervisorJob
 
-class OtiumApplication : Application() {
+class OtiumApplication : Application(), ImageLoaderFactory {
+
+    override fun newImageLoader(): ImageLoader {
+        return ImageLoader.Builder(this)
+            .memoryCache {
+                MemoryCache.Builder(this)
+                    .maxSizePercent(0.20)
+                    .build()
+            }
+            .diskCache {
+                DiskCache.Builder()
+                    .directory(cacheDir.resolve("image_cache"))
+                    .maxSizePercent(0.04)
+                    .build()
+            }
+            .crossfade(false)
+            .respectCacheHeaders(false)
+            .build()
+    }
 
     val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 

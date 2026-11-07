@@ -1,8 +1,10 @@
 package com.otium.audio.playback
 
+import androidx.compose.runtime.Immutable
 import androidx.media3.common.Player
 import com.otium.audio.data.model.Song
 
+@Immutable
 data class MusicPlaybackState(
     val currentSong: Song? = null,
     val isPlaying: Boolean = false,

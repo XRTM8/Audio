@@ -1,7 +1,9 @@
 package com.otium.audio.data.model
 
+import androidx.compose.runtime.Immutable
 import java.io.File
 
+@Immutable
 data class AudioFolder(
     val name: String,
     val path: String,

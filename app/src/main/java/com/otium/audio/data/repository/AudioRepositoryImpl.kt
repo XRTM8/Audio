@@ -62,6 +62,20 @@ class AudioRepositoryImpl(
     private val favoriteIds = MutableStateFlow<Set<Long>>(emptySet())
     private val stale = MutableStateFlow(false)
 
+    @Volatile private var cachedSongsList: List<Song>? = null
+    @Volatile private var cachedSongsMap: Map<Long, Song>? = null
+
+    private fun getSongsByIdMap(list: List<Song>): Map<Long, Song> {
+        val cached = cachedSongsMap
+        if (cached != null && list === cachedSongsList) {
+            return cached
+        }
+        val map = list.associateBy { it.id }
+        cachedSongsList = list
+        cachedSongsMap = map
+        return map
+    }
+
     private val observer = object : ContentObserver(Handler(observerThread.looper)) {
         override fun onChange(selfChange: Boolean, uri: Uri?) {
             stale.value = true
@@ -137,8 +151,8 @@ class AudioRepositoryImpl(
                 try {
                     val matchedIds = NativeAudioDsp.searchIndexQuery(trimmed, 500)
                     if (matchedIds.isNotEmpty()) {
-                        val byId = list.associateBy { it.id }
-                        matchedIds.map { byId[it] }.filterNotNull()
+                        val byId = getSongsByIdMap(list)
+                        matchedIds.mapNotNull { byId[it] }
                     } else {
                         emptyList()
                     }
@@ -346,14 +360,37 @@ class AudioRepositoryImpl(
         val ALBUM_ART_URI: Uri = Uri.parse("content://media/external/audio/albumart")
 
         fun normalizeArabicForSearch(input: String): String {
-            return input
-                .replace(Regex("[\\u064B-\\u065F\\u0670]"), "") // Remove Arabic Tashkeel / Harakat
-                .replace(Regex("[\\u0622\\u0623\\u0625\\u0671]"), "ا") // Alif variants (آ, أ, إ, ٱ -> ا)
-                .replace('ة', 'ه') // Ta Marbuta -> Ha
-                .replace('ى', 'ي') // Alif Maqsura -> Ya
-                .replace(Regex("[\\p{C}\\p{Z}\\-_|.]+"), " ") // Normalize symbols & whitespace
-                .trim()
-                .lowercase()
+            if (input.isEmpty()) return ""
+            val sb = StringBuilder(input.length)
+            var lastWasSpace = false
+            for (i in 0 until input.length) {
+                val c = input[i]
+                // 1. Skip Arabic Tashkeel / Harakat (\u064B..\u065F, \u0670)
+                if ((c in '\u064B'..'\u065F') || c == '\u0670') {
+                    continue
+                }
+                // 2. Normalize Alif variants (آ, أ, إ, ٱ -> ا), Ta Marbuta -> Ha, Alif Maqsura -> Ya
+                val normalized = when (c) {
+                    '\u0622', '\u0623', '\u0625', '\u0671' -> 'ا'
+                    'ة' -> 'ه'
+                    'ى' -> 'ي'
+                    else -> c.lowercaseChar()
+                }
+                // 3. Normalize symbols & whitespace into single space
+                if (normalized.isLetterOrDigit()) {
+                    sb.append(normalized)
+                    lastWasSpace = false
+                } else {
+                    if (!lastWasSpace && sb.isNotEmpty()) {
+                        sb.append(' ')
+                        lastWasSpace = true
+                    }
+                }
+            }
+            if (lastWasSpace && sb.isNotEmpty()) {
+                sb.setLength(sb.length - 1)
+            }
+            return sb.toString()
         }
     }
 }

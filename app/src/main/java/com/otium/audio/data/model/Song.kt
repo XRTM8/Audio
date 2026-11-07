@@ -1,11 +1,13 @@
 package com.otium.audio.data.model
 
 import android.net.Uri
+import androidx.compose.runtime.Immutable
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
+@Immutable
 data class Song(
     val id: Long,
     val title: String,

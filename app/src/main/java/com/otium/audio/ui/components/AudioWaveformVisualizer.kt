@@ -81,6 +81,12 @@ fun AudioWaveformVisualizer(
         val barSpacing = 4.dp.toPx()
         val totalSpacing = barSpacing * (barCount - 1)
         val barWidth = ((totalWidth - totalSpacing) / barCount).coerceAtLeast(2.dp.toPx())
+        val cornerRadius = CornerRadius(barWidth / 2f, barWidth / 2f)
+        val gradientBrush = Brush.verticalGradient(
+            colors = listOf(primaryColor, secondaryColor),
+            startY = 0f,
+            endY = canvasHeight
+        )
 
         for (i in 0 until barCount) {
             val normalizedIndex = i.toFloat() / barCount.toFloat()
@@ -98,14 +104,10 @@ fun AudioWaveformVisualizer(
             val y = (canvasHeight - computedHeight) / 2f
 
             drawRoundRect(
-                brush = Brush.verticalGradient(
-                    colors = listOf(primaryColor, secondaryColor),
-                    startY = y,
-                    endY = y + computedHeight
-                ),
+                brush = gradientBrush,
                 topLeft = Offset(x, y),
                 size = Size(barWidth, computedHeight),
-                cornerRadius = CornerRadius(barWidth / 2, barWidth / 2)
+                cornerRadius = cornerRadius
             )
         }
     }

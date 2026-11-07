@@ -178,11 +178,30 @@ class MusicController(
 
     fun playSong(song: Song, playlist: List<Song>) {
         val controller = mediaController ?: return
-        currentPlaylistSongs = playlist
 
         val songIndex = playlist.indexOfFirst { it.id == song.id }
         if (songIndex == -1) return
 
+        // Fast path: if the requested song is in the already-loaded queue, seek directly without rebuilding the queue
+        val isSameQueue = controller.mediaItemCount == playlist.size &&
+            (currentPlaylistSongs === playlist || (currentPlaylistSongs.isNotEmpty() && currentPlaylistSongs[0].id == playlist[0].id))
+
+        if (isSameQueue) {
+            currentPlaylistSongs = playlist
+            controller.seekTo(songIndex, 0L)
+            controller.play()
+            _playbackState.update {
+                it.copy(
+                    currentSong = song,
+                    isPlaying = true,
+                    durationMs = song.durationMs,
+                    queue = playlist
+                )
+            }
+            return
+        }
+
+        currentPlaylistSongs = playlist
         val mediaItems = playlist.map { it.toMediaItem() }
         controller.setMediaItems(mediaItems, songIndex, 0L)
         controller.prepare()
