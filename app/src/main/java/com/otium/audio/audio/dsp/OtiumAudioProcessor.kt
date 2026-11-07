@@ -24,6 +24,7 @@ class OtiumAudioProcessor(
     private var encoding = C.ENCODING_PCM_16BIT
 
     private val filters = Array(BAND_FREQUENCIES_HZ.size) { Array(CHANNELS_MAX) { Biquad() } }
+    private val bassBoostFilter = Array(CHANNELS_MAX) { Biquad() }
     private var preAmp = Biquad()
     private var limiter = PeakLimiter()
 
@@ -32,6 +33,8 @@ class OtiumAudioProcessor(
     private val clarity = ClarityEnhancer()
 
     private var appliedGains = FloatArray(BAND_FREQUENCIES_HZ.size)
+    private var appliedBassBoost = -1
+    private var appliedVirtualizer = -1
     private var bypass = true
     private var appliedPreAmpDb = Float.NaN
     private var nativeEnginePtr: Long = 0L
@@ -70,6 +73,7 @@ class OtiumAudioProcessor(
             NativeAudioDsp.resetEngine(nativeEnginePtr)
         }
         filters.forEach { perChannel -> perChannel.forEach { it.reset() } }
+        bassBoostFilter.forEach { it.reset() }
         preAmp.reset()
         limiter.reset()
         reverb.reset()
@@ -132,10 +136,23 @@ class OtiumAudioProcessor(
                     left = preAmp.process(left)
                     right = preAmp.process(right)
 
+                    if (appliedBassBoost > 0) {
+                        left = bassBoostFilter[0].process(left)
+                        right = bassBoostFilter[1].process(right)
+                    }
+
                     val bandFilters = filters
                     for (band in bandFilters.indices) {
                         left = bandFilters[band][0].process(left)
                         right = bandFilters[band][1].process(right)
+                    }
+
+                    if (appliedVirtualizer > 0) {
+                        val widthFactor = 1.0f + (appliedVirtualizer / 1000f) * 1.5f
+                        val mid = (left + right) * 0.5f
+                        val side = (left - right) * 0.5f * widthFactor
+                        left = mid + side
+                        right = mid - side
                     }
 
                     if (clarity.strength > 0) {
@@ -167,6 +184,9 @@ class OtiumAudioProcessor(
                     var sample = readSample(inputBuffer, it)
 
                     sample = preAmp.process(sample)
+                    if (appliedBassBoost > 0) {
+                        sample = bassBoostFilter[channel].process(sample)
+                    }
                     val bandFilters = filters
                     for (band in bandFilters.indices) {
                         sample = bandFilters[band][channel].process(sample)
@@ -189,6 +209,14 @@ class OtiumAudioProcessor(
 
     private fun rebuildFilters() {
         val q = 1.4f
+        for (channel in 0 until channelCount) {
+            bassBoostFilter[channel].configurePeaking(
+                sampleRateHz = sampleRateHz,
+                centreHz = 75f,
+                gainDb = 0f,
+                q = 0.9f
+            )
+        }
         for (band in BAND_FREQUENCIES_HZ.indices) {
             for (channel in 0 until channelCount) {
                 filters[band][channel].configurePeaking(
@@ -209,6 +237,22 @@ class OtiumAudioProcessor(
             appliedPreAmpDb = state.preAmpDb
             preAmp.configureGain(state.preAmpDb)
         }
+
+        if (state.bassBoostStrength != appliedBassBoost) {
+            appliedBassBoost = state.bassBoostStrength
+            val boostDb = if (state.isEnabled && state.bassBoostStrength > 0) {
+                (state.bassBoostStrength / 1000f) * 9.0f
+            } else 0f
+            for (channel in 0 until channelCount) {
+                bassBoostFilter[channel].configurePeaking(
+                    sampleRateHz = sampleRateHz,
+                    centreHz = 75f,
+                    gainDb = boostDb,
+                    q = 0.9f
+                )
+            }
+        }
+        appliedVirtualizer = if (state.isEnabled) state.virtualizerStrength else 0
 
         val levels = state.bands
         for (band in BAND_FREQUENCIES_HZ.indices) {
@@ -231,7 +275,14 @@ class OtiumAudioProcessor(
         clarity.strength = if (state.isEnabled) state.clarityStrength else 0
 
         // Limiting is needed when something in the chain adds gain or effects.
-        val boosting = state.preAmpDb > 0.05f || levels.any { it.levelDb > 0.05f } || reverb.strength > 0 || chorus.strength > 0 || clarity.strength > 0
+        val boosting = state.preAmpDb > 0.05f ||
+            levels.any { it.levelDb > 0.05f } ||
+            (state.isEnabled && state.bassBoostStrength > 0) ||
+            (state.isEnabled && state.virtualizerStrength > 0) ||
+            reverb.strength > 0 ||
+            chorus.strength > 0 ||
+            clarity.strength > 0
+
         limiter.enabled = state.isEnabled && boosting
         bypass = !state.isEnabled || (!boosting && levels.none { it.levelDb < -0.05f })
 
@@ -243,7 +294,14 @@ class OtiumAudioProcessor(
                 else -> 0
             }
             val gains = FloatArray(BAND_FREQUENCIES_HZ.size) { i ->
-                if (state.isEnabled) levels.getOrNull(i)?.levelDb ?: 0f else 0f
+                var g = if (state.isEnabled) levels.getOrNull(i)?.levelDb ?: 0f else 0f
+                if (state.isEnabled && state.bassBoostStrength > 0) {
+                    val extraBass = (state.bassBoostStrength / 1000f) * 6.5f
+                    if (i == 0) g += extraBass * 0.85f // 31Hz
+                    if (i == 1) g += extraBass         // 62Hz
+                    if (i == 2) g += extraBass * 0.45f // 125Hz
+                }
+                g
             }
             NativeAudioDsp.setParameters(
                 enginePtr = nativeEnginePtr,

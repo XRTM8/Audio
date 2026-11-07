@@ -17,29 +17,37 @@ data class Song(
     val size: Long,
     val relativePath: String,
     val dateAdded: Long,
-    val isFavorite: Boolean = false
+    val isFavorite: Boolean = false,
+    val formattedDuration: String = formatDurationFast(durationMs),
+    val audioFormatBadge: String = determineAudioBadgeFast(relativePath, contentUri)
 ) {
-    val formattedDuration: String
-        get() {
-            val minutes = TimeUnit.MILLISECONDS.toMinutes(durationMs)
-            val seconds = TimeUnit.MILLISECONDS.toSeconds(durationMs) - TimeUnit.MINUTES.toSeconds(minutes)
-            return String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
+    companion object {
+        fun formatDurationFast(durationMs: Long): String {
+            val totalSec = (durationMs / 1000).coerceAtLeast(0)
+            val min = totalSec / 60
+            val sec = totalSec % 60
+            val minStr = if (min < 10) "0$min" else min.toString()
+            val secStr = if (sec < 10) "0$sec" else sec.toString()
+            return "$minStr:$secStr"
         }
 
-    val audioFormatBadge: String
-        get() {
-            val path = (relativePath.ifEmpty { contentUri.path ?: "" }).lowercase(Locale.ROOT)
+        fun determineAudioBadgeFast(path: String, uri: Uri? = null): String {
+            val target = if (path.isNotEmpty()) path else (uri?.path ?: "")
+            val dot = target.lastIndexOf('.')
+            if (dot == -1 || dot >= target.length - 1) return "HI-RES"
+            val ext = target.substring(dot + 1)
             return when {
-                path.endsWith(".flac") -> "FLAC"
-                path.endsWith(".wav") -> "WAV"
-                path.endsWith(".opus") -> "OPUS"
-                path.endsWith(".ogg") -> "OGG"
-                path.endsWith(".m4a") -> "ALAC"
-                path.endsWith(".aac") -> "AAC"
-                path.endsWith(".mp3") -> "MP3"
+                ext.equals("flac", ignoreCase = true) -> "FLAC"
+                ext.equals("wav", ignoreCase = true) -> "WAV"
+                ext.equals("opus", ignoreCase = true) -> "OPUS"
+                ext.equals("ogg", ignoreCase = true) -> "OGG"
+                ext.equals("m4a", ignoreCase = true) -> "ALAC"
+                ext.equals("aac", ignoreCase = true) -> "AAC"
+                ext.equals("mp3", ignoreCase = true) -> "MP3"
                 else -> "HI-RES"
             }
         }
+    }
 
     fun toMediaItem(): MediaItem {
         val metadata = MediaMetadata.Builder()

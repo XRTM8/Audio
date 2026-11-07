@@ -145,67 +145,7 @@ class EqualizerController(
         lastAudioSessionId = audioSessionId
         release()
 
-        // The device equalizer is no longer used: OtiumAudioProcessor shapes the stream
-        // itself, which removes the five band ceiling and the per-device frequency drift.
-        _state.update { it.copy(isBound = true) }
-        return
-
-        // 1. Equalizer — Priority 1000 ensures our app takes full control of the session
-        try {
-            val eq = Equalizer(1000, audioSessionId)
-            equalizer = eq
-
-            val numBands = eq.numberOfBands.toInt()
-            val range = eq.bandLevelRange
-            val minDb = if (range != null && range.size >= 2) range[0] / 100f else -15f
-            val maxDb = if (range != null && range.size >= 2) range[1] / 100f else 15f
-
-            val currentBands = _state.value.bands
-            val updatedBands = mutableListOf<EqualizerBand>()
-
-            for (i in 0 until numBands) {
-                val band = i.toShort()
-                val freq = try {
-                    eq.getCenterFreq(band) / 1000
-                } catch (_: Exception) {
-                    DEFAULT_10_BANDS.getOrNull(i)?.centerFreqHz ?: ((i + 1) * 1000)
-                }
-
-                val existingLevel = currentBands.getOrNull(i)?.levelDb ?: 0f
-                val safeMb = (existingLevel * 100).toInt().coerceIn(
-                    (minDb * 100).toInt(),
-                    (maxDb * 100).toInt()
-                ).toShort()
-
-                try {
-                    eq.setBandLevel(band, safeMb)
-                } catch (e: Exception) {
-                    Log.w("EqualizerController", "Error setting band $band: ${e.message}")
-                }
-
-                updatedBands.add(
-                    EqualizerBand(
-                        bandIndex = band,
-                        centerFreqHz = freq,
-                        levelDb = existingLevel,
-                        minDb = minDb,
-                        maxDb = maxDb
-                    )
-                )
-            }
-
-            eq.enabled = _state.value.isEnabled
-            _state.update { it.copy(isBound = true) }
-
-            if (updatedBands.isNotEmpty()) {
-                _state.update { it.copy(bands = updatedBands) }
-            }
-            Log.i("EqualizerController", "Equalizer bound successfully to session $audioSessionId with $numBands bands")
-        } catch (e: Exception) {
-            Log.e("EqualizerController", "Error initializing Equalizer on session $audioSessionId", e)
-        }
-
-        // 2. BassBoost — isolated so speaker / device limitations do not block Equalizer
+        // 1. Hardware BassBoost — attached to the active session for system-level bass drive
         try {
             val bb = BassBoost(1000, audioSessionId).apply {
                 enabled = _state.value.isEnabled
@@ -214,13 +154,13 @@ class EqualizerController(
                 }
             }
             bassBoost = bb
-            Log.i("EqualizerController", "BassBoost attached")
+            Log.i("EqualizerController", "Hardware BassBoost attached to session $audioSessionId")
         } catch (e: Exception) {
-            Log.w("EqualizerController", "BassBoost not supported on session $audioSessionId: ${e.message}")
+            Log.w("EqualizerController", "Hardware BassBoost unavailable: ${e.message}")
             bassBoost = null
         }
 
-        // 3. Virtualizer — isolated so speaker limitations do not block Equalizer
+        // 2. Hardware Virtualizer — 3D spatial acoustic widening
         try {
             val virt = Virtualizer(1000, audioSessionId).apply {
                 enabled = _state.value.isEnabled
@@ -229,37 +169,29 @@ class EqualizerController(
                 }
             }
             virtualizer = virt
-            Log.i("EqualizerController", "Virtualizer attached")
+            Log.i("EqualizerController", "Hardware Virtualizer attached to session $audioSessionId")
         } catch (e: Exception) {
-            Log.w("EqualizerController", "Virtualizer not supported on session $audioSessionId: ${e.message}")
+            Log.w("EqualizerController", "Hardware Virtualizer unavailable: ${e.message}")
             virtualizer = null
         }
+
+        _state.update { it.copy(isBound = true) }
     }
 
     fun setEnabled(enabled: Boolean) {
-        if (equalizer == null && lastAudioSessionId > 0 && lastAudioSessionId != C.AUDIO_SESSION_ID_UNSET) {
+        if (bassBoost == null && lastAudioSessionId > 0 && lastAudioSessionId != C.AUDIO_SESSION_ID_UNSET) {
             bindAudioSession(lastAudioSessionId)
         }
 
         try {
-            equalizer?.enabled = enabled
-            if (enabled) {
-                // Re-apply all bands upon enabling
-                _state.value.bands.forEach { band ->
-                    try {
-                        val mb = (band.levelDb * 100).toInt().toShort()
-                        equalizer?.setBandLevel(band.bandIndex, mb)
-                    } catch (_: Exception) {}
-                }
-                if (bassBoost?.strengthSupported == true) {
-                    try { bassBoost?.setStrength(_state.value.bassBoostStrength.toShort()) } catch (_: Exception) {}
-                }
-                if (virtualizer?.strengthSupported == true) {
-                    try { virtualizer?.setStrength(_state.value.virtualizerStrength.toShort()) } catch (_: Exception) {}
-                }
-            }
             bassBoost?.enabled = enabled
+            if (enabled && bassBoost?.strengthSupported == true) {
+                bassBoost?.setStrength(_state.value.bassBoostStrength.toShort())
+            }
             virtualizer?.enabled = enabled
+            if (enabled && virtualizer?.strengthSupported == true) {
+                virtualizer?.setStrength(_state.value.virtualizerStrength.toShort())
+            }
         } catch (e: Exception) {
             Log.e("EqualizerController", "Error toggling enabled=$enabled", e)
         }
@@ -302,7 +234,7 @@ class EqualizerController(
     fun setBassBoost(strength: Int) {
         val safeStrength = strength.coerceIn(0, 1000)
 
-        if (equalizer == null && lastAudioSessionId > 0 && lastAudioSessionId != C.AUDIO_SESSION_ID_UNSET) {
+        if (bassBoost == null && lastAudioSessionId > 0 && lastAudioSessionId != C.AUDIO_SESSION_ID_UNSET) {
             bindAudioSession(lastAudioSessionId)
         }
 
@@ -327,7 +259,7 @@ class EqualizerController(
     fun setVirtualizer(strength: Int) {
         val safeStrength = strength.coerceIn(0, 1000)
 
-        if (equalizer == null && lastAudioSessionId > 0 && lastAudioSessionId != C.AUDIO_SESSION_ID_UNSET) {
+        if (virtualizer == null && lastAudioSessionId > 0 && lastAudioSessionId != C.AUDIO_SESSION_ID_UNSET) {
             bindAudioSession(lastAudioSessionId)
         }
 
@@ -350,7 +282,7 @@ class EqualizerController(
     }
 
     fun applyPreset(presetName: String) {
-        if (equalizer == null && lastAudioSessionId > 0 && lastAudioSessionId != C.AUDIO_SESSION_ID_UNSET) {
+        if (bassBoost == null && lastAudioSessionId > 0 && lastAudioSessionId != C.AUDIO_SESSION_ID_UNSET) {
             bindAudioSession(lastAudioSessionId)
         }
 

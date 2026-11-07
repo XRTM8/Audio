@@ -89,6 +89,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -237,10 +238,13 @@ fun NowPlayingScreen(
         playlist.size
     }
 
+    var userSettledPage by remember { mutableIntStateOf(-1) }
+
     // Keep pager in sync with active playing track when changed externally
     LaunchedEffect(currentTrackIndex) {
         if (playlist.isNotEmpty() &&
             currentTrackIndex in playlist.indices &&
+            currentTrackIndex != userSettledPage &&
             pagerState.currentPage != currentTrackIndex &&
             !pagerState.isScrollInProgress
         ) {
@@ -252,6 +256,7 @@ fun NowPlayingScreen(
                 )
             )
         }
+        userSettledPage = -1
     }
 
     // Switch tracks when user settles on a new page via gesture
@@ -261,6 +266,7 @@ fun NowPlayingScreen(
                 settledPage in playlist.indices &&
                 playlist[settledPage].id != song.id
             ) {
+                userSettledPage = settledPage
                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 onPlayQueueIndex(settledPage)
             }
@@ -289,6 +295,12 @@ fun NowPlayingScreen(
     val dismissThreshold = with(density) { 68.dp.toPx() }
     var isDismissing by remember { mutableStateOf(false) }
 
+    // Ensure initial entry starts clean at offset 0
+    LaunchedEffect(Unit) {
+        dragY.snapTo(0f)
+        isDismissing = false
+    }
+
     fun triggerDismiss() {
         if (isDismissing) return
         isDismissing = true
@@ -299,8 +311,6 @@ fun NowPlayingScreen(
                 animationSpec = tween(durationMillis = 200, easing = FastOutLinearInEasing)
             )
             onCollapse()
-            dragY.snapTo(0f)
-            isDismissing = false
         }
     }
 
@@ -466,37 +476,39 @@ fun NowPlayingScreen(
                                 )
                             }
                         } else {
-                            HorizontalPager(
-                                state = pagerState,
-                                userScrollEnabled = playlist.size > 1,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .fillMaxHeight(),
-                                contentPadding = PaddingValues(horizontal = 42.dp),
-                                pageSpacing = 18.dp,
-                                key = { page ->
-                                    if (page in playlist.indices) playlist[page].id else page
-                                }
-                            ) { page ->
-                                val pageSong = playlist.getOrElse(page) { song }
-                                val isCurrent = page == pagerState.currentPage
+                            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                                HorizontalPager(
+                                    state = pagerState,
+                                    userScrollEnabled = playlist.size > 1,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .fillMaxHeight(),
+                                    contentPadding = PaddingValues(horizontal = 42.dp),
+                                    pageSpacing = 16.dp,
+                                    beyondViewportPageCount = 1,
+                                    key = { page ->
+                                        if (page in playlist.indices) playlist[page].id else page
+                                    }
+                                ) { page ->
+                                    val pageSong = playlist.getOrElse(page) { song }
+                                    val isCurrent = page == pagerState.currentPage
 
-                                // Dynamic 3D carousel depth calculation
-                                val rawOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
-                                val pageOffset = rawOffset.absoluteValue
-                                val pageScale = (1f - (pageOffset * 0.12f)).coerceIn(0.85f, 1f)
-                                val pageAlpha = (1f - (pageOffset * 0.40f)).coerceIn(0.55f, 1f)
-                                val pageRotation = (rawOffset * -10f).coerceIn(-18f, 18f)
+                                    // Dynamic 3D carousel depth calculation in unified LTR physics
+                                    val rawOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
+                                    val pageOffset = rawOffset.absoluteValue
+                                    val pageScale = (1f - (pageOffset * 0.12f)).coerceIn(0.85f, 1f)
+                                    val pageAlpha = (1f - (pageOffset * 0.40f)).coerceIn(0.55f, 1f)
+                                    val pageRotation = (rawOffset * -10f).coerceIn(-18f, 18f)
 
-                                val pageCoverRequest = remember(pageSong.albumArtUri) {
-                                    ImageRequest.Builder(context)
-                                        .data(pageSong.albumArtUri)
-                                        .size(540, 540)
-                                        .crossfade(150)
-                                        .memoryCachePolicy(CachePolicy.ENABLED)
-                                        .diskCachePolicy(CachePolicy.ENABLED)
-                                        .build()
-                                }
+                                    val pageCoverRequest = remember(pageSong.albumArtUri) {
+                                        ImageRequest.Builder(context)
+                                            .data(pageSong.albumArtUri)
+                                            .size(540, 540)
+                                            .crossfade(150)
+                                            .memoryCachePolicy(CachePolicy.ENABLED)
+                                            .diskCachePolicy(CachePolicy.ENABLED)
+                                            .build()
+                                    }
 
                                     Box(
                                         modifier = Modifier
