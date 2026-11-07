@@ -54,7 +54,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        enableHighRefreshRate()
+        window.decorView.post { enableHighRefreshRate() }
 
         setContent {
             OtiumAudioTheme {
@@ -215,8 +215,19 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        enableHighRefreshRate()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) enableHighRefreshRate()
+    }
+
     override fun onResume() {
         super.onResume()
+        enableHighRefreshRate()
         // The user may have granted the permission from system settings while the
         // app was backgrounded; without this the library stays empty forever.
         if (hasRequiredAudioPermission(this)) viewModel.onPermissionGranted()
@@ -224,26 +235,33 @@ class MainActivity : ComponentActivity() {
 
     private fun enableHighRefreshRate() {
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                val display = this.display
-                val modes = display?.supportedModes ?: emptyArray()
-                val highest = modes.maxByOrNull { it.refreshRate }
-                if (highest != null && highest.refreshRate >= 85f) {
-                    val lp = window.attributes
-                    lp.preferredDisplayModeId = highest.modeId
-                    lp.preferredRefreshRate = highest.refreshRate
-                    window.attributes = lp
+            val targetDisplay = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                try {
+                    window.decorView.display ?: display
+                } catch (_: Throwable) {
+                    window.decorView.display
                 }
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            } else {
                 @Suppress("DEPRECATION")
-                val display = windowManager.defaultDisplay
-                @Suppress("DEPRECATION")
-                val modes = display?.supportedModes ?: emptyArray()
-                val highest = modes.maxByOrNull { it.refreshRate }
-                if (highest != null && highest.refreshRate >= 85f) {
-                    val lp = window.attributes
+                windowManager.defaultDisplay
+            } ?: return
+
+            val modes = targetDisplay.supportedModes ?: emptyArray()
+            val highest = modes.maxByOrNull { it.refreshRate }
+            if (highest != null && highest.refreshRate >= 85f) {
+                val lp = window.attributes
+                var changed = false
+                if (lp.preferredDisplayModeId != highest.modeId) {
                     lp.preferredDisplayModeId = highest.modeId
-                    lp.preferredRefreshRate = highest.refreshRate
+                    changed = true
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    if (lp.preferredRefreshRate != highest.refreshRate) {
+                        lp.preferredRefreshRate = highest.refreshRate
+                        changed = true
+                    }
+                }
+                if (changed) {
                     window.attributes = lp
                 }
             }

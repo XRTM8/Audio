@@ -21,9 +21,26 @@ data class Song(
     val formattedDuration: String = formatDurationFast(durationMs),
     val audioFormatBadge: String = determineAudioBadgeFast(relativePath, contentUri),
     val displayTitle: String = cleanDisplayTitleFast(title),
+    val indexLetter: String = extractIndexLetterFast(title),
     val subtitle: String = "$artist  ·  $formattedDuration"
 ) {
     companion object {
+        fun extractIndexLetterFast(raw: String): String {
+            val trimmed = raw.trim()
+            var idx = 0
+            while (idx < trimmed.length && (trimmed[idx] == '(' || trimmed[idx] == '[' || trimmed[idx] == '{' || trimmed[idx] == '"' || trimmed[idx] == '\'' || trimmed[idx] == ' ')) {
+                idx++
+            }
+            if (idx >= trimmed.length) return "#"
+            val ch = trimmed[idx]
+            return when {
+                ch in 'A'..'Z' || ch in 'a'..'z' -> ch.uppercaseChar().toString()
+                ch in '\u0622'..'\u0625' || ch == '\u0627' -> "ا"
+                ch in '\u0600'..'\u06FF' -> ch.toString()
+                else -> "#"
+            }
+        }
+
         fun cleanDisplayTitleFast(raw: String): String {
             var s = raw.trim()
             if (s.startsWith("(") && s.endsWith(")") && s.length > 2) {

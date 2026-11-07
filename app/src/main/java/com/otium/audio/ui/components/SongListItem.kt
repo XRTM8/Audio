@@ -138,6 +138,8 @@ fun SongListItem(
                 )
             }
             .combinedClickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
                 onClick = onRowClick,
                 onLongClick = onRowLongClick
             )

@@ -1,6 +1,9 @@
 package com.otium.audio.data.repository
 
 import android.content.ContentValues
+import coil.imageLoader
+import coil.request.CachePolicy
+import coil.request.ImageRequest
 import android.content.Context
 import android.database.ContentObserver
 import android.net.Uri
@@ -92,6 +95,29 @@ class AudioRepositoryImpl(
                 val albums = Array(newSongs.size) { newSongs[it].album }
                 NativeAudioDsp.searchIndexInit(ids, titles, artists, albums)
             } catch (_: Throwable) {}
+        }
+
+        // Pre-warm verified album art thumbnails into GPU memory cache on background thread.
+        // Completely eliminates cold-start image decoding jitter and frame drops on first scroll!
+        if (newSongs.isNotEmpty()) {
+            val ctx = context
+            scope.launch(Dispatchers.IO) {
+                val loader = ctx.imageLoader
+                val seenUris = HashSet<Uri>()
+                for (song in newSongs) {
+                    val art = song.albumArtUri
+                    if (art != Uri.EMPTY && seenUris.add(art)) {
+                        val req = ImageRequest.Builder(ctx)
+                            .data(art)
+                            .size(144, 144)
+                            .allowHardware(true)
+                            .memoryCachePolicy(CachePolicy.ENABLED)
+                            .diskCachePolicy(CachePolicy.ENABLED)
+                            .build()
+                        loader.enqueue(req)
+                    }
+                }
+            }
         }
     }
 

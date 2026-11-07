@@ -37,22 +37,6 @@ import com.otium.audio.ui.theme.DarkCardBorder
 import com.otium.audio.ui.theme.TextSecondary
 import kotlin.math.roundToInt
 
-private fun extractFirstIndexChar(title: String): String {
-    val trimmed = title.trim()
-    var idx = 0
-    while (idx < trimmed.length && (trimmed[idx] == '(' || trimmed[idx] == '[' || trimmed[idx] == '{' || trimmed[idx] == '"' || trimmed[idx] == '\'' || trimmed[idx] == ' ')) {
-        idx++
-    }
-    if (idx >= trimmed.length) return "#"
-    val ch = trimmed[idx]
-    return when {
-        ch in 'A'..'Z' || ch in 'a'..'z' -> ch.uppercaseChar().toString()
-        ch in '\u0622'..'\u0625' || ch == '\u0627' -> "ا"
-        ch in '\u0600'..'\u06FF' -> ch.toString()
-        else -> "#"
-    }
-}
-
 @Composable
 fun FastAlphabetScroller(
     songs: List<Song>,
@@ -70,7 +54,7 @@ fun FastAlphabetScroller(
         val latinLetters = mutableSetOf<String>()
 
         songs.forEachIndexed { index, song ->
-            val key = extractFirstIndexChar(song.title)
+            val key = song.indexLetter
             if (!map.containsKey(key)) {
                 map[key] = index
             }

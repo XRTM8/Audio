@@ -393,13 +393,16 @@ fun HomeScreen(
                         )
                     } else {
                         // High-performance single master song list
+                        val handleSongClick = remember(displayedSongs, onSongSelected) {
+                            { song: Song -> onSongSelected(song, displayedSongs) }
+                        }
                         MasterSongListView(
                             songs = displayedSongs,
                             currentSong = uiState.playbackState.currentSong,
-                            onSongClick = { song -> onSongSelected(song, displayedSongs) },
+                            onSongClick = handleSongClick,
                             onFavoriteClick = onFavoriteToggle,
                             onEditTagClick = onEditTagClick,
-                        onSongLongPress = onSongLongPress,
+                            onSongLongPress = onSongLongPress,
                             showAlphabetScroller = !uiState.isSearching && uiState.selectedFolder == null && uiState.selectedPlaylist == null
                         )
                     }
