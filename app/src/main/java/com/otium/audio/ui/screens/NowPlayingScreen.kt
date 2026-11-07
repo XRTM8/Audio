@@ -573,6 +573,7 @@ fun NowPlayingScreen(
                             }
                         }
                     }
+                }
 
                 // ── Track Title & Artist Information with Crossfade ─────────
                 val activeDisplaySong = remember(pagerState.currentPage, playlist, song) {
