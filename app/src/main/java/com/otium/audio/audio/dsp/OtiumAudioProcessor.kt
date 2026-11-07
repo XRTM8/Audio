@@ -102,15 +102,15 @@ class OtiumAudioProcessor(
                     }
 
                     if (chorus.strength > 0) {
-                        val chorusPair = chorus.process(left, right)
-                        left = chorusPair.first
-                        right = chorusPair.second
+                        chorus.process(left, right)
+                        left = chorus.outLeft
+                        right = chorus.outRight
                     }
 
                     if (reverb.strength > 0) {
-                        val reverbPair = reverb.process(left, right)
-                        left = reverbPair.first
-                        right = reverbPair.second
+                        reverb.process(left, right)
+                        left = reverb.outLeft
+                        right = reverb.outRight
                     }
 
                     left = limiter.process(left, 0)

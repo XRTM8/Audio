@@ -231,8 +231,8 @@ fun NowPlayingScreen(
     val highResArtworkRequest = remember(song.albumArtUri) {
         ImageRequest.Builder(context)
             .data(song.albumArtUri)
-            .size(1080, 1080)
-            .crossfade(200)
+            .size(540, 540)
+            .crossfade(150)
             .memoryCachePolicy(CachePolicy.ENABLED)
             .diskCachePolicy(CachePolicy.ENABLED)
             .build()
@@ -445,8 +445,8 @@ fun NowPlayingScreen(
                                     val pageCoverRequest = remember(pageSong.albumArtUri) {
                                         ImageRequest.Builder(context)
                                             .data(pageSong.albumArtUri)
-                                            .size(1080, 1080)
-                                            .crossfade(200)
+                                            .size(540, 540)
+                                            .crossfade(150)
                                             .memoryCachePolicy(CachePolicy.ENABLED)
                                             .diskCachePolicy(CachePolicy.ENABLED)
                                             .build()
@@ -462,29 +462,33 @@ fun NowPlayingScreen(
                                             },
                                         contentAlignment = Alignment.Center
                                     ) {
+                                        // Hardware-accelerated GPU ambient halo glow (zero per-frame allocations)
+                                        if (isCurrent) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth(0.96f)
+                                                    .aspectRatio(1f)
+                                                    .scale(1.22f)
+                                                    .graphicsLayer {
+                                                        alpha = halo * if (isPlaying) 0.85f else 0.35f
+                                                    }
+                                                    .background(
+                                                        brush = Brush.radialGradient(
+                                                            colors = listOf(
+                                                                animatedVibrant.copy(alpha = 0.50f),
+                                                                animatedVibrant.copy(alpha = 0.18f),
+                                                                Color.Transparent
+                                                            )
+                                                        ),
+                                                        shape = CircleShape
+                                                    )
+                                            )
+                                        }
+
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxWidth(0.96f)
                                                 .aspectRatio(1f)
-                                                .drawBehind {
-                                                    if (isCurrent) {
-                                                        val reach = size.maxDimension * 0.78f
-                                                        val strength = halo * if (isPlaying) 1f else 0.34f
-                                                        drawCircle(
-                                                            brush = Brush.radialGradient(
-                                                                colors = listOf(
-                                                                    animatedVibrant.copy(alpha = strength),
-                                                                    animatedVibrant.copy(alpha = strength * 0.35f),
-                                                                    Color.Transparent
-                                                                ),
-                                                                center = center,
-                                                                radius = reach
-                                                            ),
-                                                            radius = reach,
-                                                            center = center
-                                                        )
-                                                    }
-                                                }
                                                 .shadow(
                                                     elevation = if (isCurrent) 24.dp else 6.dp,
                                                     shape = RoundedCornerShape(20.dp),

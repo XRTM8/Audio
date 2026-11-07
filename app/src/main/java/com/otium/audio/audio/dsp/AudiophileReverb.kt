@@ -6,6 +6,7 @@ package com.otium.audio.audio.dsp
  * Employs 4 parallel low-pass feedback comb filters tuned to prime delays (eliminating
  * flutter echoes and metallic resonance), followed by 2 cascaded all-pass diffusers
  * per channel with asymmetrical stereo delay tuning for expansive spatial depth.
+ * Zero-allocation design maintains 100% audio thread real-time safety.
  */
 class AudiophileReverb {
 
@@ -15,6 +16,11 @@ class AudiophileReverb {
             field = value
             updatePresetCoefficients()
         }
+
+    var outLeft: Float = 0f
+        private set
+    var outRight: Float = 0f
+        private set
 
     private var sampleRateHz: Int = 44_100
 
@@ -93,14 +99,20 @@ class AudiophileReverb {
         allpassIdxL2 = 0
         allpassIdxR1 = 0
         allpassIdxR2 = 0
+
+        outLeft = 0f
+        outRight = 0f
     }
 
     /**
-     * In-place stereo reverberation processing.
-     * Capped to maintain absolute musicality without washing out master mixes.
+     * In-place stereo reverberation processing with zero heap allocations.
      */
-    fun process(left: Float, right: Float): Pair<Float, Float> {
-        if (strength <= 0) return Pair(left, right)
+    fun process(left: Float, right: Float) {
+        if (strength <= 0) {
+            outLeft = left
+            outRight = right
+            return
+        }
 
         val wetMix = (strength / 100f).coerceIn(0f, 1f)
         val monoIn = (left + right) * 0.5f
@@ -135,33 +147,37 @@ class AudiophileReverb {
         sumR *= 0.25f
 
         // 3. Cascaded Allpass Diffusers (Left)
-        var diffL = processAllpass(sumL, allpassL1, allpassIdxL1) { allpassIdxL1 = it }
-        diffL = processAllpass(diffL, allpassL2, allpassIdxL2) { allpassIdxL2 = it }
+        val diffL1 = processAllpass(sumL, allpassL1, 556, 0)
+        val diffL2 = processAllpass(diffL1, allpassL2, 441, 1)
 
         // 4. Cascaded Allpass Diffusers (Right)
-        var diffR = processAllpass(sumR, allpassR1, allpassIdxR1) { allpassIdxR1 = it }
-        diffR = processAllpass(diffR, allpassR2, allpassIdxR2) { allpassIdxR2 = it }
+        val diffR1 = processAllpass(sumR, allpassR1, 567, 2)
+        val diffR2 = processAllpass(diffR1, allpassR2, 452, 3)
 
         val dryAmount = 1f - (wetMix * 0.22f)
         val wetAmount = wetMix * 0.38f
 
-        return Pair(
-            left * dryAmount + diffL * wetAmount,
-            right * dryAmount + diffR * wetAmount
-        )
+        outLeft = left * dryAmount + diffL2 * wetAmount
+        outRight = right * dryAmount + diffR2 * wetAmount
     }
 
-    private inline fun processAllpass(
-        input: Float,
-        buffer: FloatArray,
-        index: Int,
-        crossinline updateIndex: (Int) -> Unit
-    ): Float {
-        val bufOut = buffer[index]
+    private fun processAllpass(input: Float, buffer: FloatArray, bufSize: Int, stage: Int): Float {
+        val idx = when (stage) {
+            0 -> allpassIdxL1
+            1 -> allpassIdxL2
+            2 -> allpassIdxR1
+            else -> allpassIdxR2
+        }
+        val bufOut = buffer[idx]
         val output = -input + bufOut
-        buffer[index] = input + bufOut * 0.5f
-        val nextIdx = if (index + 1 >= buffer.size) 0 else index + 1
-        updateIndex(nextIdx)
+        buffer[idx] = input + bufOut * 0.5f
+        val nextIdx = if (idx + 1 >= bufSize) 0 else idx + 1
+        when (stage) {
+            0 -> allpassIdxL1 = nextIdx
+            1 -> allpassIdxL2 = nextIdx
+            2 -> allpassIdxR1 = nextIdx
+            else -> allpassIdxR2 = nextIdx
+        }
         return output
     }
 }
