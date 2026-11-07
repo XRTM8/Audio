@@ -34,6 +34,9 @@ import com.otium.audio.ui.theme.AccentGold
 import com.otium.audio.ui.theme.TextPrimary
 import com.otium.audio.ui.theme.TextSecondary
 import com.otium.audio.ui.theme.TextTertiary
+import androidx.compose.runtime.remember
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.StateFlow
 
 @Composable
@@ -66,8 +69,9 @@ fun LyricsSheet(
         return
     }
 
-    val position by positionFlow.collectAsState()
-    val activeIndex = lyrics.findActiveIndex(position)
+    val activeIndex by remember(lyrics, positionFlow) {
+        positionFlow.map { lyrics.findActiveIndex(it) }.distinctUntilChanged()
+    }.collectAsState(initial = lyrics.findActiveIndex(positionFlow.value))
     val listState = rememberLazyListState()
 
     LaunchedEffect(activeIndex) {

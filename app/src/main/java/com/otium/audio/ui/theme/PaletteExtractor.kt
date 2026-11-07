@@ -27,13 +27,22 @@ data class TrackColors(
 
 object PaletteManager {
     private val colorCache = ConcurrentHashMap<String, TrackColors>()
+    @Volatile private var cachedLoader: ImageLoader? = null
+
+    private fun getImageLoader(context: Context): ImageLoader {
+        return cachedLoader ?: synchronized(this) {
+            cachedLoader ?: ImageLoader.Builder(context.applicationContext).build().also { cachedLoader = it }
+        }
+    }
+
+    fun getCached(key: String): TrackColors? = colorCache[key]
 
     suspend fun extractColors(context: Context, albumArtUri: Uri): TrackColors = withContext(Dispatchers.IO) {
         val key = albumArtUri.toString()
         colorCache[key]?.let { return@withContext it }
 
         try {
-            val loader = ImageLoader(context)
+            val loader = getImageLoader(context)
             val request = ImageRequest.Builder(context)
                 .data(albumArtUri)
                 .size(128, 128) // Crucial OOM prevention on 4K/8K embedded covers
@@ -70,10 +79,14 @@ object PaletteManager {
 
 @Composable
 fun rememberTrackColors(context: Context, albumArtUri: Uri): TrackColors {
-    var colors by remember(albumArtUri) { mutableStateOf(TrackColors()) }
+    val key = albumArtUri.toString()
+    val initial = PaletteManager.getCached(key) ?: TrackColors()
+    var colors by remember(albumArtUri) { mutableStateOf(initial) }
 
     LaunchedEffect(albumArtUri) {
-        colors = PaletteManager.extractColors(context, albumArtUri)
+        if (PaletteManager.getCached(key) == null) {
+            colors = PaletteManager.extractColors(context, albumArtUri)
+        }
     }
 
     return colors

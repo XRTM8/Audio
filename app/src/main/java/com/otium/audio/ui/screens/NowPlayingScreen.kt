@@ -200,7 +200,7 @@ fun NowPlayingScreen(
     // A slow halo behind the cover. It deepens while playing and settles when paused,
     // which is the whole animation budget: one float, one curve, no loops of effects.
     val haloTransition = rememberInfiniteTransition(label = "halo")
-    val halo by haloTransition.animateFloat(
+    val haloState = haloTransition.animateFloat(
         initialValue = 0.10f,
         targetValue = 0.30f,
         animationSpec = infiniteRepeatable(
@@ -493,13 +493,6 @@ fun NowPlayingScreen(
                                     val pageSong = playlist.getOrElse(page) { song }
                                     val isCurrent = page == pagerState.currentPage
 
-                                    // Dynamic 3D carousel depth calculation in unified LTR physics
-                                    val rawOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
-                                    val pageOffset = rawOffset.absoluteValue
-                                    val pageScale = (1f - (pageOffset * 0.12f)).coerceIn(0.85f, 1f)
-                                    val pageAlpha = (1f - (pageOffset * 0.40f)).coerceIn(0.55f, 1f)
-                                    val pageRotation = (rawOffset * -10f).coerceIn(-18f, 18f)
-
                                     val pageCoverRequest = remember(pageSong.albumArtUri) {
                                         ImageRequest.Builder(context)
                                             .data(pageSong.albumArtUri)
@@ -514,10 +507,15 @@ fun NowPlayingScreen(
                                         modifier = Modifier
                                             .fillMaxSize()
                                             .graphicsLayer {
+                                                // Dynamic 3D carousel depth calculation in unified LTR physics
+                                                // Executed strictly in Draw/Layout phase — ZERO recompositions during 120Hz swiping!
+                                                val rawOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
+                                                val pageOffset = rawOffset.absoluteValue
+                                                val pageScale = (1f - (pageOffset * 0.12f)).coerceIn(0.85f, 1f)
                                                 scaleX = pageScale
                                                 scaleY = pageScale
-                                                alpha = pageAlpha
-                                                rotationY = pageRotation
+                                                alpha = (1f - (pageOffset * 0.40f)).coerceIn(0.55f, 1f)
+                                                rotationY = (rawOffset * -10f).coerceIn(-18f, 18f)
                                                 cameraDistance = 16f * density.density
                                             },
                                         contentAlignment = Alignment.Center
@@ -530,7 +528,8 @@ fun NowPlayingScreen(
                                                     .aspectRatio(1f)
                                                     .scale(1.22f)
                                                     .graphicsLayer {
-                                                        alpha = halo * if (isPlaying) 0.85f else 0.35f
+                                                        val h = if (isPlaying) haloState.value else 0.15f
+                                                        alpha = h * if (isPlaying) 0.85f else 0.35f
                                                     }
                                                     .background(
                                                         brush = Brush.radialGradient(

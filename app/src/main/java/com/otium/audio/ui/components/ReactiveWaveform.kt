@@ -31,16 +31,19 @@ fun ReactiveWaveform(
     isPlaying: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val transition = rememberInfiniteTransition(label = "waveform")
-    val phase by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = (2 * Math.PI).toFloat(),
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 4200, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "waveform_phase"
-    )
+    val phase = if (isPlaying) {
+        val transition = rememberInfiniteTransition(label = "waveform")
+        val animatedPhase by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = (2 * Math.PI).toFloat(),
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 4200, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "waveform_phase"
+        )
+        animatedPhase
+    } else 0f
 
     Canvas(modifier = modifier) {
         val barCount = 64

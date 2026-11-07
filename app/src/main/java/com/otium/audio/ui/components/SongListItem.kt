@@ -5,6 +5,10 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -241,7 +245,7 @@ fun SongListItem(
 }
 
 @Composable
-fun MiniEqBars() {
+fun MiniEqBars(modifier: Modifier = Modifier) {
     val inf = rememberInfiniteTransition(label = "eq_bars")
     val b1 by inf.animateFloat(
         initialValue = 0.15f, targetValue = 0.90f,
@@ -260,18 +264,25 @@ fun MiniEqBars() {
         animationSpec = infiniteRepeatable(tween(310), RepeatMode.Reverse), label = "b4"
     )
 
-    Row(
-        modifier = Modifier.size(width = 20.dp, height = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-        verticalAlignment = Alignment.Bottom
-    ) {
-        listOf(b1, b2, b3, b4).forEach { frac ->
-            Box(
-                modifier = Modifier
-                    .width(2.5.dp)
-                    .fillMaxHeight(frac)
-                    .clip(RoundedCornerShape(topStart = 1.dp, topEnd = 1.dp))
-                    .background(OtiumAccent.color)
+    val barColor = OtiumAccent.color
+
+    Canvas(modifier = modifier.size(width = 18.dp, height = 15.dp)) {
+        val totalWidth = size.width
+        val totalHeight = size.height
+        val barCount = 4
+        val gap = 2.dp.toPx()
+        val barWidth = ((totalWidth - gap * (barCount - 1)) / barCount).coerceAtLeast(1f)
+        val radius = CornerRadius(barWidth / 2f, barWidth / 2f)
+
+        val heights = floatArrayOf(b1, b2, b3, b4)
+        for (i in 0 until barCount) {
+            val h = totalHeight * heights[i]
+            val left = i * (barWidth + gap)
+            drawRoundRect(
+                color = barColor,
+                topLeft = Offset(left, totalHeight - h),
+                size = Size(barWidth, h),
+                cornerRadius = radius
             )
         }
     }
