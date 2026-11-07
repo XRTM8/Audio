@@ -222,6 +222,59 @@ fun NowPlayingScreen(
 
     val dragY = remember { Animatable(0f) }
 
+    val playlist = remember(queue, song) {
+        if (queue.isNotEmpty()) queue else listOf(song)
+    }
+    val currentTrackIndex = remember(playlist, song.id) {
+        playlist.indexOfFirst { it.id == song.id }.coerceAtLeast(0)
+    }
+    val isLooping = playlist.size > 1
+    val pageMultiplier = if (isLooping) 400 else 1
+    val virtualPageCount = playlist.size * pageMultiplier
+    val virtualInitialPage = if (isLooping) {
+        (pageMultiplier / 2) * playlist.size + currentTrackIndex
+    } else {
+        0
+    }
+    val pagerState = rememberPagerState(initialPage = virtualInitialPage) {
+        virtualPageCount
+    }
+
+    // Keep pager in sync with active playing track
+    LaunchedEffect(currentTrackIndex) {
+        if (playlist.isNotEmpty() && !pagerState.isScrollInProgress) {
+            val currentVirtual = pagerState.currentPage
+            val currentActual = (currentVirtual % playlist.size + playlist.size) % playlist.size
+            var diff = currentTrackIndex - currentActual
+            if (isLooping) {
+                if (diff > playlist.size / 2) diff -= playlist.size
+                else if (diff < -playlist.size / 2) diff += playlist.size
+            }
+            if (diff != 0) {
+                pagerState.animateScrollToPage(
+                    page = currentVirtual + diff,
+                    animationSpec = spring(
+                        stiffness = Spring.StiffnessMediumLow,
+                        dampingRatio = Spring.DampingRatioNoBouncy
+                    )
+                )
+            }
+        }
+    }
+
+    // Switch tracks when user settles on a new page
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.settledPage }.collect { settledVirtualPage ->
+            if (playlist.isNotEmpty()) {
+                val actualIndex = (settledVirtualPage % playlist.size + playlist.size) % playlist.size
+                if (actualIndex in playlist.indices && playlist[actualIndex].id != song.id) {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onPlayQueueIndex(actualIndex)
+                }
+            }
+        }
+    }
+
     val playBtnScale by animateFloatAsState(
         targetValue = if (isPlaying) 1.0f else 0.93f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
@@ -394,59 +447,6 @@ fun NowPlayingScreen(
                                 )
                             }
                         } else {
-                            val playlist = remember(queue, song) {
-                                if (queue.isNotEmpty()) queue else listOf(song)
-                            }
-                            val currentTrackIndex = remember(playlist, song.id) {
-                                playlist.indexOfFirst { it.id == song.id }.coerceAtLeast(0)
-                            }
-                            val isLooping = playlist.size > 1
-                            val pageMultiplier = if (isLooping) 400 else 1
-                            val virtualPageCount = playlist.size * pageMultiplier
-                            val virtualInitialPage = if (isLooping) {
-                                (pageMultiplier / 2) * playlist.size + currentTrackIndex
-                            } else {
-                                0
-                            }
-                            val pagerState = rememberPagerState(initialPage = virtualInitialPage) {
-                                virtualPageCount
-                            }
-
-                            // Keep pager in sync with active playing track
-                            LaunchedEffect(currentTrackIndex) {
-                                if (playlist.isNotEmpty() && !pagerState.isScrollInProgress) {
-                                    val currentVirtual = pagerState.currentPage
-                                    val currentActual = (currentVirtual % playlist.size + playlist.size) % playlist.size
-                                    var diff = currentTrackIndex - currentActual
-                                    if (isLooping) {
-                                        if (diff > playlist.size / 2) diff -= playlist.size
-                                        else if (diff < -playlist.size / 2) diff += playlist.size
-                                    }
-                                    if (diff != 0) {
-                                        pagerState.animateScrollToPage(
-                                            page = currentVirtual + diff,
-                                            animationSpec = spring(
-                                                stiffness = Spring.StiffnessMediumLow,
-                                                dampingRatio = Spring.DampingRatioNoBouncy
-                                            )
-                                        )
-                                    }
-                                }
-                            }
-
-                            // Switch tracks when user settles on a new page
-                            LaunchedEffect(pagerState) {
-                                snapshotFlow { pagerState.settledPage }.collect { settledVirtualPage ->
-                                    if (playlist.isNotEmpty()) {
-                                        val actualIndex = (settledVirtualPage % playlist.size + playlist.size) % playlist.size
-                                        if (actualIndex in playlist.indices && playlist[actualIndex].id != song.id) {
-                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                            onPlayQueueIndex(actualIndex)
-                                        }
-                                    }
-                                }
-                            }
-
                             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                                 HorizontalPager(
                                     state = pagerState,
