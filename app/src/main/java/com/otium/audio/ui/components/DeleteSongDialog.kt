@@ -32,7 +32,8 @@ import kotlinx.coroutines.withContext
 @Composable
 fun DeleteSongDialog(
     song: Song?,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onSongDeleted: ((Song) -> Unit)? = null
 ) {
     if (song == null) return
 
@@ -41,7 +42,11 @@ fun DeleteSongDialog(
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
-    ) { /* the platform already deleted it; the observer refreshes the list */ }
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            onSongDeleted?.invoke(song)
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -67,6 +72,7 @@ fun DeleteSongDialog(
                             runCatching { context.contentResolver.delete(song.contentUri, null, null) }
                         }
                     }
+                    onSongDeleted?.invoke(song)
                 }
                 onDismiss()
             }) {

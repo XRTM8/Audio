@@ -112,7 +112,12 @@ class MainActivity : ComponentActivity() {
 
                         DeleteSongDialog(
                             song = songToDelete,
-                            onDismiss = { songToDelete = null }
+                            onDismiss = { songToDelete = null },
+                            onSongDeleted = { deletedSong ->
+                                if (uiState.playbackState.currentSong?.id == deletedSong.id) {
+                                    viewModel.skipToNext()
+                                }
+                            }
                         )
 
                         if (showHomeEqualizer) {
@@ -138,6 +143,10 @@ class MainActivity : ComponentActivity() {
 
                         BackHandler(enabled = uiState.selectedPlaylist != null && !uiState.isNowPlayingExpanded) {
                             viewModel.clearSelectedPlaylist()
+                        }
+
+                        BackHandler(enabled = uiState.searchQuery.isNotBlank() && !uiState.isNowPlayingExpanded) {
+                            viewModel.onSearchQueryChanged("")
                         }
 
                         // Smooth modal expansion for NowPlayingScreen

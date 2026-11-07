@@ -1,4 +1,4 @@
-﻿package com.otium.audio.data.repository
+package com.otium.audio.data.repository
 
 import android.content.ContentValues
 import android.content.Context
@@ -116,11 +116,20 @@ class AudioRepositoryImpl(
 
     override fun searchSongs(query: String): Flow<List<Song>> =
         getAllSongsFlow().map { list ->
-            if (query.isBlank()) list
-            else list.filter {
-                it.title.contains(query, true) ||
-                    it.artist.contains(query, true) ||
-                    it.album.contains(query, true)
+            val normalizedQuery = normalizeArabicForSearch(query)
+            if (normalizedQuery.isBlank()) list
+            else {
+                val queryTokens = normalizedQuery.split(" ").filter { it.isNotBlank() }
+                list.filter { song ->
+                    val normTitle = normalizeArabicForSearch(song.title)
+                    val normArtist = normalizeArabicForSearch(song.artist)
+                    val normAlbum = normalizeArabicForSearch(song.album)
+                    queryTokens.all { token ->
+                        normTitle.contains(token) ||
+                            normArtist.contains(token) ||
+                            normAlbum.contains(token)
+                    }
+                }
             }
         }
 
@@ -290,5 +299,16 @@ class AudioRepositoryImpl(
         const val UNKNOWN_ARTIST_TAG = "<unknown>"
         val SORT_ORDER = "${MediaStore.Audio.Media.TITLE} COLLATE NOCASE ASC"
         val ALBUM_ART_URI: Uri = Uri.parse("content://media/external/audio/albumart")
+
+        fun normalizeArabicForSearch(input: String): String {
+            return input
+                .replace(Regex("[\\u064B-\\u065F\\u0670]"), "") // Remove Arabic Tashkeel / Harakat
+                .replace(Regex("[\\u0622\\u0623\\u0625\\u0671]"), "ا") // Alif variants (آ, أ, إ, ٱ -> ا)
+                .replace('ة', 'ه') // Ta Marbuta -> Ha
+                .replace('ى', 'ي') // Alif Maqsura -> Ya
+                .replace(Regex("[\\p{C}\\p{Z}\\-_|.]+"), " ") // Normalize symbols & whitespace
+                .trim()
+                .lowercase()
+        }
     }
 }

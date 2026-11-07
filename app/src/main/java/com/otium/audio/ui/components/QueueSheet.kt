@@ -153,17 +153,17 @@ fun QueueSheet(
                                     .background(DarkSurfaceVariant),
                                 contentAlignment = Alignment.Center
                             ) {
-                                AsyncImage(
-                                    model = song.albumArtUri,
-                                    contentDescription = song.title,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.matchParentSize()
-                                )
                                 Icon(
                                     imageVector = Icons.Default.MusicNote,
                                     contentDescription = null,
                                     tint = if (isPlaying) AccentGold else TextSecondary,
                                     modifier = Modifier.size(20.dp)
+                                )
+                                AsyncImage(
+                                    model = song.albumArtUri,
+                                    contentDescription = song.title,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.matchParentSize()
                                 )
                             }
 

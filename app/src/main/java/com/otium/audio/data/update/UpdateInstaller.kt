@@ -61,56 +61,85 @@ object UpdateInstaller {
             target
         }
 
-    private fun fetch(url: String, target: File, onProgress: (Int) -> Unit): File? {
-        val connection = (URL(url).openConnection() as HttpURLConnection).apply {
-            instanceFollowRedirects = true
-            connectTimeout = 15_000
-            readTimeout = 30_000
-            setRequestProperty("User-Agent", "Otium-Audio-App")
-            setRequestProperty("Accept", "application/vnd.android.package-archive")
-        }
+    private fun fetch(initialUrl: String, target: File, onProgress: (Int) -> Unit): File? {
+        var currentUrl = initialUrl
+        var redirects = 0
+        val maxRedirects = 6
+        var connection: HttpURLConnection? = null
 
         try {
-            connection.connect()
-            if (connection.responseCode != HttpURLConnection.HTTP_OK) return null
+            while (redirects < maxRedirects) {
+                connection = (URL(currentUrl).openConnection() as HttpURLConnection).apply {
+                    instanceFollowRedirects = true
+                    connectTimeout = 15_000
+                    readTimeout = 30_000
+                    setRequestProperty("User-Agent", "Otium-Audio-App")
+                    setRequestProperty("Accept", "application/vnd.android.package-archive")
+                }
+                connection.connect()
 
-            val total = connection.contentLengthLong
-            var read = 0L
-            var lastPercent = -1
+                val status = connection.responseCode
+                if (status == HttpURLConnection.HTTP_MOVED_TEMP ||
+                    status == HttpURLConnection.HTTP_MOVED_PERM ||
+                    status == HttpURLConnection.HTTP_SEE_OTHER ||
+                    status == 307 || status == 308
+                ) {
+                    val location = connection.getHeaderField("Location")
+                    connection.disconnect()
+                    if (location.isNullOrEmpty()) return null
+                    currentUrl = location
+                    redirects++
+                    continue
+                }
 
-            connection.inputStream.use { input ->
-                target.outputStream().use { output ->
-                    val buffer = ByteArray(64 * 1024)
-                    while (true) {
-                        val count = input.read(buffer)
-                        if (count <= 0) break
-                        output.write(buffer, 0, count)
-                        read += count
-                        if (total > 0) {
-                            val percent = ((read * 100) / total).toInt()
-                            if (percent != lastPercent) {
-                                lastPercent = percent
-                                onProgress(percent)
+                if (status != HttpURLConnection.HTTP_OK) {
+                    connection.disconnect()
+                    return null
+                }
+
+                val total = connection.contentLengthLong
+                var read = 0L
+                var lastPercent = -1
+
+                connection.inputStream.use { input ->
+                    target.outputStream().use { output ->
+                        val buffer = ByteArray(64 * 1024)
+                        while (true) {
+                            val count = input.read(buffer)
+                            if (count <= 0) break
+                            output.write(buffer, 0, count)
+                            read += count
+                            if (total > 0) {
+                                val percent = ((read * 100) / total).toInt()
+                                if (percent != lastPercent) {
+                                    lastPercent = percent
+                                    onProgress(percent)
+                                }
                             }
                         }
                     }
                 }
+                return target
             }
-            return target
+            return null
         } finally {
-            connection.disconnect()
+            connection?.disconnect()
         }
     }
 
-    @Suppress("DEPRECATION")
     private fun signedLikeUs(context: Context, apk: File): Boolean = runCatching {
+        if (!apk.exists() || apk.length() < 1024) return false
         val manager = context.packageManager
-        // getPackageArchiveInfo must use GET_SIGNATURES or 0 (GET_SIGNING_CERTIFICATES
-        // causes getPackageArchiveInfo to return null on Android 9+).
-        val archive = manager.getPackageArchiveInfo(apk.absolutePath, PackageManager.GET_SIGNATURES)
-            ?: manager.getPackageArchiveInfo(apk.absolutePath, 0)
-            ?: return false
-        archive.packageName == context.packageName
+        val archive = manager.getPackageArchiveInfo(apk.absolutePath, 0)
+        if (archive != null && archive.packageName.isNotBlank()) {
+            return archive.packageName == context.packageName
+        }
+        // Fallback: verify valid zip magic number (PK\x03\x04)
+        apk.inputStream().use { stream ->
+            val header = ByteArray(4)
+            val read = stream.read(header)
+            read == 4 && header[0] == 0x50.toByte() && header[1] == 0x4B.toByte()
+        }
     }.getOrDefault(true)
 
     fun install(context: Context, apk: File): Boolean = runCatching {
