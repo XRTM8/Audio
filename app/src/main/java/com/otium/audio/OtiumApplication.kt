@@ -8,7 +8,6 @@ import coil.memory.MemoryCache
 import com.otium.audio.data.local.OtiumDatabase
 import com.otium.audio.data.repository.AudioRepository
 import com.otium.audio.data.repository.AudioRepositoryImpl
-import com.otium.audio.playback.EqProfileStore
 import com.otium.audio.playback.EqualizerController
 import com.otium.audio.playback.MusicController
 import com.otium.audio.playback.SleepTimerController

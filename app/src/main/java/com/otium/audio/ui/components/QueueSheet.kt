@@ -41,7 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.otium.audio.data.model.Song
-import com.otium.audio.ui.theme.AccentGold
+import com.otium.audio.ui.theme.AccentTitaniumWhite
 import com.otium.audio.ui.theme.DarkSurfaceContainer
 import com.otium.audio.ui.theme.DarkSurfaceVariant
 import com.otium.audio.ui.theme.TextPrimary
@@ -90,7 +90,7 @@ fun QueueSheet(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.QueueMusic,
                             contentDescription = null,
-                            tint = AccentGold,
+                            tint = AccentTitaniumWhite,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -156,7 +156,7 @@ fun QueueSheet(
                                 Icon(
                                     imageVector = Icons.Default.MusicNote,
                                     contentDescription = null,
-                                    tint = if (isPlaying) AccentGold else TextSecondary,
+                                    tint = if (isPlaying) AccentTitaniumWhite else TextSecondary,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 if (song.albumArtUri != android.net.Uri.EMPTY) {
@@ -177,7 +177,7 @@ fun QueueSheet(
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.Medium
                                     ),
-                                    color = if (isPlaying) AccentGold else TextPrimary,
+                                    color = if (isPlaying) AccentTitaniumWhite else TextPrimary,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )

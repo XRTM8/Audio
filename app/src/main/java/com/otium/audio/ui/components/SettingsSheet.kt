@@ -57,6 +57,8 @@ import com.otium.audio.BuildConfig
 import com.otium.audio.data.update.UpdateChecker
 import com.otium.audio.data.update.UpdateInfo
 import com.otium.audio.data.update.UpdateInstaller
+import com.otium.audio.playback.BatteryOptimizationHelper
+import com.otium.audio.ui.theme.SuccessGreen
 import com.otium.audio.ui.theme.AccentCyan
 import com.otium.audio.ui.theme.AccentGold
 import com.otium.audio.ui.theme.DarkCardBorder
@@ -388,6 +390,60 @@ fun SettingsSheet(
                         Icon(imageVector = Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(18.dp))
                     }
 
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Section: Battery Optimization & Uninterrupted Playback
+            Text(
+                text = "استقرار التشغيل في الخلفية",
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                color = AccentGold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            val isBatteryExempt = remember { BatteryOptimizationHelper.isIgnoringBatteryOptimizations(context) }
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = DarkSurfaceVariant),
+                border = androidx.compose.foundation.BorderStroke(1.dp, DarkCardBorder)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            if (!isBatteryExempt) {
+                                BatteryOptimizationHelper.requestIgnoreBatteryOptimization(context)
+                            }
+                        }
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = if (isBatteryExempt) "محمي من الإيقاف في الخلفية ✓" else "السماح بالتشغيل الدائم في الخلفية",
+                            fontWeight = FontWeight.Bold,
+                            color = if (isBatteryExempt) SuccessGreen else TextPrimary
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = if (isBatteryExempt) "التطبيق مستثنى من توفير الطاقة ولن يتوقف الصوت في الخلفية." else "اضغط هنا لإلغاء قيود بطارية النظام ومنع توقف الصوت عند إغلاق الشاشة.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextSecondary
+                        )
+                    }
+                    if (!isBatteryExempt) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                            contentDescription = null,
+                            tint = AccentGold,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
 
