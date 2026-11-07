@@ -147,6 +147,16 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
+private fun cleanDisplayTitle(raw: String): String {
+    var s = raw.trim()
+    if (s.startsWith("(") && s.endsWith(")") && s.length > 2) {
+        s = s.substring(1, s.length - 1).trim()
+    } else if (s.startsWith("[") && s.endsWith("]") && s.length > 2) {
+        s = s.substring(1, s.length - 1).trim()
+    }
+    return s
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NowPlayingScreen(
@@ -497,8 +507,9 @@ fun NowPlayingScreen(
                                     val pageCoverRequest = remember(pageSong.albumArtUri) {
                                         ImageRequest.Builder(context)
                                             .data(pageSong.albumArtUri)
-                                            .size(540, 540)
-                                            .crossfade(150)
+                                            .size(480, 480)
+                                            .allowHardware(true)
+                                            .crossfade(false)
                                             .memoryCachePolicy(CachePolicy.ENABLED)
                                             .diskCachePolicy(CachePolicy.ENABLED)
                                             .build()
@@ -627,7 +638,7 @@ fun NowPlayingScreen(
                         horizontalAlignment = Alignment.Start
                     ) {
                         Text(
-                            text = targetSong.title,
+                            text = cleanDisplayTitle(targetSong.title),
                             style = MaterialTheme.typography.headlineMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 20.sp,
@@ -721,10 +732,10 @@ fun NowPlayingScreen(
                             .shadow(
                                 elevation = 14.dp,
                                 shape = CircleShape,
-                                spotColor = AccentGold.copy(alpha = 0.45f)
+                                spotColor = Color(0x66FFFFFF)
                             )
                             .clip(CircleShape)
-                            .background(AccentGold),
+                            .background(Color.White),
                         contentAlignment = Alignment.Center
                     ) {
                         IconButton(
@@ -737,7 +748,7 @@ fun NowPlayingScreen(
                             Icon(
                                 imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                                 contentDescription = if (isPlaying) "Pause" else "Play",
-                                tint = Color.White,
+                                tint = Color.Black,
                                 modifier = Modifier.size(36.dp)
                             )
                         }

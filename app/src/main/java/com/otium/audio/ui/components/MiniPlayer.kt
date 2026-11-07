@@ -76,6 +76,16 @@ import com.otium.audio.ui.theme.TextTertiary
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.math.abs
 
+private fun cleanDisplayTitle(raw: String): String {
+    var s = raw.trim()
+    if (s.startsWith("(") && s.endsWith(")") && s.length > 2) {
+        s = s.substring(1, s.length - 1).trim()
+    } else if (s.startsWith("[") && s.endsWith("]") && s.length > 2) {
+        s = s.substring(1, s.length - 1).trim()
+    }
+    return s
+}
+
 /**
  * Poweramp-grade Full-Width Flat Bottom Console Player.
  * Large comfortable touch target seek strip, enlarged artwork, expanded typography,
@@ -170,12 +180,12 @@ fun MiniPlayer(
                 // Tactile Waveform
                 ReactiveWaveform(
                     progress = activeProgress,
-                    accent = if (isScrubbing) AccentGold else OtiumAccent.color,
-                    trackColor = DarkCardBorder.copy(alpha = 0.65f),
+                    accent = Color.White,
+                    trackColor = DarkCardBorder.copy(alpha = 0.5f),
                     isPlaying = isPlaying,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(if (isScrubbing) 16.dp else 13.dp)
+                        .height(if (isScrubbing) 15.dp else 12.dp)
                         .align(Alignment.Center)
                 )
 
@@ -186,7 +196,7 @@ fun MiniPlayer(
                         .height(26.dp)
                         .align(Alignment.Center)
                 ) {
-                    val thumbSize = if (isScrubbing) 12.dp else 8.dp
+                    val thumbSize = if (isScrubbing) 12.dp else 7.dp
                     Box(
                         modifier = Modifier
                             .align(Alignment.CenterStart)
@@ -199,10 +209,10 @@ fun MiniPlayer(
                             .shadow(
                                 elevation = if (isScrubbing) 6.dp else 2.dp,
                                 shape = CircleShape,
-                                spotColor = AccentGold
+                                spotColor = Color.White
                             )
                             .clip(CircleShape)
-                            .background(AccentGold)
+                            .background(Color.White)
                     )
                 }
 
@@ -213,15 +223,15 @@ fun MiniPlayer(
                         modifier = Modifier
                             .align(Alignment.TopCenter)
                             .offset(y = (-30).dp)
-                            .shadow(elevation = 6.dp, shape = RoundedCornerShape(12.dp))
+                            .shadow(elevation = 8.dp, shape = RoundedCornerShape(12.dp))
                             .clip(RoundedCornerShape(12.dp))
                             .background(DarkSurfaceElevated)
-                            .border(1.dp, DarkCardBorder, RoundedCornerShape(12.dp))
+                            .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(12.dp))
                             .padding(horizontal = 12.dp, vertical = 3.dp)
                     ) {
                         Text(
                             text = "${formatDuration(scrubMs)} / ${formatDuration(durationMs)}",
-                            color = AccentGold,
+                            color = Color.White,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -268,8 +278,9 @@ fun MiniPlayer(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center
             ) {
+                val displayTitle = remember(currentSong.title) { cleanDisplayTitle(currentSong.title) }
                 Text(
-                    text = currentSong.title,
+                    text = displayTitle,
                     style = MaterialTheme.typography.bodyLarge.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
@@ -281,7 +292,7 @@ fun MiniPlayer(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "${currentSong.artist} • ${currentSong.audioFormatBadge}",
+                    text = "${currentSong.artist}  ·  ${currentSong.audioFormatBadge}",
                     style = MaterialTheme.typography.bodySmall.copy(
                         textDirection = TextDirection.ContentOrLtr,
                         fontSize = 12.sp
@@ -316,13 +327,14 @@ fun MiniPlayer(
                         )
                     }
 
-                    // Tactile Amber Play/Pause Circle
+                    // Tactile Titanium White Play/Pause Circle
                     Box(
                         modifier = Modifier
                             .size(46.dp)
                             .scale(btnScale)
+                            .shadow(elevation = 6.dp, shape = CircleShape, spotColor = Color(0x66FFFFFF))
                             .clip(CircleShape)
-                            .background(AccentGold),
+                            .background(Color.White),
                         contentAlignment = Alignment.Center
                     ) {
                         IconButton(
@@ -335,7 +347,7 @@ fun MiniPlayer(
                             Icon(
                                 imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                                 contentDescription = if (isPlaying) "Pause" else "Play",
-                                tint = Color.White,
+                                tint = Color.Black,
                                 modifier = Modifier.size(26.dp)
                             )
                         }

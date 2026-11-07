@@ -5,6 +5,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -294,12 +295,13 @@ fun HomeScreen(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(16.dp))
-                                    .background(if (isSelected) AccentGold else DarkSurfaceContainer)
+                                    .background(if (isSelected) Color(0xFF242430) else DarkSurfaceContainer)
+                                    .border(1.dp, if (isSelected) Color(0x33FFFFFF) else Color.Transparent, RoundedCornerShape(16.dp))
                                     .clickable {
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                         onTabSelected(tab)
                                     }
-                                    .padding(horizontal = 12.dp, vertical = 5.dp)
+                                    .padding(horizontal = 14.dp, vertical = 6.dp)
                             ) {
                                 Text(
                                     text = label,
@@ -490,7 +492,7 @@ private fun MasterSongListView(
             state = listState,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(end = if (hasScroller) 26.dp else 0.dp)
+                .padding(end = if (hasScroller) 14.dp else 0.dp)
         ) {
             items(
                 items = songs,

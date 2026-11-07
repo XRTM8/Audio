@@ -54,9 +54,9 @@ object PaletteManager {
                 if (bitmap != null) {
                     val palette = Palette.from(bitmap).generate()
                     val dominant = palette.getDominantColor(0xFF000000.toInt())
-                    val rawVibrant = palette.getVibrantColor(0xFFFF0033.toInt())
+                    val rawVibrant = palette.getVibrantColor(0xFFFFFFFF.toInt())
                     val safeVibrant = Color(rawVibrant).asReadableAccent().toArgb()
-                    val darkVibrant = palette.getDarkVibrantColor(0xFF14141E.toInt())
+                    val darkVibrant = palette.getDarkVibrantColor(0xFF14141A.toInt())
 
                     val trackColors = TrackColors(
                         dominant = Color(dominant),

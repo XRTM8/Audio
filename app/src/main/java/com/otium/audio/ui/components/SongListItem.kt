@@ -36,20 +36,16 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import com.otium.audio.ui.theme.OtiumAccent
-
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
-
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -57,21 +53,34 @@ import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.otium.audio.data.model.Song
 import com.otium.audio.ui.theme.AccentCyan
-import com.otium.audio.ui.theme.AccentGold
-import com.otium.audio.ui.theme.AccentGoldMuted
+import com.otium.audio.ui.theme.AccentTitaniumWhite
 import com.otium.audio.ui.theme.DarkCardBorder
 import com.otium.audio.ui.theme.DarkSurface
 import com.otium.audio.ui.theme.DarkSurfaceContainer
 import com.otium.audio.ui.theme.DarkSurfaceVariant
 import com.otium.audio.ui.theme.ErrorRed
+import com.otium.audio.ui.theme.OtiumAccent
 import com.otium.audio.ui.theme.TextPrimary
 import com.otium.audio.ui.theme.TextSecondary
 import com.otium.audio.ui.theme.TextTertiary
 
 /**
+ * Clean up noisy titles (e.g. removes ugly enclosing parentheses e.g. "( سورة الكهف )" -> "سورة الكهف")
+ */
+private fun cleanDisplayTitle(raw: String): String {
+    var s = raw.trim()
+    if (s.startsWith("(") && s.endsWith(")") && s.length > 2) {
+        s = s.substring(1, s.length - 1).trim()
+    } else if (s.startsWith("[") && s.endsWith("]") && s.length > 2) {
+        s = s.substring(1, s.length - 1).trim()
+    }
+    return s
+}
+
+/**
  * Ultra-optimized 120 FPS Audiophile Track Row.
  * Fixed 66dp height eliminates layout remeasuring passes during high-speed fling scrolling.
- * Zero Card allocations, hardware-accelerated memory cache for album artwork.
+ * Hardware-accelerated memory cache for album artwork with zero CPU copies.
  */
 @Composable
 @OptIn(ExperimentalFoundationApi::class)
@@ -86,165 +95,168 @@ fun SongListItem(
 ) {
     val context = LocalContext.current
 
-    // Memory-pooled thumbnail request with crossfade disabled for zero-jank 120Hz flings
+    // Memory-pooled direct GPU hardware thumbnail for zero-jank 120Hz fling scrolling
     val thumbnailRequest = remember(song.albumArtUri) {
         ImageRequest.Builder(context)
             .data(song.albumArtUri)
-            .size(140, 140)
+            .size(120, 120)
+            .allowHardware(true)
             .crossfade(false)
             .memoryCachePolicy(CachePolicy.ENABLED)
             .diskCachePolicy(CachePolicy.ENABLED)
             .build()
     }
 
-        Box(
-            modifier = modifier
-                .fillMaxWidth()
-                .height(66.dp)
-                .background(
-                    if (isCurrentSong) OtiumAccent.color.copy(alpha = 0.10f)
-                    else DarkSurfaceVariant
-                )
-                .combinedClickable(
-                    onClick = { onSongClick() },
-                    onLongClick = onLongClick
-                )
-        ) {
-            // Left active amber glow bar for playing track
-            if (isCurrentSong) {
-                Box(
-                    modifier = Modifier
-                        .width(3.5.dp)
-                        .fillMaxHeight()
-                        .align(Alignment.CenterStart)
-                        .background(OtiumAccent.color)
-                )
-            }
+    val displayTitle = remember(song.title) { cleanDisplayTitle(song.title) }
 
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(
-                        start = if (isCurrentSong) 16.dp else 12.dp,
-                        end = 8.dp
-                    ),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Album Art (48dp, 6dp radius)
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(DarkSurfaceContainer),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MusicNote,
-                        contentDescription = null,
-                        tint = TextTertiary,
-                        modifier = Modifier.size(20.dp)
-                    )
-
-                    AsyncImage(
-                        model = thumbnailRequest,
-                        contentDescription = song.title,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.matchParentSize()
-                    )
-
-                    if (isCurrentSong) {
-                        Box(
-                            modifier = Modifier
-                                .matchParentSize()
-                                .background(DarkSurface.copy(alpha = 0.60f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            MiniEqBars()
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                // Track Title + Audio Format Pill + Artist + Duration
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = song.title,
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontWeight = if (isCurrentSong) FontWeight.Bold else FontWeight.SemiBold,
-                            fontSize = 14.5.sp,
-                            textDirection = TextDirection.ContentOrLtr
-                        ),
-                        color = if (isCurrentSong) OtiumAccent.color else TextPrimary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-
-                    Spacer(modifier = Modifier.height(2.dp))
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        // Hi-Res / Audio Format Badge
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(3.dp))
-                                .background(
-                                    if (song.audioFormatBadge == "FLAC" || song.audioFormatBadge == "WAV") AccentCyan.copy(alpha = 0.2f)
-                                    else DarkSurfaceContainer
-                                )
-                                .padding(horizontal = 4.dp, vertical = 0.5.dp)
-                        ) {
-                            Text(
-                                text = song.audioFormatBadge,
-                                fontSize = 8.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (song.audioFormatBadge == "FLAC" || song.audioFormatBadge == "WAV") AccentCyan else TextSecondary
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(6.dp))
-
-                        Text(
-                            text = "${song.artist}  •  ${song.formattedDuration}",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                textDirection = TextDirection.ContentOrLtr,
-                                fontSize = 11.5.sp
-                            ),
-                            color = TextSecondary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-
-                // Quick Favorite Icon
-                IconButton(
-                    onClick = onFavoriteClick,
-                    modifier = Modifier.size(38.dp)
-                ) {
-                    Icon(
-                        imageVector = if (song.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                        contentDescription = "Favorite",
-                        tint = if (song.isFavorite) ErrorRed else DarkCardBorder,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-
-            // Hairline divider
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(66.dp)
+            .background(
+                if (isCurrentSong) Color(0x66181822)
+                else Color.Transparent
+            )
+            .combinedClickable(
+                onClick = { onSongClick() },
+                onLongClick = onLongClick
+            )
+    ) {
+        // Subtle Titanium White active indicator line on start edge
+        if (isCurrentSong) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(0.5.dp)
-                    .align(Alignment.BottomCenter)
-                    .background(DarkCardBorder.copy(alpha = 0.08f))
+                    .width(3.dp)
+                    .fillMaxHeight()
+                    .align(Alignment.CenterStart)
+                    .background(AccentTitaniumWhite)
             )
         }
 
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(
+                    start = if (isCurrentSong) 16.dp else 14.dp,
+                    end = 12.dp
+                ),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Album Art (48dp, 8dp radius)
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(DarkSurfaceContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MusicNote,
+                    contentDescription = null,
+                    tint = TextTertiary,
+                    modifier = Modifier.size(20.dp)
+                )
+
+                AsyncImage(
+                    model = thumbnailRequest,
+                    contentDescription = displayTitle,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.matchParentSize()
+                )
+
+                if (isCurrentSong) {
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .background(DarkSurface.copy(alpha = 0.65f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        MiniEqBars()
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            // Track Title + Audio Format Pill + Artist + Duration
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = displayTitle,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = if (isCurrentSong) FontWeight.Bold else FontWeight.Medium,
+                        fontSize = 14.sp,
+                        textDirection = TextDirection.ContentOrLtr
+                    ),
+                    color = if (isCurrentSong) AccentTitaniumWhite else TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(3.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Hi-Res / Audio Format Badge
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(DarkSurfaceContainer)
+                            .padding(horizontal = 4.dp, vertical = 0.5.dp)
+                    ) {
+                        Text(
+                            text = song.audioFormatBadge,
+                            fontSize = 8.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (song.audioFormatBadge == "FLAC" || song.audioFormatBadge == "WAV") Color.White else TextSecondary
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    Text(
+                        text = "${song.artist}  ·  ${song.formattedDuration}",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            textDirection = TextDirection.ContentOrLtr,
+                            fontSize = 11.5.sp
+                        ),
+                        color = TextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            // Quick Favorite Icon
+            IconButton(
+                onClick = onFavoriteClick,
+                modifier = Modifier.size(38.dp)
+            ) {
+                Icon(
+                    imageVector = if (song.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                    contentDescription = "Favorite",
+                    tint = if (song.isFavorite) ErrorRed else TextTertiary.copy(alpha = 0.6f),
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+
+        // Hairline divider
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(0.5.dp)
+                .align(Alignment.BottomCenter)
+                .background(DarkCardBorder)
+        )
+    }
 }
 
+/**
+ * Precision Titanium Studio Equalizer Bars.
+ * Solid crystalline white bars with studio motion, zero rainbow RGB.
+ */
 @Composable
 fun MiniEqBars(modifier: Modifier = Modifier) {
     val inf = rememberInfiniteTransition(label = "eq_bars")
@@ -265,33 +277,27 @@ fun MiniEqBars(modifier: Modifier = Modifier) {
         animationSpec = infiniteRepeatable(tween(310), RepeatMode.Reverse), label = "b4"
     )
 
-    val barColor = OtiumAccent.color
-
-    Canvas(modifier = modifier.size(width = 18.dp, height = 15.dp)) {
+    Canvas(modifier = modifier.size(width = 16.dp, height = 13.dp)) {
         val totalWidth = size.width
         val totalHeight = size.height
         val barCount = 4
-        val gap = 2.dp.toPx()
+        val gap = 1.5.dp.toPx()
         val barWidth = ((totalWidth - gap * (barCount - 1)) / barCount).coerceAtLeast(1f)
         val radius = CornerRadius(barWidth / 2f, barWidth / 2f)
-
         val stride = barWidth + gap
 
-        val c1 = Color(0xFFFF0033)
-        val c2 = Color(0xFFFF007F)
-        val c3 = Color(0xFF9D00FF)
-        val c4 = Color(0xFF00E5FF)
+        val c = Color.White
 
         val h1 = totalHeight * b1
-        drawRoundRect(color = c1, topLeft = Offset(0f, totalHeight - h1), size = Size(barWidth, h1), cornerRadius = radius)
+        drawRoundRect(color = c, topLeft = Offset(0f, totalHeight - h1), size = Size(barWidth, h1), cornerRadius = radius)
 
         val h2 = totalHeight * b2
-        drawRoundRect(color = c2, topLeft = Offset(stride, totalHeight - h2), size = Size(barWidth, h2), cornerRadius = radius)
+        drawRoundRect(color = c, topLeft = Offset(stride, totalHeight - h2), size = Size(barWidth, h2), cornerRadius = radius)
 
         val h3 = totalHeight * b3
-        drawRoundRect(color = c3, topLeft = Offset(stride * 2f, totalHeight - h3), size = Size(barWidth, h3), cornerRadius = radius)
+        drawRoundRect(color = c, topLeft = Offset(stride * 2f, totalHeight - h3), size = Size(barWidth, h3), cornerRadius = radius)
 
         val h4 = totalHeight * b4
-        drawRoundRect(color = c4, topLeft = Offset(stride * 3f, totalHeight - h4), size = Size(barWidth, h4), cornerRadius = radius)
+        drawRoundRect(color = c, topLeft = Offset(stride * 3f, totalHeight - h4), size = Size(barWidth, h4), cornerRadius = radius)
     }
 }

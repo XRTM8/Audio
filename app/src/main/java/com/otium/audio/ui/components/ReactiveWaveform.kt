@@ -14,29 +14,15 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.ColorUtils
 import kotlin.math.abs
 import kotlin.math.sin
 
 /**
- * High-performance dynamic anti-boredom spectrum waveform.
- * Guaranteed 0% yellow or gold. Smoothly cycles through vibrant audiophile neon hues
- * (Intense Power Red, Electric Magenta, Neon Violet, Cyber Cyan, Emerald Mint, Vivid Scarlet).
+ * Precision Studio Waveform Console.
+ * Minimalist, architectural, zero-allocation audio visualizer strip.
+ * Pure titanium white and dark obsidian glass contrast without AI slop or RGB gamer rainbow.
  */
-private val ANTI_BOREDOM_HUES = longArrayOf(
-    0xFFFF0033L, // Intense Pure Power Red
-    0xFFFF0055L, // Vivid Scarlet
-    0xFFFF007FL, // Electric Magenta
-    0xFFD500F9L, // Vivid Orchid
-    0xFF9D00FFL, // Neon Purple
-    0xFF651FFFL, // Deep Royal Violet
-    0xFF00B0FFL, // Cyber Blue
-    0xFF00E5FFL, // Electric Cyan
-    0xFF00E676L  // Neon Mint
-)
-
 @Composable
 fun ReactiveWaveform(
     progress: Float,
@@ -51,7 +37,7 @@ fun ReactiveWaveform(
             initialValue = 0f,
             targetValue = (2 * Math.PI).toFloat(),
             animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 4200, easing = LinearEasing),
+                animation = tween(durationMillis = 4000, easing = LinearEasing),
                 repeatMode = RepeatMode.Restart
             ),
             label = "waveform_phase"
@@ -60,33 +46,26 @@ fun ReactiveWaveform(
     } else 0f
 
     Canvas(modifier = modifier) {
-        val barCount = 64
+        val barCount = 56
         val gap = 2.dp.toPx()
-        val barWidth = ((size.width - gap * (barCount - 1)) / barCount).coerceAtLeast(1f)
+        val barWidth = ((size.width - gap * (barCount - 1)) / barCount).coerceAtLeast(1.5f)
         val radius = CornerRadius(barWidth / 2f, barWidth / 2f)
         val centreY = size.height / 2f
         val maxHeight = size.height
-        val swing = if (isPlaying) 1f else 0.35f
-        val phaseShift = (phase * 3.5f).toInt()
+        val swing = if (isPlaying) 1f else 0.25f
 
         for (index in 0 until barCount) {
             val position = index / (barCount - 1f)
-            // Deterministic shape so the strip is stable between frames.
-            val shape = 0.35f +
-                0.42f * abs(sin(index * 0.7f + phase * swing)) +
-                0.18f * abs(sin(index * 1.9f))
+            // Deterministic audio-like curve: stable between frames, breathing smoothly with playback
+            val shape = 0.28f +
+                0.46f * abs(sin(index * 0.65f + phase * swing)) +
+                0.22f * abs(sin(index * 1.8f))
 
             val height = (maxHeight * shape.coerceIn(0.18f, 1f))
             val left = index * (barWidth + gap)
             val played = position <= progress
 
-            // Dynamic anti-boredom color selection across bars (strictly zero yellow/gold)
-            val barColor = if (played) {
-                val colorIdx = ((index + phaseShift) % ANTI_BOREDOM_HUES.size + ANTI_BOREDOM_HUES.size) % ANTI_BOREDOM_HUES.size
-                Color(ANTI_BOREDOM_HUES[colorIdx])
-            } else {
-                trackColor
-            }
+            val barColor = if (played) accent else trackColor
 
             drawRoundRect(
                 color = barColor,

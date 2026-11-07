@@ -3,45 +3,48 @@ package com.otium.audio.ui.theme
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
-// Otium Audio — Pure AMOLED Black Canvas with Translucent Frosted Dark Glass.
-// True black switches OLED pixels off completely.
-// Panels and sheets float above it with translucent frosted glass and hairline edge sheen.
+// Otium Audio — Titanium White & Obsidian Glass Luxury Edition.
+// Pure AMOLED black canvas (#000000) eliminates battery waste and provides infinite contrast.
+// Surfaces float with smoky frosted obsidian glass and subtle 10% hairline titanium specular highlights.
+// The aesthetic is architecturally calm, professional, and free of AI slop:
+// The artwork is the sole colorful hero; chrome is pure titanium and obsidian.
 
 // Canvas — Pure AMOLED Black
 val DarkSurface          = Color(0xFF000000)
 
-// Frosted Translucent Dark Glass (قوائم وزجاج معتم شفاف)
-val DarkSurfaceVariant   = Color(0x66181824) // 40% translucent smoky obsidian glass
-val DarkSurfaceContainer = Color(0x8014141E) // 50% translucent frosted dark glass
-val DarkSurfaceElevated  = Color(0x99161622) // 60% translucent frosted elevated sheet
-val DarkCardBorder       = Color(0x33FFFFFF) // 20% crisp white frosted glass edge highlight
-val GlassSheen           = Color(0x24FFFFFF) // 14% subtle glass specular sheen
+// Frosted Translucent Obsidian Glass (قوائم وزجاج معتم مدخن فاخر)
+val DarkSurfaceVariant   = Color(0x80101015) // 50% translucent smoky obsidian glass
+val DarkSurfaceContainer = Color(0x9914141A) // 60% translucent frosted dark glass
+val DarkSurfaceElevated  = Color(0xB3181822) // 70% elevated frosted titanium sheet
+val DarkCardBorder       = Color(0x1AFFFFFF) // 10% subtle titanium hairline border
+val GlassSheen           = Color(0x14FFFFFF) // 8% delicate specular sheen
 val GlassScrim           = Color(0xCC000000) // 80% deep AMOLED scrim
 
-// Accents — Audiophile Ultra Power Red (أحمر قوي جداً وساطع يتناسب مع السواد الخالص)
-val AccentPowerRed       = Color(0xFFFF0033) // Blazing pure vivid red (0% pink, 100% intensity)
-val AccentPowerRedLight  = Color(0xFFFF3355)
-val AccentPowerRedMuted  = Color(0x33FF0033)
-val AccentPowerRedDim    = Color(0xFF990022)
+// Master Accent — Pure Titanium White (أبيض تيتانيوم نقي وفاخر، قمة الأناقة والاستوديو)
+val AccentTitaniumWhite  = Color(0xFFFFFFFF) // Pure crystalline titanium white
+val AccentTitaniumLight  = Color(0xFFF2F2F7) // Soft titanium platinum
+val AccentTitaniumMuted  = Color(0x33FFFFFF) // 20% titanium glow
+val AccentTitaniumDim    = Color(0xFF8E8E93) // Muted brushed titanium
 
 // Theme compatibility aliases
-val AccentGold           = AccentPowerRed
-val AccentCrimson        = AccentPowerRed
-val AccentGoldLight      = AccentPowerRedLight
-val AccentGoldMuted      = AccentPowerRedMuted
-val AccentGoldDim        = AccentPowerRedDim
+val AccentPowerRed       = AccentTitaniumWhite
+val AccentGold           = AccentTitaniumWhite
+val AccentCrimson        = AccentTitaniumWhite
+val AccentGoldLight      = AccentTitaniumLight
+val AccentGoldMuted      = AccentTitaniumMuted
+val AccentGoldDim        = AccentTitaniumDim
 
-val AccentCyan           = Color(0xFF00E5FF) // Electric Cyber Cyan
-val AccentCyanGlow       = Color(0x3300E5FF)
+val AccentCyan           = Color(0xFFE5E5EA) // Ice Titanium
+val AccentCyanGlow       = Color(0x26FFFFFF)
 
-// Text
-val TextPrimary          = Color(0xFFF7F7F9)
-val TextSecondary        = Color(0xFF9C9CA8)
-val TextTertiary         = Color(0xFF66666F)
+// Text Hierarchy
+val TextPrimary          = Color(0xFFFFFFFF)
+val TextSecondary        = Color(0xFF9898A0)
+val TextTertiary         = Color(0xFF636366)
 
-// Semantic
-val ErrorRed             = Color(0xFFFF0033)
-val SuccessGreen         = Color(0xFF00E676)
+// Semantic (Restrained, calibrated studio tones — never raw or noisy)
+val ErrorRed             = Color(0xFFFF453A) // Apple/Studio subtle carmine red
+val SuccessGreen         = Color(0xFF30D158) // Studio level green
 
 /** Pure AMOLED Black backdrop (true #000000) */
 val AmbientBackdrop: Brush = Brush.verticalGradient(

@@ -323,21 +323,24 @@ class PlaybackService : MediaSessionService() {
             mediaItems: MutableList<MediaItem>
         ): ListenableFuture<MutableList<MediaItem>> {
             val updatedMediaItems = mediaItems.map { item ->
-                val resolvedUri = item.requestMetadata.mediaUri
-                    ?: item.localConfiguration?.uri
-                    ?: ContentUris.withAppendedId(
-                        MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                        item.mediaId.toLongOrNull() ?: 0L
-                    )
+                if (item.localConfiguration?.uri != null) {
+                    item
+                } else {
+                    val resolvedUri = item.requestMetadata.mediaUri
+                        ?: ContentUris.withAppendedId(
+                            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                            item.mediaId.toLongOrNull() ?: 0L
+                        )
 
-                item.buildUpon()
-                    .setUri(resolvedUri)
-                    .setRequestMetadata(
-                        MediaItem.RequestMetadata.Builder()
-                            .setMediaUri(resolvedUri)
-                            .build()
-                    )
-                    .build()
+                    item.buildUpon()
+                        .setUri(resolvedUri)
+                        .setRequestMetadata(
+                            MediaItem.RequestMetadata.Builder()
+                                .setMediaUri(resolvedUri)
+                                .build()
+                        )
+                        .build()
+                }
             }.toMutableList()
             return Futures.immediateFuture(updatedMediaItems)
         }

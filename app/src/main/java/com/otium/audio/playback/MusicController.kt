@@ -184,7 +184,7 @@ class MusicController(
 
         // Fast path: if the requested song is in the already-loaded queue, seek directly without rebuilding the queue
         val isSameQueue = controller.mediaItemCount == playlist.size &&
-            (currentPlaylistSongs === playlist || (currentPlaylistSongs.isNotEmpty() && currentPlaylistSongs[0].id == playlist[0].id))
+            (currentPlaylistSongs === playlist || (currentPlaylistSongs.isNotEmpty() && currentPlaylistSongs.size == playlist.size && currentPlaylistSongs[0].id == playlist[0].id && currentPlaylistSongs.last().id == playlist.last().id))
 
         if (isSameQueue) {
             currentPlaylistSongs = playlist

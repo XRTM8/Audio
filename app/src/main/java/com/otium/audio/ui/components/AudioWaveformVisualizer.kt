@@ -27,8 +27,8 @@ import com.otium.audio.ui.theme.AccentPowerRed
 @Composable
 fun AudioWaveformVisualizer(
     isPlaying: Boolean,
-    primaryColor: Color = AccentPowerRed,
-    secondaryColor: Color = Color(0xFF00E5FF),
+    primaryColor: Color = Color.White,
+    secondaryColor: Color = Color(0xFFD1D1D6),
     barCount: Int = 28,
     maxHeight: Dp = 36.dp,
     modifier: Modifier = Modifier
