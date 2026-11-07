@@ -737,7 +737,7 @@ fun NowPlayingScreen(
                             Icon(
                                 imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                                 contentDescription = if (isPlaying) "Pause" else "Play",
-                                tint = DarkSurface,
+                                tint = Color.White,
                                 modifier = Modifier.size(36.dp)
                             )
                         }

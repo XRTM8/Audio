@@ -20,7 +20,7 @@ object OtiumAccent {
         internal set
 }
 
-val AccentFallback = Color(0xFFE6E6EA)
+val AccentFallback = Color(0xFFFF2A55)
 
 /**
  * Clamps a palette colour into a range that stays legible on an OLED black surface.

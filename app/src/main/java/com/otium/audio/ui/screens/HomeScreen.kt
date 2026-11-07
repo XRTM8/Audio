@@ -306,7 +306,7 @@ fun HomeScreen(
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                         fontSize = 11.5.sp
                                     ),
-                                    color = if (isSelected) DarkSurface else TextSecondary
+                                    color = if (isSelected) Color.White else TextSecondary
                                 )
                             }
                         }
@@ -362,7 +362,7 @@ fun HomeScreen(
                                     onSongSelected(uiState.selectedFolder.songs.first(), uiState.selectedFolder.songs)
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = DarkSurface),
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = Color.White),
                             shape = RoundedCornerShape(6.dp)
                         ) {
                             Text("تشغيل الكل", fontWeight = FontWeight.Bold, fontSize = 12.sp)

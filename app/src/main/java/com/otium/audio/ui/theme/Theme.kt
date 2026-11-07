@@ -12,9 +12,9 @@ import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
     primary = AccentGold,
-    onPrimary = Color.Black,
+    onPrimary = Color.White,
     primaryContainer = DarkSurfaceContainer,
-    onPrimaryContainer = AccentGoldLight,
+    onPrimaryContainer = Color.White,
     surface = DarkSurface,
     onSurface = TextPrimary,
     surfaceVariant = DarkSurfaceVariant,

@@ -17,11 +17,17 @@ val DarkCardBorder       = Color(0x24FFFFFF)
 val GlassSheen           = Color(0x1AFFFFFF)
 val GlassScrim           = Color(0xCC000000)
 
-// Accents — one warm, one cool, used sparingly
-val AccentGold           = Color(0xFFF2F2F5)
-val AccentGoldLight      = Color(0xFFFFFFFF)
-val AccentGoldMuted      = Color(0x24FFFFFF)
-val AccentGoldDim        = Color(0xFF6E6E78)
+// Accents — Audiophile Crimson Ruby (vibrant, elegant contrast on AMOLED true black)
+val AccentCrimson        = Color(0xFFFF2A55)
+val AccentCrimsonLight   = Color(0xFFFF5E7E)
+val AccentCrimsonMuted   = Color(0x33FF2A55)
+val AccentCrimsonDim     = Color(0xFF8A1830)
+
+// Main Theme Accent — Audiophile Crimson
+val AccentGold           = AccentCrimson
+val AccentGoldLight      = AccentCrimsonLight
+val AccentGoldMuted      = AccentCrimsonMuted
+val AccentGoldDim        = AccentCrimsonDim
 
 val AccentCyan           = Color(0xFFA9B6BC)
 val AccentCyanGlow       = Color(0x33A9B6BC)
