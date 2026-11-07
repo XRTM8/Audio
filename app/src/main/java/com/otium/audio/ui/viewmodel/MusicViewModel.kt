@@ -243,6 +243,7 @@ class MusicViewModel(
     }
     fun togglePlayPause() = musicController.togglePlayPause()
     fun seekTo(positionMs: Long) = musicController.seekTo(positionMs)
+    fun seekBy(deltaMs: Long) = musicController.seekBy(deltaMs)
     fun skipToNext() = musicController.skipToNext()
     fun skipToPrevious() = musicController.skipToPrevious()
     fun toggleRepeatMode() = musicController.toggleRepeatMode()

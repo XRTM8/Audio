@@ -229,8 +229,15 @@ class MusicController(
 
     fun seekTo(positionMs: Long) {
         val controller = mediaController ?: return
-        controller.seekTo(positionMs)
-        _position.value = positionMs
+        val duration = _playbackState.value.durationMs.coerceAtLeast(0L)
+        val clamped = if (duration > 0) positionMs.coerceIn(0L, duration) else positionMs.coerceAtLeast(0L)
+        controller.seekTo(clamped)
+        _position.value = clamped
+    }
+
+    fun seekBy(deltaMs: Long) {
+        val current = _position.value
+        seekTo(current + deltaMs)
     }
 
     fun skipToNext() {

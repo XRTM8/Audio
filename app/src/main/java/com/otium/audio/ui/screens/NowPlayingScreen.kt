@@ -163,6 +163,7 @@ fun NowPlayingScreen(
     onCollapse: () -> Unit,
     onPlayPause: () -> Unit,
     onSeekTo: (Long) -> Unit,
+    onSeekBy: (Long) -> Unit = {},
     onSkipNext: () -> Unit,
     onSkipPrevious: () -> Unit,
     onToggleRepeat: () -> Unit,
@@ -673,6 +674,7 @@ fun NowPlayingScreen(
                     positionFlow = positionFlow,
                     durationMs = durationMs,
                     onSeekTo = onSeekTo,
+                    onSeekBy = onSeekBy,
                     modifier = Modifier.padding(horizontal = 20.dp)
                 )
 

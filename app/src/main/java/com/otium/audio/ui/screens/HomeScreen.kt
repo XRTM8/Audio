@@ -112,6 +112,7 @@ fun HomeScreen(
     onDeletePlaylist: (Long) -> Unit,
     onPlayPause: () -> Unit,
     onSkipNext: () -> Unit,
+    onSkipPrevious: () -> Unit = {},
     onOpenNowPlaying: () -> Unit,
     onSeekTo: (Long) -> Unit = {},
     onOpenEqualizer: () -> Unit = {},
@@ -401,6 +402,7 @@ fun HomeScreen(
                         durationMs = uiState.playbackState.durationMs,
                         onPlayPauseClick = onPlayPause,
                         onSkipNextClick = onSkipNext,
+                        onSkipPreviousClick = onSkipPrevious,
                         onPlayerClick = onOpenNowPlaying,
                         onSeekTo = onSeekTo,
                         modifier = Modifier.navigationBarsPadding()
