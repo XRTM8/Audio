@@ -54,13 +54,13 @@ fun LyricsSheet(
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "No Synchronized Lyrics Found",
+                    text = "لا توجد كلمات متزامنة لهذا المقطع",
                     style = MaterialTheme.typography.titleMedium,
                     color = TextSecondary
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Place a matching .lrc file in the same folder",
+                    text = "ضع ملف .lrc بنفس اسم المقطع في نفس المجلد",
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextTertiary
                 )

@@ -35,6 +35,7 @@ class SleepTimerController(
 
     fun startTimer(minutes: Int) {
         cancelTimer()
+        if (minutes <= 0) return
         val totalSeconds = minutes * 60L
         _state.value = SleepTimerState(isActive = true, remainingSeconds = totalSeconds, isEndOfTrack = false)
 

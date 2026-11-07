@@ -220,29 +220,9 @@ class MusicController(
     fun togglePlayPause() {
         val controller = mediaController ?: return
         if (controller.isPlaying) {
-            // Micro-fade out (75ms) prevents digital audio pops / clicks on headphones
-            coroutineScope.launch(Dispatchers.Main) {
-                var vol = 1.0f
-                while (vol > 0.15f) {
-                    vol -= 0.35f
-                    controller.volume = vol.coerceAtLeast(0f)
-                    delay(25L)
-                }
-                controller.pause()
-                controller.volume = 1.0f
-            }
+            controller.pause()
         } else {
-            // Micro-fade in
-            controller.volume = 0.25f
             controller.play()
-            coroutineScope.launch(Dispatchers.Main) {
-                var vol = 0.25f
-                while (vol < 1.0f) {
-                    vol += 0.35f
-                    controller.volume = vol.coerceAtMost(1.0f)
-                    delay(25L)
-                }
-            }
         }
     }
 
@@ -263,6 +243,8 @@ class MusicController(
         val controller = mediaController ?: return
         if (controller.hasNextMediaItem()) {
             controller.seekToNextMediaItem()
+        } else if (controller.mediaItemCount > 0) {
+            controller.seekToDefaultPosition(0)
         }
     }
 
@@ -409,6 +391,16 @@ class MusicController(
 
         override fun onPlaybackParametersChanged(playbackParameters: androidx.media3.common.PlaybackParameters) {
             _playbackState.update { it.copy(playbackSpeed = playbackParameters.speed) }
+        }
+
+        override fun onPositionDiscontinuity(
+            oldPosition: Player.PositionInfo,
+            newPosition: Player.PositionInfo,
+            reason: Int
+        ) {
+            val controller = mediaController ?: return
+            _position.value = controller.currentPosition.coerceAtLeast(0L)
+            syncState()
         }
     }
 }

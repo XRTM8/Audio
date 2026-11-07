@@ -281,9 +281,13 @@ pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_searchIndex
     query: JString,
     limit: jint,
 ) -> jni::sys::jlongArray {
+    let empty_array = |env: &mut JNIEnv| {
+        env.new_long_array(0).map(|a| a.into_raw()).unwrap_or(std::ptr::null_mut())
+    };
+
     let q_str: String = match env.get_string(&query) {
         Ok(s) => s.into(),
-        Err(_) => return std::ptr::null_mut(),
+        Err(_) => return empty_array(&mut env),
     };
 
     let results = search::global_search_query(&q_str, limit.max(1) as usize);
@@ -293,7 +297,7 @@ pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_searchIndex
             let _ = env.set_long_array_region(&arr, 0, &results);
             arr.into_raw()
         }
-        Err(_) => std::ptr::null_mut(),
+        Err(_) => empty_array(&mut env),
     }
 }
 

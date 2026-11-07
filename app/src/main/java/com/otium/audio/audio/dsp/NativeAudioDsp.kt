@@ -56,7 +56,7 @@ object NativeAudioDsp {
         artists: Array<String>,
         albums: Array<String>
     )
-    external fun searchIndexQuery(query: String, limit: Int): LongArray
+    external fun searchIndexQuery(query: String, limit: Int): LongArray?
     external fun searchIndexAddOrUpdate(id: Long, title: String, artist: String, album: String)
     external fun searchIndexRemove(id: Long)
 

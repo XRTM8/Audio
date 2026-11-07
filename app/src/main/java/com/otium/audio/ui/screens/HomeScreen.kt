@@ -7,6 +7,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.horizontalScroll
@@ -64,7 +66,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.input.ImeAction
 import com.otium.audio.ui.theme.AmbientBackdrop
 import com.otium.audio.ui.theme.ErrorRed
 import com.otium.audio.ui.theme.TextTertiary
@@ -127,6 +131,7 @@ fun HomeScreen(
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
+    val focusManager = LocalFocusManager.current
     var showCreatePlaylistDialog by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
 
@@ -246,7 +251,9 @@ fun HomeScreen(
                             }
                         }
                     },
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = DarkSurfaceContainer,
                         unfocusedContainerColor = DarkSurfaceContainer,
@@ -719,6 +726,8 @@ private fun CreatePlaylistDialog(
                 value = name,
                 onValueChange = { name = it },
                 placeholder = { Text("اسم القائمة", color = TextSecondary) },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { if (name.isNotBlank()) onCreate(name.trim()) }),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = AccentGold,
                     unfocusedBorderColor = DarkCardBorder,
