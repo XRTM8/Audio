@@ -67,4 +67,51 @@ object NativeAudioDsp {
     // --- 5. High-Speed LRC Lyrics Parser & Synchronizer ---
     external fun parseLrc(lrcText: String): String?
     external fun findActiveLrcLine(timestamps: LongArray, positionMs: Long): Int
+
+    // --- 6. Audiophile Native Helpers ---
+    data class AudioFileDetails(
+        val title: String,
+        val artist: String,
+        val album: String,
+        val durationMs: Long,
+        val bitrate: Int,
+        val sampleRate: Int,
+        val format: String,
+        val hasArtwork: Boolean
+    )
+
+    fun readAudioMetadata(path: String): AudioFileDetails? {
+        if (!isAvailable || path.isBlank()) return null
+        return try {
+            val json = scanAudioFile(path) ?: return null
+            val obj = org.json.JSONObject(json)
+            AudioFileDetails(
+                title = obj.optString("title", ""),
+                artist = obj.optString("artist", ""),
+                album = obj.optString("album", ""),
+                durationMs = obj.optLong("durationMs", 0L),
+                bitrate = obj.optInt("bitrate", 0),
+                sampleRate = obj.optInt("sampleRate", 44100),
+                format = obj.optString("format", "AUDIO"),
+                hasArtwork = obj.optBoolean("hasArtwork", false)
+            )
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    fun extractEmbeddedArtworkToFile(context: android.content.Context, relativePath: String, songId: Long): android.net.Uri? {
+        if (!isAvailable || relativePath.isBlank()) return null
+        return try {
+            val bytes = extractArtwork(relativePath) ?: return null
+            val cacheDir = java.io.File(context.cacheDir, "embedded_art").apply { mkdirs() }
+            val target = java.io.File(cacheDir, "$songId.jpg")
+            if (!target.exists() || target.length() == 0L) {
+                target.writeBytes(bytes)
+            }
+            android.net.Uri.fromFile(target)
+        } catch (_: Throwable) {
+            null
+        }
+    }
 }

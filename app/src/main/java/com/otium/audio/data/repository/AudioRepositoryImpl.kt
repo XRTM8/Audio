@@ -97,15 +97,27 @@ class AudioRepositoryImpl(
             } catch (_: Throwable) {}
         }
 
-        // Pre-warm verified album art thumbnails into GPU memory cache on background thread.
-        // Completely eliminates cold-start image decoding jitter and frame drops on first scroll!
+        // Pre-warm verified album art thumbnails and extract missing embedded art via Rust in background.
+        // Completely eliminates cold-start image decoding jitter and restores missing covers with 0 UI lag!
         if (newSongs.isNotEmpty()) {
             val ctx = context
             scope.launch(Dispatchers.IO) {
                 val loader = ctx.imageLoader
                 val seenUris = HashSet<Uri>()
-                for (song in newSongs) {
-                    val art = song.albumArtUri
+                var hasNewArt = false
+                val enrichedSongs = ArrayList(newSongs)
+
+                for (i in enrichedSongs.indices) {
+                    val song = enrichedSongs[i]
+                    var art = song.albumArtUri
+                    if (art == Uri.EMPTY && song.relativePath.isNotBlank()) {
+                        val extracted = NativeAudioDsp.extractEmbeddedArtworkToFile(ctx, song.relativePath, song.id)
+                        if (extracted != null) {
+                            art = extracted
+                            enrichedSongs[i] = song.copy(albumArtUri = extracted)
+                            hasNewArt = true
+                        }
+                    }
                     if (art != Uri.EMPTY && seenUris.add(art)) {
                         val req = ImageRequest.Builder(ctx)
                             .data(art)
@@ -116,6 +128,9 @@ class AudioRepositoryImpl(
                             .build()
                         loader.enqueue(req)
                     }
+                }
+                if (hasNewArt) {
+                    songs.value = enrichedSongs
                 }
             }
         }
@@ -175,7 +190,7 @@ class AudioRepositoryImpl(
                 list
             } else if (NativeAudioDsp.isAvailable) {
                 try {
-                    val matchedIds = NativeAudioDsp.searchIndexQuery(trimmed, 500)
+                    val matchedIds = NativeAudioDsp.searchIndexQuery(trimmed, 100)
                     if (matchedIds != null && matchedIds.isNotEmpty()) {
                         val byId = getSongsByIdMap(list)
                         val result = ArrayList<Song>(matchedIds.size)

@@ -94,8 +94,6 @@ fun MiniPlayer(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val haptic = LocalHapticFeedback.current
-    val position by positionFlow.collectAsState()
 
     val hasAlbumArt = currentSong.albumArtUri != android.net.Uri.EMPTY
     val thumbReq = if (hasAlbumArt) {
@@ -110,15 +108,6 @@ fun MiniPlayer(
         }
     } else null
 
-    var isScrubbing by remember { mutableStateOf(false) }
-    var scrubProgress by remember { mutableFloatStateOf(0f) }
-
-    val rawProgress = if (durationMs > 0)
-        (position.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
-    else 0f
-
-    val activeProgress = if (isScrubbing) scrubProgress else rawProgress
-
     val btnScale by animateFloatAsState(
         targetValue = if (isPlaying) 1.0f else 0.94f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
@@ -131,106 +120,13 @@ fun MiniPlayer(
             .background(DarkSurfaceContainer)
             .clickable { onPlayerClick() }
     ) {
-        // Interactive tactile waveform strip: 26dp touch target with live time tooltip
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(26.dp)
-                    .pointerInput(durationMs) {
-                        awaitEachGesture {
-                            val down = awaitFirstDown(requireUnconsumed = false)
-                            down.consume()
-                            if (size.width > 0) {
-                                isScrubbing = true
-                                scrubProgress = (down.position.x / size.width).coerceIn(0f, 1f)
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            }
-                            while (true) {
-                                val event = awaitPointerEvent()
-                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                                if (!change.pressed) {
-                                    change.consume()
-                                    break
-                                }
-                                change.consume()
-                                if (size.width > 0) {
-                                    val newProgress = (change.position.x / size.width).coerceIn(0f, 1f)
-                                    if (abs(newProgress - scrubProgress) > 0.005f) {
-                                        scrubProgress = newProgress
-                                    }
-                                }
-                            }
-                            if (durationMs > 0) {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onSeekTo((scrubProgress * durationMs).toLong())
-                            }
-                            isScrubbing = false
-                        }
-                    }
-            ) {
-                // Tactile Waveform
-                ReactiveWaveform(
-                    progress = activeProgress,
-                    accent = Color.White,
-                    trackColor = DarkCardBorder.copy(alpha = 0.5f),
-                    isPlaying = isPlaying,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(if (isScrubbing) 15.dp else 12.dp)
-                        .align(Alignment.Center)
-                )
-
-                // Scrubber Head / Glowing Thumb Indicator
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(26.dp)
-                        .align(Alignment.Center)
-                ) {
-                    val thumbSize = if (isScrubbing) 12.dp else 7.dp
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.CenterStart)
-                            .graphicsLayer {
-                                val halfPx = thumbSize.toPx() / 2f
-                                translationX = (activeProgress * size.width - halfPx)
-                                    .coerceIn(0f, (size.width - thumbSize.toPx()).coerceAtLeast(0f))
-                            }
-                            .size(thumbSize)
-                            .shadow(
-                                elevation = if (isScrubbing) 6.dp else 2.dp,
-                                shape = CircleShape,
-                                spotColor = Color.White
-                            )
-                            .clip(CircleShape)
-                            .background(Color.White)
-                    )
-                }
-
-                // Floating Live Scrub Time Indicator Pill
-                if (isScrubbing && durationMs > 0) {
-                    val scrubMs = (scrubProgress * durationMs).toLong()
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .offset(y = (-30).dp)
-                            .shadow(elevation = 8.dp, shape = RoundedCornerShape(12.dp))
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(DarkSurfaceElevated)
-                            .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(12.dp))
-                            .padding(horizontal = 12.dp, vertical = 3.dp)
-                    ) {
-                        Text(
-                            text = "${formatDuration(scrubMs)} / ${formatDuration(durationMs)}",
-                            color = Color.White,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-        }
+        // Zero-Recomposition isolated interactive seek strip (only updates waveform/thumb without recomposing row)
+        MiniPlayerTactileSeekStrip(
+            positionFlow = positionFlow,
+            durationMs = durationMs,
+            isPlaying = isPlaying,
+            onSeekTo = onSeekTo
+        )
 
         // Enlarged console row (72dp height, 54dp album art, full playback controls)
         Row(
@@ -361,6 +257,126 @@ fun MiniPlayer(
                             modifier = Modifier.size(24.dp)
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MiniPlayerTactileSeekStrip(
+    positionFlow: StateFlow<Long>,
+    durationMs: Long,
+    isPlaying: Boolean,
+    onSeekTo: (Long) -> Unit
+) {
+    val haptic = LocalHapticFeedback.current
+    val position by positionFlow.collectAsState()
+
+    var isScrubbing by remember { mutableStateOf(false) }
+    var scrubProgress by remember { mutableFloatStateOf(0f) }
+
+    val rawProgress = if (durationMs > 0)
+        (position.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
+    else 0f
+
+    val activeProgress = if (isScrubbing) scrubProgress else rawProgress
+
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(26.dp)
+                .pointerInput(durationMs) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        down.consume()
+                        if (size.width > 0) {
+                            isScrubbing = true
+                            scrubProgress = (down.position.x / size.width).coerceIn(0f, 1f)
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        }
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                            if (!change.pressed) {
+                                change.consume()
+                                break
+                            }
+                            change.consume()
+                            if (size.width > 0) {
+                                val newProgress = (change.position.x / size.width).coerceIn(0f, 1f)
+                                if (kotlin.math.abs(newProgress - scrubProgress) > 0.005f) {
+                                    scrubProgress = newProgress
+                                }
+                            }
+                        }
+                        if (durationMs > 0) {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onSeekTo((scrubProgress * durationMs).toLong())
+                        }
+                        isScrubbing = false
+                    }
+                }
+        ) {
+            // Tactile Waveform
+            ReactiveWaveform(
+                progress = activeProgress,
+                accent = Color.White,
+                trackColor = DarkCardBorder.copy(alpha = 0.5f),
+                isPlaying = isPlaying,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(if (isScrubbing) 15.dp else 12.dp)
+                    .align(Alignment.Center)
+            )
+
+            // Scrubber Head / Glowing Thumb Indicator
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(26.dp)
+                    .align(Alignment.Center)
+            ) {
+                val thumbSize = if (isScrubbing) 12.dp else 7.dp
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .graphicsLayer {
+                            val halfPx = thumbSize.toPx() / 2f
+                            translationX = (activeProgress * size.width - halfPx)
+                                .coerceIn(0f, (size.width - thumbSize.toPx()).coerceAtLeast(0f))
+                        }
+                        .size(thumbSize)
+                        .shadow(
+                            elevation = if (isScrubbing) 6.dp else 2.dp,
+                            shape = CircleShape,
+                            spotColor = Color.White
+                        )
+                        .clip(CircleShape)
+                        .background(Color.White)
+                )
+            }
+
+            // Floating Live Scrub Time Indicator Pill
+            if (isScrubbing && durationMs > 0) {
+                val scrubMs = (scrubProgress * durationMs).toLong()
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .offset(y = (-30).dp)
+                        .shadow(elevation = 8.dp, shape = RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(DarkSurfaceElevated)
+                        .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 12.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = "${formatDuration(scrubMs)} / ${formatDuration(durationMs)}",
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
