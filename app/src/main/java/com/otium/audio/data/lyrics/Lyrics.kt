@@ -108,15 +108,22 @@ object LrcParser {
         )
     }
 
+    private val lyricsCache = java.util.concurrent.ConcurrentHashMap<String, TrackLyrics>()
+
     fun findLrcForAudio(audioPath: String): TrackLyrics? {
         try {
             if (audioPath.isBlank()) return null
-            val audioFile = File(audioPath)
-            if (!audioFile.exists()) return null
+            val cached = lyricsCache[audioPath]
+            if (cached != null) return cached
 
-            val lrcFile = File(audioFile.parentFile, "${audioFile.nameWithoutExtension}.lrc")
+            val dot = audioPath.lastIndexOf('.')
+            if (dot <= 0) return null
+            val lrcPath = audioPath.substring(0, dot) + ".lrc"
+            val lrcFile = File(lrcPath)
             if (lrcFile.exists() && lrcFile.canRead()) {
-                return parse(lrcFile.readText())
+                val parsed = parse(lrcFile.readText())
+                lyricsCache[audioPath] = parsed
+                return parsed
             }
         } catch (_: Exception) {
             // Ignore I/O issues gracefully

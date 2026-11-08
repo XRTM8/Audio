@@ -14,11 +14,20 @@ object VisualizerBridge {
     private val _spectrumBands = MutableStateFlow(emptyBands)
     val spectrumBands: StateFlow<FloatArray> = _spectrumBands.asStateFlow()
 
+    private val _averageEnergy = MutableStateFlow(0f)
+    val averageEnergy: StateFlow<Float> = _averageEnergy.asStateFlow()
+
     fun updateBands(bands: FloatArray) {
         _spectrumBands.value = bands
+        var sum = 0f
+        for (i in bands.indices) {
+            sum += bands[i]
+        }
+        _averageEnergy.value = (sum / bands.size.coerceAtLeast(1)).coerceIn(0f, 1f)
     }
 
     fun reset() {
         _spectrumBands.value = emptyBands
+        _averageEnergy.value = 0f
     }
 }

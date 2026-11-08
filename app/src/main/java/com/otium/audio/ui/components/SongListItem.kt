@@ -32,8 +32,10 @@ import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import com.otium.audio.audio.dsp.VisualizerBridge
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -253,11 +255,14 @@ fun SongListItem(
 
 /**
  * Precision Titanium Studio Equalizer Bars.
- * Solid crystalline white bars with studio motion, zero rainbow RGB.
- * Reads animated state exclusively within DrawScope to achieve zero recomposition overhead.
+ * Reacts to live FFT audio frequency spectrum magnitudes computed in Rust.
+ * Reads animated/spectrum state exclusively within DrawScope for zero recomposition overhead.
  */
 @Composable
 fun MiniEqBars(modifier: Modifier = Modifier) {
+    val spectrum by VisualizerBridge.spectrumBands.collectAsState()
+    val hasLiveAudio = spectrum.isNotEmpty() && (spectrum[0] > 0.005f || spectrum[2] > 0.005f)
+
     val inf = rememberInfiniteTransition(label = "eq_bars")
     val b1 = inf.animateFloat(
         initialValue = 0.15f, targetValue = 0.90f,
@@ -287,16 +292,21 @@ fun MiniEqBars(modifier: Modifier = Modifier) {
 
         val c = Color.White
 
-        val h1 = totalHeight * b1.value
+        val v1 = if (hasLiveAudio) (spectrum.getOrElse(0) { 0.2f } * 1.5f).coerceIn(0.12f, 1f) else b1.value
+        val v2 = if (hasLiveAudio) (spectrum.getOrElse(2) { 0.5f } * 1.5f).coerceIn(0.12f, 1f) else b2.value
+        val v3 = if (hasLiveAudio) (spectrum.getOrElse(5) { 0.3f } * 1.5f).coerceIn(0.12f, 1f) else b3.value
+        val v4 = if (hasLiveAudio) (spectrum.getOrElse(8) { 0.6f } * 1.5f).coerceIn(0.12f, 1f) else b4.value
+
+        val h1 = totalHeight * v1
         drawRoundRect(color = c, topLeft = Offset(0f, totalHeight - h1), size = Size(barWidth, h1), cornerRadius = radius)
 
-        val h2 = totalHeight * b2.value
+        val h2 = totalHeight * v2
         drawRoundRect(color = c, topLeft = Offset(stride, totalHeight - h2), size = Size(barWidth, h2), cornerRadius = radius)
 
-        val h3 = totalHeight * b3.value
+        val h3 = totalHeight * v3
         drawRoundRect(color = c, topLeft = Offset(stride * 2f, totalHeight - h3), size = Size(barWidth, h3), cornerRadius = radius)
 
-        val h4 = totalHeight * b4.value
+        val h4 = totalHeight * v4
         drawRoundRect(color = c, topLeft = Offset(stride * 3f, totalHeight - h4), size = Size(barWidth, h4), cornerRadius = radius)
     }
 }
