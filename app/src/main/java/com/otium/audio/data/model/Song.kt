@@ -22,9 +22,44 @@ data class Song(
     val audioFormatBadge: String = determineAudioBadgeFast(relativePath, contentUri),
     val displayTitle: String = cleanDisplayTitleFast(title),
     val indexLetter: String = extractIndexLetterFast(title),
-    val subtitle: String = "$artist  ·  $formattedDuration"
+    val subtitle: String = "$artist  ·  $formattedDuration",
+    val normalizedSearchTarget: String = normalizeForSearchFast("$title $artist $album")
 ) {
     companion object {
+        fun normalizeForSearchFast(input: String): String {
+            if (input.isEmpty()) return ""
+            val sb = StringBuilder(input.length)
+            var lastWasSpace = false
+            for (i in 0 until input.length) {
+                val c = input[i]
+                // 1. Skip Arabic Tashkeel / Harakat (\u064B..\u065F, \u0670)
+                if ((c in '\u064B'..'\u065F') || c == '\u0670') {
+                    continue
+                }
+                // 2. Normalize Alif variants (آ, أ, إ, ٱ -> ا), Ta Marbuta -> Ha, Alif Maqsura -> Ya
+                val normalized = when (c) {
+                    '\u0622', '\u0623', '\u0625', '\u0671' -> 'ا'
+                    'ة' -> 'ه'
+                    'ى' -> 'ي'
+                    else -> c.lowercaseChar()
+                }
+                // 3. Normalize symbols & whitespace into single space
+                if (normalized.isLetterOrDigit()) {
+                    sb.append(normalized)
+                    lastWasSpace = false
+                } else {
+                    if (!lastWasSpace && sb.isNotEmpty()) {
+                        sb.append(' ')
+                        lastWasSpace = true
+                    }
+                }
+            }
+            if (lastWasSpace && sb.isNotEmpty()) {
+                sb.setLength(sb.length - 1)
+            }
+            return sb.toString()
+        }
+
         fun extractIndexLetterFast(raw: String): String {
             val trimmed = raw.trim()
             var idx = 0
@@ -66,6 +101,9 @@ data class Song(
             if (dot == -1 || dot >= target.length - 1) return "HI-RES"
             val ext = target.substring(dot + 1)
             return when {
+                ext.equals("dsf", ignoreCase = true) || ext.equals("dff", ignoreCase = true) -> "DSD"
+                ext.equals("aiff", ignoreCase = true) || ext.equals("aif", ignoreCase = true) -> "AIFF"
+                ext.equals("alac", ignoreCase = true) -> "ALAC"
                 ext.equals("flac", ignoreCase = true) -> "FLAC"
                 ext.equals("wav", ignoreCase = true) -> "WAV"
                 ext.equals("opus", ignoreCase = true) -> "OPUS"

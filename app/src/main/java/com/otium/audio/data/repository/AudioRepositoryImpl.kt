@@ -122,6 +122,7 @@ class AudioRepositoryImpl(
                         val req = ImageRequest.Builder(ctx)
                             .data(art)
                             .size(144, 144)
+                            .bitmapConfig(android.graphics.Bitmap.Config.RGB_565)
                             .allowHardware(true)
                             .memoryCachePolicy(CachePolicy.ENABLED)
                             .diskCachePolicy(CachePolicy.ENABLED)
@@ -211,16 +212,12 @@ class AudioRepositoryImpl(
         }
 
     private fun fallbackSearch(list: List<Song>, query: String): List<Song> {
-        val normalizedQuery = normalizeArabicForSearch(query)
+        val normalizedQuery = Song.normalizeForSearchFast(query)
         val queryTokens = normalizedQuery.split(" ").filter { it.isNotBlank() }
+        if (queryTokens.isEmpty()) return list
         return list.filter { song ->
-            val normTitle = normalizeArabicForSearch(song.title)
-            val normArtist = normalizeArabicForSearch(song.artist)
-            val normAlbum = normalizeArabicForSearch(song.album)
             queryTokens.all { token ->
-                normTitle.contains(token) ||
-                    normArtist.contains(token) ||
-                    normAlbum.contains(token)
+                song.normalizedSearchTarget.contains(token)
             }
         }
     }
@@ -421,38 +418,7 @@ class AudioRepositoryImpl(
         val SORT_ORDER = "${MediaStore.Audio.Media.TITLE} COLLATE NOCASE ASC"
         val ALBUM_ART_URI: Uri = Uri.parse("content://media/external/audio/albumart")
 
-        fun normalizeArabicForSearch(input: String): String {
-            if (input.isEmpty()) return ""
-            val sb = StringBuilder(input.length)
-            var lastWasSpace = false
-            for (i in 0 until input.length) {
-                val c = input[i]
-                // 1. Skip Arabic Tashkeel / Harakat (\u064B..\u065F, \u0670)
-                if ((c in '\u064B'..'\u065F') || c == '\u0670') {
-                    continue
-                }
-                // 2. Normalize Alif variants (آ, أ, إ, ٱ -> ا), Ta Marbuta -> Ha, Alif Maqsura -> Ya
-                val normalized = when (c) {
-                    '\u0622', '\u0623', '\u0625', '\u0671' -> 'ا'
-                    'ة' -> 'ه'
-                    'ى' -> 'ي'
-                    else -> c.lowercaseChar()
-                }
-                // 3. Normalize symbols & whitespace into single space
-                if (normalized.isLetterOrDigit()) {
-                    sb.append(normalized)
-                    lastWasSpace = false
-                } else {
-                    if (!lastWasSpace && sb.isNotEmpty()) {
-                        sb.append(' ')
-                        lastWasSpace = true
-                    }
-                }
-            }
-            if (lastWasSpace && sb.isNotEmpty()) {
-                sb.setLength(sb.length - 1)
-            }
-            return sb.toString()
-        }
+        fun normalizeArabicForSearch(input: String): String =
+            Song.normalizeForSearchFast(input)
     }
 }

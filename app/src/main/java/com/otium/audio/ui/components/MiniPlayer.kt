@@ -102,6 +102,7 @@ fun MiniPlayer(
             ImageRequest.Builder(context)
                 .data(currentSong.albumArtUri)
                 .size(160, 160)
+                .bitmapConfig(android.graphics.Bitmap.Config.RGB_565)
                 .crossfade(false)
                 .memoryCachePolicy(CachePolicy.ENABLED)
                 .diskCachePolicy(CachePolicy.ENABLED)
@@ -126,7 +127,8 @@ fun MiniPlayer(
             positionFlow = positionFlow,
             durationMs = durationMs,
             isPlaying = isPlaying,
-            onSeekTo = onSeekTo
+            onSeekTo = onSeekTo,
+            waveformSeed = currentSong.id
         )
 
         // Enlarged console row (72dp height, 54dp album art, full playback controls)
@@ -269,7 +271,8 @@ private fun MiniPlayerTactileSeekStrip(
     positionFlow: StateFlow<Long>,
     durationMs: Long,
     isPlaying: Boolean,
-    onSeekTo: (Long) -> Unit
+    onSeekTo: (Long) -> Unit,
+    waveformSeed: Long = 0L
 ) {
     val haptic = LocalHapticFeedback.current
     val position by positionFlow.collectAsState()
@@ -326,6 +329,7 @@ private fun MiniPlayerTactileSeekStrip(
                 accent = Color.White,
                 trackColor = DarkCardBorder.copy(alpha = 0.5f),
                 isPlaying = isPlaying,
+                waveformSeed = waveformSeed,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(if (isScrubbing) 15.dp else 12.dp)

@@ -29,6 +29,7 @@ fun ReactiveWaveform(
     accent: Color,
     trackColor: Color,
     isPlaying: Boolean,
+    waveformSeed: Long = 0L,
     modifier: Modifier = Modifier
 ) {
     val transition = rememberInfiniteTransition(label = "waveform")
@@ -53,13 +54,14 @@ fun ReactiveWaveform(
         val centreY = size.height / 2f
         val maxHeight = size.height
         val swing = if (isPlaying) 1f else 0.25f
+        val seedOffset = ((waveformSeed and 0xFFFFL) * 0.001f).toFloat()
 
         for (index in 0 until barCount) {
             val position = index / (barCount - 1f)
             // Deterministic audio-like curve: stable between frames, breathing smoothly with playback
             val shape = 0.28f +
-                0.46f * abs(sin(index * 0.65f + phase * swing)) +
-                0.22f * abs(sin(index * 1.8f))
+                0.46f * abs(sin(index * 0.65f + seedOffset + phase * swing)) +
+                0.22f * abs(sin(index * 1.8f + seedOffset * 1.3f))
 
             val height = (maxHeight * shape.coerceIn(0.18f, 1f))
             val left = index * (barWidth + gap)

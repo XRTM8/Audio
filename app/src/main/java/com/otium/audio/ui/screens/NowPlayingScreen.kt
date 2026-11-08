@@ -289,16 +289,6 @@ fun NowPlayingScreen(
         label = "play_scale"
     )
 
-    val highResArtworkRequest = remember(song.albumArtUri) {
-        ImageRequest.Builder(context)
-            .data(song.albumArtUri)
-            .size(540, 540)
-            .crossfade(150)
-            .memoryCachePolicy(CachePolicy.ENABLED)
-            .diskCachePolicy(CachePolicy.ENABLED)
-            .build()
-    }
-
     val screenHeightPx = with(density) {
         context.resources.displayMetrics.heightPixels.toFloat()
     }
@@ -508,6 +498,7 @@ fun NowPlayingScreen(
                                         ImageRequest.Builder(context)
                                             .data(pageSong.albumArtUri)
                                             .size(384, 384)
+                                            .bitmapConfig(android.graphics.Bitmap.Config.RGB_565)
                                             .allowHardware(true)
                                             .crossfade(false)
                                             .memoryCachePolicy(CachePolicy.ENABLED)

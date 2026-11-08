@@ -103,6 +103,7 @@ fun SongListItem(
             ImageRequest.Builder(context)
                 .data(song.albumArtUri)
                 .size(144, 144)
+                .bitmapConfig(android.graphics.Bitmap.Config.RGB_565)
                 .allowHardware(true)
                 .crossfade(false)
                 .memoryCachePolicy(CachePolicy.ENABLED)
