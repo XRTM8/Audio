@@ -131,6 +131,7 @@ import com.otium.audio.ui.components.EqualizerSheet
 import com.otium.audio.ui.components.LyricsSheet
 import com.otium.audio.ui.components.QueueSheet
 import com.otium.audio.ui.components.SleepTimerDialog
+import com.otium.audio.ui.components.StudioSpectrumVisualizer
 import com.otium.audio.ui.components.TrackSlider
 import com.otium.audio.ui.theme.AccentGold
 import com.otium.audio.ui.theme.AccentGoldDim
@@ -663,7 +664,19 @@ fun NowPlayingScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Studio FFT Spectrum Visualizer (16-band real-time Goertzel spectrum computed in Rust)
+                StudioSpectrumVisualizer(
+                    isPlaying = isPlaying,
+                    accentColor = animatedVibrant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(24.dp)
+                        .padding(horizontal = 24.dp)
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
 
                 // ── Track Precision Slider ──────────────────────────────────
                 TrackSlider(
