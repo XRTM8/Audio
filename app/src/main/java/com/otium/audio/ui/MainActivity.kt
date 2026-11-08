@@ -260,14 +260,6 @@ class MainActivity : ComponentActivity() {
                         lp.preferredRefreshRate = highest.refreshRate
                         changed = true
                     }
-                    if (lp.preferredMinDisplayRefreshRate != highest.refreshRate) {
-                        lp.preferredMinDisplayRefreshRate = highest.refreshRate
-                        changed = true
-                    }
-                    if (lp.preferredMaxDisplayRefreshRate != highest.refreshRate) {
-                        lp.preferredMaxDisplayRefreshRate = highest.refreshRate
-                        changed = true
-                    }
                 }
                 if (changed) {
                     window.attributes = lp

@@ -90,11 +90,7 @@ fun LyricsSheet(
     ) {
         item { Spacer(modifier = Modifier.height(32.dp)) }
 
-        itemsIndexed(
-            items = lyrics.lines,
-            key = { index, line -> (line.timestampMs shl 16) or (index.toLong() and 0xFFFFL) },
-            contentType = { "lyric_line" }
-        ) { index, line ->
+        itemsIndexed(lyrics.lines) { index, line ->
             val isActive = index == activeIndex
             val textColor by animateColorAsState(
                 targetValue = when {
