@@ -42,6 +42,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -86,7 +87,7 @@ fun SettingsSheet(
 
     var isCheckingUpdate by remember { mutableStateOf(false) }
     var isDownloading by remember { mutableStateOf(false) }
-    var downloadProgress by remember { mutableStateOf(0) }
+    var downloadProgress by remember { mutableIntStateOf(0) }
     var updateProblem by remember { mutableStateOf<String?>(null) }
     var updateResultText by remember { mutableStateOf<String?>(null) }
     var latestFoundUpdate by remember { mutableStateOf(availableUpdate) }

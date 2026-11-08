@@ -45,6 +45,7 @@ object NativeAudioDsp {
         isFloat: Boolean
     )
     external fun getEnginePeakLevels(enginePtr: Long): FloatArray?
+    external fun getEnginePeakLevelsInto(enginePtr: Long, outArray: FloatArray): Boolean
 
     // --- 2. Fast Audio Metadata & Tag Scanner (Lofty) ---
     external fun scanAudioFile(path: String): String?
@@ -173,6 +174,15 @@ object NativeAudioDsp {
             } else null
         } catch (_: Throwable) {
             null
+        }
+    }
+
+    fun readPeakLevelsDirect(enginePtr: Long, outLevels: FloatArray): Boolean {
+        if (!isAvailable || enginePtr == 0L || outLevels.size < 4) return false
+        return try {
+            getEnginePeakLevelsInto(enginePtr, outLevels)
+        } catch (_: Throwable) {
+            false
         }
     }
 }

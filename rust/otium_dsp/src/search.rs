@@ -89,7 +89,7 @@ impl SearchEngine {
         }
 
         let q_tokens: Vec<&str> = norm_q.split_whitespace().collect();
-        let mut scored: Vec<(i64, i32)> = Vec::new();
+        let mut scored: Vec<(i64, i32)> = Vec::with_capacity(limit * 2);
 
         for item in &self.items {
             let mut total_score = 0;
@@ -144,21 +144,32 @@ impl SearchEngine {
 }
 
 fn fuzzy_match_tokens(query: &str, tokens: &[String]) -> Option<i32> {
-    let q_chars: Vec<char> = query.chars().collect();
-    let q_len = q_chars.len();
+    let mut q_buf = ['\0'; 64];
+    let mut q_len = 0;
+    for c in query.chars() {
+        if q_len >= 64 { return None; }
+        q_buf[q_len] = c;
+        q_len += 1;
+    }
     if q_len < 3 || q_len > 60 {
         return None;
     }
     let max_dist = if q_len >= 5 { 2 } else { 1 };
+    let q_slice = &q_buf[..q_len];
 
     for tok in tokens {
-        let t_chars: Vec<char> = tok.chars().collect();
-        let t_len = t_chars.len();
+        let mut t_buf = ['\0'; 64];
+        let mut t_len = 0;
+        for c in tok.chars() {
+            if t_len >= 64 { break; }
+            t_buf[t_len] = c;
+            t_len += 1;
+        }
         if t_len > 60 || t_len.abs_diff(q_len) > max_dist {
             continue;
         }
 
-        let dist = levenshtein_bounded(&q_chars, &t_chars, max_dist);
+        let dist = levenshtein_bounded(q_slice, &t_buf[..t_len], max_dist);
         if dist <= max_dist {
             return Some(120 - (dist as i32 * 40));
         }

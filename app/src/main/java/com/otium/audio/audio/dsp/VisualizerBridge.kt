@@ -21,6 +21,11 @@ object VisualizerBridge {
     private val _peakLevels = MutableStateFlow(defaultLevels)
     val peakLevels: StateFlow<NativeAudioDsp.PeakRmsLevels> = _peakLevels.asStateFlow()
 
+    var peakLeft: Float = 0f; private set
+    var peakRight: Float = 0f; private set
+    var rmsLeft: Float = 0f; private set
+    var rmsRight: Float = 0f; private set
+
     fun updateBands(bands: FloatArray) {
         _spectrumBands.value = bands
         var sum = 0f
@@ -31,12 +36,30 @@ object VisualizerBridge {
     }
 
     fun updatePeakLevels(levels: NativeAudioDsp.PeakRmsLevels) {
+        peakLeft = levels.peakLeft
+        peakRight = levels.peakRight
+        rmsLeft = levels.rmsLeft
+        rmsRight = levels.rmsRight
         _peakLevels.value = levels
+    }
+
+    fun updatePeakLevelsDirect(levels: FloatArray) {
+        if (levels.size >= 4) {
+            peakLeft = levels[0]
+            peakRight = levels[1]
+            rmsLeft = levels[2]
+            rmsRight = levels[3]
+            _peakLevels.value = NativeAudioDsp.PeakRmsLevels(levels[0], levels[1], levels[2], levels[3])
+        }
     }
 
     fun reset() {
         _spectrumBands.value = emptyBands
         _averageEnergy.value = 0f
+        peakLeft = 0f
+        peakRight = 0f
+        rmsLeft = 0f
+        rmsRight = 0f
         _peakLevels.value = defaultLevels
     }
 }

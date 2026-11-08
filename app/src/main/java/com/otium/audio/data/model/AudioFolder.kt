@@ -20,18 +20,23 @@ data class AudioFolder(
                 folderMap.getOrPut(folderPath) { ArrayList() }.add(song)
             }
 
-            return folderMap.map { (path, songList) ->
+            val result = ArrayList<AudioFolder>(folderMap.size)
+            for ((path, songList) in folderMap) {
                 val folderName = if (path == "Root") "Music" else {
                     val lastSep = path.lastIndexOfAny(SEPARATORS)
                     if (lastSep >= 0 && lastSep < path.length - 1) path.substring(lastSep + 1) else path
                 }
-                AudioFolder(
-                    name = folderName,
-                    path = path,
-                    songCount = songList.size,
-                    songs = songList
+                result.add(
+                    AudioFolder(
+                        name = folderName,
+                        path = path,
+                        songCount = songList.size,
+                        songs = songList
+                    )
                 )
-            }.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
+            }
+            result.sortWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
+            return result
         }
 
         private val SEPARATORS = charArrayOf('/', '\\')

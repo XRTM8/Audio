@@ -42,6 +42,7 @@ class OtiumAudioProcessor(
     private var lastSyncedState: com.otium.audio.playback.EqualizerState? = null
     private var lastSpectrumTimeMs: Long = 0L
     private val spectrumSampleBuffer = FloatArray(512)
+    private val scratchPeakBuffer = FloatArray(4)
 
     override fun onConfigure(inputAudioFormat: androidx.media3.common.audio.AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         channelCount = inputAudioFormat.channelCount
@@ -422,9 +423,8 @@ class OtiumAudioProcessor(
                     VisualizerBridge.updateBands(directBands)
                 }
                 if (nativeEnginePtr != 0L) {
-                    val peaks = NativeAudioDsp.readPeakLevels(nativeEnginePtr)
-                    if (peaks != null) {
-                        VisualizerBridge.updatePeakLevels(peaks)
+                    if (NativeAudioDsp.readPeakLevelsDirect(nativeEnginePtr, scratchPeakBuffer)) {
+                        VisualizerBridge.updatePeakLevelsDirect(scratchPeakBuffer)
                     }
                 }
                 if (directBands != null) {

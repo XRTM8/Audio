@@ -140,6 +140,23 @@ pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_getEnginePe
     }
 }
 
+#[no_mangle]
+pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_getEnginePeakLevelsInto(
+    env: JNIEnv,
+    _class: JClass,
+    engine_ptr: jlong,
+    out_array: JFloatArray,
+) -> jboolean {
+    if engine_ptr == 0 || out_array.is_null() { return 0; }
+    let engine = unsafe { &*(engine_ptr as *const OtiumDspEngine) };
+    let levels = engine.get_levels();
+    if env.set_float_array_region(&out_array, 0, &levels).is_ok() {
+        1
+    } else {
+        0
+    }
+}
+
 // ============================================================================
 // 2. High-Speed Audio Metadata & Tag Scanner
 // ============================================================================

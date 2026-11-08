@@ -228,13 +228,40 @@ class AudioRepositoryImpl(
 
     private fun fallbackSearch(list: List<Song>, query: String): List<Song> {
         val normalizedQuery = Song.normalizeForSearchFast(query)
-        val queryTokens = normalizedQuery.split(" ").filter { it.isNotBlank() }
-        if (queryTokens.isEmpty()) return list
-        return list.filter { song ->
-            queryTokens.all { token ->
-                song.normalizedSearchTarget.contains(token)
+        val tokens = ArrayList<String>(4)
+        var start = -1
+        val len = normalizedQuery.length
+        for (i in 0 until len) {
+            val c = normalizedQuery[i]
+            if (c != ' ') {
+                if (start == -1) start = i
+            } else if (start != -1) {
+                tokens.add(normalizedQuery.substring(start, i))
+                start = -1
             }
         }
+        if (start != -1) {
+            tokens.add(normalizedQuery.substring(start, len))
+        }
+        if (tokens.isEmpty()) return list
+
+        val result = ArrayList<Song>()
+        val tokenCount = tokens.size
+        for (i in list.indices) {
+            val song = list[i]
+            val target = song.normalizedSearchTarget
+            var matchesAll = true
+            for (t in 0 until tokenCount) {
+                if (!target.contains(tokens[t])) {
+                    matchesAll = false
+                    break
+                }
+            }
+            if (matchesAll) {
+                result.add(song)
+            }
+        }
+        return result
     }
 
     override suspend fun toggleFavorite(songId: Long) = withContext(io) {

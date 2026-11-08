@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -25,6 +26,8 @@ fun StudioSpectrumVisualizer(
     modifier: Modifier = Modifier
 ) {
     val spectrum by VisualizerBridge.spectrumBands.collectAsState()
+    val activeColors = remember(accentColor) { listOf(Color.White, accentColor.copy(alpha = 0.85f)) }
+    val inactiveColors = remember { listOf(Color(0x33FFFFFF), Color(0x1AFFFFFF)) }
 
     Canvas(modifier = modifier) {
         val totalWidth = size.width
@@ -34,23 +37,11 @@ fun StudioSpectrumVisualizer(
         val barWidth = ((totalWidth - gap * (barCount - 1)) / barCount).coerceAtLeast(2.5f)
         val radius = CornerRadius(barWidth / 2f, barWidth / 2f)
 
-        val activeBrush = Brush.verticalGradient(
-            colors = listOf(
-                Color.White,
-                accentColor.copy(alpha = 0.85f)
-            ),
+        val barBrush = Brush.verticalGradient(
+            colors = if (isPlaying) activeColors else inactiveColors,
             startY = 0f,
             endY = totalHeight
         )
-        val inactiveBrush = Brush.verticalGradient(
-            colors = listOf(
-                Color(0x33FFFFFF),
-                Color(0x1AFFFFFF)
-            ),
-            startY = 0f,
-            endY = totalHeight
-        )
-        val barBrush = if (isPlaying) activeBrush else inactiveBrush
 
         for (i in 0 until barCount) {
             val rawMag = if (isPlaying && spectrum.size > i) spectrum[i] else 0f
