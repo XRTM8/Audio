@@ -352,7 +352,7 @@ class MusicViewModel(
     }
 
     private companion object {
-        const val SEARCH_DEBOUNCE_MS = 200L
+        const val SEARCH_DEBOUNCE_MS = 60L
         const val MOST_PLAYED_LIMIT = 50
         const val UPDATE_CHECK_DELAY_MS = 3_000L
     }

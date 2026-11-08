@@ -99,6 +99,9 @@ class PlaybackService : MediaSessionService() {
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_LOCAL)
             .setLoadControl(loadControl)
+            .setSeekBackIncrementMs(10_000)
+            .setSeekForwardIncrementMs(10_000)
+            .setPauseAtEndOfMediaItems(false)
             .build()
             .apply {
                 repeatMode = Player.REPEAT_MODE_OFF
