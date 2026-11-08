@@ -66,10 +66,25 @@ class MusicController(
         }, MoreExecutors.directExecutor())
     }
 
+    private fun resolveCurrentSong(mediaId: String?): Song? {
+        val targetId = mediaId?.toLongOrNull() ?: return null
+        val current = _playbackState.value.currentSong
+        if (current?.id == targetId) return current
+
+        val controller = mediaController
+        if (controller != null) {
+            val idx = controller.currentMediaItemIndex
+            if (idx in currentPlaylistSongs.indices && currentPlaylistSongs[idx].id == targetId) {
+                return currentPlaylistSongs[idx]
+            }
+        }
+        return currentPlaylistSongs.find { it.id == targetId }
+    }
+
     private fun syncState() {
         val controller = mediaController ?: return
         val currentMediaId = controller.currentMediaItem?.mediaId
-        val currentSong = currentPlaylistSongs.find { it.id.toString() == currentMediaId }
+        val currentSong = resolveCurrentSong(currentMediaId)
 
         val duration = if (controller.duration > 0) controller.duration else (currentSong?.durationMs ?: 0L)
         _position.value = controller.currentPosition.coerceAtLeast(0L)
@@ -378,8 +393,7 @@ class MusicController(
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) onTrackEnded?.invoke()
-            val mediaId = mediaItem?.mediaId
-            val newSong = currentPlaylistSongs.find { it.id.toString() == mediaId }
+            val newSong = resolveCurrentSong(mediaItem?.mediaId)
             if (newSong != null) {
                 _playbackState.update {
                     it.copy(

@@ -40,6 +40,8 @@ class OtiumAudioProcessor(
     private var nativeEnginePtr: Long = 0L
     private var nativeSampleRateHz: Int = 0
     private var lastSyncedState: com.otium.audio.playback.EqualizerState? = null
+    private var lastSpectrumTimeMs: Long = 0L
+    private val spectrumSampleBuffer = FloatArray(512)
 
     override fun onConfigure(inputAudioFormat: androidx.media3.common.audio.AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         channelCount = inputAudioFormat.channelCount
@@ -78,6 +80,7 @@ class OtiumAudioProcessor(
 
     override fun onFlush() {
         lastSyncedState = null
+        VisualizerBridge.reset()
         if (nativeEnginePtr != 0L) {
             NativeAudioDsp.resetEngine(nativeEnginePtr)
         }
@@ -109,6 +112,7 @@ class OtiumAudioProcessor(
         if (bypass || channelCount <= 0 || channelCount > CHANNELS_MAX) {
             output.put(inputBuffer)
             output.flip()
+            sampleSpectrumIfNeeded(output, encoding == C.ENCODING_PCM_FLOAT, remaining)
             return
         }
 
@@ -126,6 +130,7 @@ class OtiumAudioProcessor(
                     byteLength = remaining,
                     isFloat = isFloat
                 )
+                sampleSpectrumIfNeeded(output, isFloat, remaining)
                 return
             } catch (_: Throwable) {
                 // Graceful fallback to Kotlin engine on unexpected JNI boundary error
@@ -395,6 +400,32 @@ class OtiumAudioProcessor(
         private companion object {
             const val THRESHOLD = 0.985f
         }
+    }
+
+    private fun sampleSpectrumIfNeeded(buffer: ByteBuffer, isFloat: Boolean, byteLength: Int) {
+        val now = android.os.SystemClock.uptimeMillis()
+        if (now - lastSpectrumTimeMs < 50L) return
+        lastSpectrumTimeMs = now
+
+        try {
+            val sampleCount = if (isFloat) (byteLength / 4).coerceAtMost(512) else (byteLength / 2).coerceAtMost(512)
+            if (sampleCount < 64) return
+
+            val origPos = buffer.position()
+            if (isFloat) {
+                for (i in 0 until sampleCount) {
+                    spectrumSampleBuffer[i] = buffer.getFloat(origPos + i * 4)
+                }
+            } else {
+                for (i in 0 until sampleCount) {
+                    spectrumSampleBuffer[i] = buffer.getShort(origPos + i * 2) / 32768.0f
+                }
+            }
+            val bands = NativeAudioDsp.analyzeSpectrum(spectrumSampleBuffer, 16)
+            if (bands != null) {
+                VisualizerBridge.updateBands(bands)
+            }
+        } catch (_: Throwable) {}
     }
 
     companion object {

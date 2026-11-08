@@ -1,7 +1,6 @@
 package com.otium.audio.data.model
 
 import androidx.compose.runtime.Immutable
-import java.io.File
 
 @Immutable
 data class AudioFolder(
@@ -12,17 +11,20 @@ data class AudioFolder(
 ) {
     companion object {
         fun extractFoldersFromSongs(songs: List<Song>): List<AudioFolder> {
-            val folderMap = mutableMapOf<String, MutableList<Song>>()
+            val folderMap = LinkedHashMap<String, MutableList<Song>>()
 
             for (song in songs) {
-                val file = File(song.relativePath)
-                val parentDir = file.parentFile
-                val folderPath = parentDir?.absolutePath ?: "Root"
-                folderMap.getOrPut(folderPath) { mutableListOf() }.add(song)
+                val rawPath = song.relativePath
+                val lastSep = rawPath.lastIndexOfAny(SEPARATORS)
+                val folderPath = if (lastSep > 0) rawPath.substring(0, lastSep) else "Root"
+                folderMap.getOrPut(folderPath) { ArrayList() }.add(song)
             }
 
             return folderMap.map { (path, songList) ->
-                val folderName = if (path == "Root") "Music" else File(path).name
+                val folderName = if (path == "Root") "Music" else {
+                    val lastSep = path.lastIndexOfAny(SEPARATORS)
+                    if (lastSep >= 0 && lastSep < path.length - 1) path.substring(lastSep + 1) else path
+                }
                 AudioFolder(
                     name = folderName,
                     path = path,
@@ -31,5 +33,7 @@ data class AudioFolder(
                 )
             }.sortedBy { it.name.lowercase() }
         }
+
+        private val SEPARATORS = charArrayOf('/', '\\')
     }
 }
