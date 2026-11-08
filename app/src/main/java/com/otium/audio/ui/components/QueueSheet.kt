@@ -32,14 +32,18 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.request.CachePolicy
+import coil.request.ImageRequest
 import com.otium.audio.data.model.Song
 import com.otium.audio.ui.theme.AccentTitaniumWhite
 import com.otium.audio.ui.theme.DarkSurfaceContainer
@@ -58,6 +62,7 @@ fun QueueSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     ModalBottomSheet(
@@ -137,6 +142,20 @@ fun QueueSheet(
                     itemsIndexed(queue, key = { index, song -> "${song.id}_$index" }) { index, song ->
                         val isPlaying = currentSong?.id == song.id
 
+                        val thumbnailRequest = if (song.albumArtUri != android.net.Uri.EMPTY) {
+                            remember(song.albumArtUri) {
+                                ImageRequest.Builder(context)
+                                    .data(song.albumArtUri)
+                                    .size(144, 144)
+                                    .bitmapConfig(android.graphics.Bitmap.Config.RGB_565)
+                                    .allowHardware(true)
+                                    .crossfade(false)
+                                    .memoryCachePolicy(CachePolicy.ENABLED)
+                                    .diskCachePolicy(CachePolicy.ENABLED)
+                                    .build()
+                            }
+                        } else null
+
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -159,9 +178,9 @@ fun QueueSheet(
                                     tint = if (isPlaying) AccentTitaniumWhite else TextSecondary,
                                     modifier = Modifier.size(20.dp)
                                 )
-                                if (song.albumArtUri != android.net.Uri.EMPTY) {
+                                if (thumbnailRequest != null) {
                                     AsyncImage(
-                                        model = song.albumArtUri,
+                                        model = thumbnailRequest,
                                         contentDescription = song.displayTitle,
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier.matchParentSize()

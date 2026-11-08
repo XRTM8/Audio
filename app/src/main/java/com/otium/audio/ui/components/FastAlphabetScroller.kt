@@ -68,14 +68,14 @@ fun FastAlphabetScroller(
         // Ordered alphabet
         val alphaList = mutableListOf("#")
         if (arabicLetters.isNotEmpty()) {
-            listOf("ا", "ب", "ت", "ث", "ج", "ح", "خ", "د", "ذ", "ر", "ز", "س", "ش", "ص", "ض", "ط", "ظ", "ع", "غ", "ف", "ق", "ك", "ل", "م", "ن", "هـ", "و", "ي")
-                .filter { map.containsKey(it) }
-                .forEach { alphaList.add(it) }
+            for (letter in ARABIC_ALPHABET) {
+                if (map.containsKey(letter)) alphaList.add(letter)
+            }
         }
         if (latinLetters.isNotEmpty()) {
-            ('A'..'Z').map { it.toString() }
-                .filter { map.containsKey(it) }
-                .forEach { alphaList.add(it) }
+            for (letter in LATIN_ALPHABET) {
+                if (map.containsKey(letter)) alphaList.add(letter)
+            }
         }
 
         Pair(alphaList, map)
@@ -179,3 +179,8 @@ fun FastAlphabetScroller(
         }
     }
 }
+
+private val ARABIC_ALPHABET = listOf(
+    "ا", "ب", "ت", "ث", "ج", "ح", "خ", "د", "ذ", "ر", "ز", "س", "ش", "ص", "ض", "ط", "ظ", "ع", "غ", "ف", "ق", "ك", "ل", "م", "ن", "هـ", "و", "ي"
+)
+private val LATIN_ALPHABET = ('A'..'Z').map { it.toString() }

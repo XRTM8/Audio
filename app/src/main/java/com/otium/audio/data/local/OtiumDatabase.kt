@@ -34,7 +34,10 @@ abstract class OtiumDatabase : RoomDatabase() {
                     context.applicationContext,
                     OtiumDatabase::class.java,
                     "otium_audio.db"
-                ).fallbackToDestructiveMigration().build()
+                )
+                    .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
+                    .fallbackToDestructiveMigration()
+                    .build()
                 INSTANCE = instance
                 instance
             }

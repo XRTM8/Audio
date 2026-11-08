@@ -44,6 +44,7 @@ object NativeAudioDsp {
         byteLength: Int,
         isFloat: Boolean
     )
+    external fun getEnginePeakLevels(enginePtr: Long): FloatArray?
 
     // --- 2. Fast Audio Metadata & Tag Scanner (Lofty) ---
     external fun scanAudioFile(path: String): String?
@@ -151,6 +152,25 @@ object NativeAudioDsp {
         if (!isAvailable || !buffer.isDirect || byteLength <= 0) return null
         return try {
             computeSpectrumDirectBuffer(buffer, byteOffset, byteLength, isFloat, bandCount)
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    data class PeakRmsLevels(
+        val peakLeft: Float,
+        val peakRight: Float,
+        val rmsLeft: Float,
+        val rmsRight: Float
+    )
+
+    fun readPeakLevels(enginePtr: Long): PeakRmsLevels? {
+        if (!isAvailable || enginePtr == 0L) return null
+        return try {
+            val arr = getEnginePeakLevels(enginePtr) ?: return null
+            if (arr.size >= 4) {
+                PeakRmsLevels(arr[0], arr[1], arr[2], arr[3])
+            } else null
         } catch (_: Throwable) {
             null
         }

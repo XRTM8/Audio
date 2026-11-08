@@ -17,6 +17,10 @@ pub struct OtiumDspEngine {
     reverb: AudiophileReverb,
     limiter: PeakLimiter,
     pub virtualizer_strength: i32,
+    pub peak_l: f32,
+    pub peak_r: f32,
+    pub rms_l: f32,
+    pub rms_r: f32,
 
     pub is_enabled: bool,
     pub is_bypass: bool,
@@ -41,6 +45,10 @@ impl OtiumDspEngine {
             reverb: AudiophileReverb::new(),
             limiter: PeakLimiter::new(sample_rate_hz),
             virtualizer_strength: 0,
+            peak_l: 0.0,
+            peak_r: 0.0,
+            rms_l: 0.0,
+            rms_r: 0.0,
             is_enabled: true,
             is_bypass: false,
             applied_pre_amp_db: 0.0,
@@ -105,12 +113,26 @@ impl OtiumDspEngine {
         self.chorus.reset();
         self.reverb.reset();
         self.limiter.reset();
+        self.peak_l = 0.0;
+        self.peak_r = 0.0;
+        self.rms_l = 0.0;
+        self.rms_r = 0.0;
+    }
+
+    #[inline(always)]
+    pub fn get_levels(&self) -> [f32; 4] {
+        [self.peak_l, self.peak_r, self.rms_l, self.rms_r]
     }
 
     pub fn process_interleaved_float(&mut self, samples: &mut [f32]) {
         if self.is_bypass { return; }
 
         let frames = samples.len() / 2;
+        let mut max_l = 0.0f32;
+        let mut max_r = 0.0f32;
+        let mut sum_sq_l = 0.0f32;
+        let mut sum_sq_r = 0.0f32;
+
         for f in 0..frames {
             let mut left = samples[f * 2];
             let mut right = samples[f * 2 + 1];
@@ -158,8 +180,24 @@ impl OtiumDspEngine {
             left = self.limiter.process(left, 0);
             right = self.limiter.process(right, 1);
 
+            let abs_l = left.abs();
+            let abs_r = right.abs();
+            if abs_l > max_l { max_l = abs_l; }
+            if abs_r > max_r { max_r = abs_r; }
+            sum_sq_l += left * left;
+            sum_sq_r += right * right;
+
             samples[f * 2] = left;
             samples[f * 2 + 1] = right;
+        }
+
+        if frames > 0 {
+            self.peak_l = max_l.max(self.peak_l * 0.85);
+            self.peak_r = max_r.max(self.peak_r * 0.85);
+            let cur_rms_l = (sum_sq_l / frames as f32).sqrt();
+            let cur_rms_r = (sum_sq_r / frames as f32).sqrt();
+            self.rms_l = self.rms_l * 0.80 + cur_rms_l * 0.20;
+            self.rms_r = self.rms_r * 0.80 + cur_rms_r * 0.20;
         }
     }
 
@@ -167,6 +205,11 @@ impl OtiumDspEngine {
         if self.is_bypass { return; }
 
         let frames = samples.len() / 2;
+        let mut max_l = 0.0f32;
+        let mut max_r = 0.0f32;
+        let mut sum_sq_l = 0.0f32;
+        let mut sum_sq_r = 0.0f32;
+
         for f in 0..frames {
             let mut left = samples[f * 2] as f32 / 32768.0;
             let mut right = samples[f * 2 + 1] as f32 / 32768.0;
@@ -207,8 +250,24 @@ impl OtiumDspEngine {
             left = self.limiter.process(left, 0);
             right = self.limiter.process(right, 1);
 
+            let abs_l = left.abs();
+            let abs_r = right.abs();
+            if abs_l > max_l { max_l = abs_l; }
+            if abs_r > max_r { max_r = abs_r; }
+            sum_sq_l += left * left;
+            sum_sq_r += right * right;
+
             samples[f * 2] = (left.clamp(-1.0, 1.0) * 32767.0) as i16;
             samples[f * 2 + 1] = (right.clamp(-1.0, 1.0) * 32767.0) as i16;
+        }
+
+        if frames > 0 {
+            self.peak_l = max_l.max(self.peak_l * 0.85);
+            self.peak_r = max_r.max(self.peak_r * 0.85);
+            let cur_rms_l = (sum_sq_l / frames as f32).sqrt();
+            let cur_rms_r = (sum_sq_r / frames as f32).sqrt();
+            self.rms_l = self.rms_l * 0.80 + cur_rms_l * 0.20;
+            self.rms_r = self.rms_r * 0.80 + cur_rms_r * 0.20;
         }
     }
 }
