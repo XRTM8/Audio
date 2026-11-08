@@ -19,6 +19,10 @@ class PlaybackPersistence(private val context: Context) {
             .apply()
     }
 
+    fun saveIndex(index: Int) {
+        prefs.edit().putInt(KEY_INDEX, index).apply()
+    }
+
     fun savePosition(positionMs: Long) {
         prefs.edit().putLong(KEY_POSITION, positionMs).apply()
     }

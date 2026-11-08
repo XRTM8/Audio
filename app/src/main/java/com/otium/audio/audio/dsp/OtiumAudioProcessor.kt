@@ -38,6 +38,7 @@ class OtiumAudioProcessor(
     private var bypass = true
     private var appliedPreAmpDb = Float.NaN
     private var nativeEnginePtr: Long = 0L
+    private var nativeSampleRateHz: Int = 0
     private var lastSyncedState: com.otium.audio.playback.EqualizerState? = null
 
     override fun onConfigure(inputAudioFormat: androidx.media3.common.audio.AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
@@ -61,10 +62,15 @@ class OtiumAudioProcessor(
         clarity.configure(sampleRateHz)
 
         if (NativeAudioDsp.isAvailable) {
-            if (nativeEnginePtr != 0L) {
-                NativeAudioDsp.destroyEngine(nativeEnginePtr)
+            if (nativeEnginePtr == 0L || nativeSampleRateHz != sampleRateHz) {
+                if (nativeEnginePtr != 0L) {
+                    NativeAudioDsp.destroyEngine(nativeEnginePtr)
+                }
+                nativeEnginePtr = NativeAudioDsp.createEngine(sampleRateHz)
+                nativeSampleRateHz = sampleRateHz
+            } else {
+                NativeAudioDsp.resetEngine(nativeEnginePtr)
             }
-            nativeEnginePtr = NativeAudioDsp.createEngine(sampleRateHz)
         }
 
         return inputAudioFormat
@@ -88,6 +94,7 @@ class OtiumAudioProcessor(
         if (nativeEnginePtr != 0L) {
             NativeAudioDsp.destroyEngine(nativeEnginePtr)
             nativeEnginePtr = 0L
+            nativeSampleRateHz = 0
         }
         onFlush()
     }

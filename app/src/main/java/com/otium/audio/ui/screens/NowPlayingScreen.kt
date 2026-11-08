@@ -24,6 +24,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -108,7 +109,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import com.otium.audio.ui.theme.AmbientBackdrop
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.withContext
 
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDirection
@@ -218,8 +221,11 @@ fun NowPlayingScreen(
     var showSleepTimer  by remember { mutableStateOf(false) }
     var showSpeedDialog by remember { mutableStateOf(false) }
 
-    val lyrics = remember(song.relativePath) {
-        LrcParser.findLrcForAudio(song.relativePath) ?: TrackLyrics()
+    var lyrics by remember { mutableStateOf(TrackLyrics()) }
+    LaunchedEffect(song.relativePath) {
+        lyrics = withContext(Dispatchers.IO) {
+            LrcParser.findLrcForAudio(song.relativePath) ?: TrackLyrics()
+        }
     }
 
     val dragY = remember { Animatable(0f) }
@@ -237,35 +243,40 @@ fun NowPlayingScreen(
         playlist.size
     }
 
-    var userSettledPage by remember { mutableIntStateOf(-1) }
+    val fastSnapFlingBehavior = PagerDefaults.flingBehavior(
+        state = pagerState,
+        snapAnimationSpec = spring(
+            stiffness = Spring.StiffnessHigh,
+            dampingRatio = Spring.DampingRatioNoBouncy
+        )
+    )
 
-    // Keep pager in sync with active playing track when changed externally
+    var userSelectedTrackIndex by remember { mutableIntStateOf(-1) }
+
+    // External change (e.g. queue sheet tap, skip next/prev buttons, track completion)
     LaunchedEffect(currentTrackIndex) {
+        if (currentTrackIndex == userSelectedTrackIndex) {
+            // Initiated by user swipe in this pager; do not fight user gesture!
+            return@LaunchedEffect
+        }
+        userSelectedTrackIndex = -1
         if (playlist.isNotEmpty() &&
             currentTrackIndex in playlist.indices &&
-            currentTrackIndex != userSettledPage &&
             pagerState.currentPage != currentTrackIndex &&
             !pagerState.isScrollInProgress
         ) {
-            pagerState.animateScrollToPage(
-                page = currentTrackIndex,
-                animationSpec = spring(
-                    stiffness = Spring.StiffnessMediumLow,
-                    dampingRatio = Spring.DampingRatioNoBouncy
-                )
-            )
+            pagerState.scrollToPage(currentTrackIndex)
         }
-        userSettledPage = -1
     }
 
-    // Switch tracks when user settles on a new page via gesture
+    // Gesture settlement on a new page -> switch track immediately
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.settledPage }.collect { settledPage ->
             if (playlist.isNotEmpty() &&
                 settledPage in playlist.indices &&
                 playlist[settledPage].id != song.id
             ) {
-                userSettledPage = settledPage
+                userSelectedTrackIndex = settledPage
                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 onPlayQueueIndex(settledPage)
             }
@@ -479,6 +490,7 @@ fun NowPlayingScreen(
                                 HorizontalPager(
                                     state = pagerState,
                                     userScrollEnabled = playlist.size > 1,
+                                    flingBehavior = fastSnapFlingBehavior,
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .fillMaxHeight(),
@@ -495,7 +507,7 @@ fun NowPlayingScreen(
                                     val pageCoverRequest = remember(pageSong.albumArtUri) {
                                         ImageRequest.Builder(context)
                                             .data(pageSong.albumArtUri)
-                                            .size(480, 480)
+                                            .size(384, 384)
                                             .allowHardware(true)
                                             .crossfade(false)
                                             .memoryCachePolicy(CachePolicy.ENABLED)
@@ -507,16 +519,14 @@ fun NowPlayingScreen(
                                         modifier = Modifier
                                             .fillMaxSize()
                                             .graphicsLayer {
-                                                // Dynamic 3D carousel depth calculation in unified LTR physics
+                                                // Dynamic carousel depth calculation in unified LTR physics
                                                 // Executed strictly in Draw/Layout phase — ZERO recompositions during 120Hz swiping!
                                                 val rawOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
                                                 val pageOffset = rawOffset.absoluteValue
-                                                val pageScale = (1f - (pageOffset * 0.12f)).coerceIn(0.85f, 1f)
+                                                val pageScale = (1f - (pageOffset * 0.10f)).coerceIn(0.88f, 1f)
                                                 scaleX = pageScale
                                                 scaleY = pageScale
-                                                alpha = (1f - (pageOffset * 0.40f)).coerceIn(0.55f, 1f)
-                                                rotationY = (rawOffset * -10f).coerceIn(-18f, 18f)
-                                                cameraDistance = 16f * density.density
+                                                alpha = (1f - (pageOffset * 0.35f)).coerceIn(0.60f, 1f)
                                             },
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -549,10 +559,10 @@ fun NowPlayingScreen(
                                                 .fillMaxWidth(0.96f)
                                                 .aspectRatio(1f)
                                                 .shadow(
-                                                    elevation = if (isCurrent) 24.dp else 6.dp,
+                                                    elevation = 16.dp,
                                                     shape = RoundedCornerShape(20.dp),
-                                                    ambientColor = animatedDominant.copy(alpha = 0.5f),
-                                                    spotColor = animatedDominant.copy(alpha = 0.4f)
+                                                    ambientColor = animatedDominant.copy(alpha = 0.45f),
+                                                    spotColor = animatedDominant.copy(alpha = 0.35f)
                                                 )
                                                 .clip(RoundedCornerShape(20.dp))
                                                 .background(DarkSurfaceVariant),
@@ -575,11 +585,7 @@ fun NowPlayingScreen(
                 }
 
                 // ── Track Title & Artist Information with Crossfade ─────────
-                val activeDisplaySong = remember(pagerState.currentPage, playlist, song) {
-                    if (playlist.isNotEmpty() && pagerState.currentPage in playlist.indices) {
-                        playlist[pagerState.currentPage]
-                    } else song
-                }
+                val activeDisplaySong = song
 
                 AnimatedContent(
                     targetState = activeDisplaySong,
@@ -603,7 +609,7 @@ fun NowPlayingScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 24.dp)
-                            .pointerInput(playlist.size, pagerState.currentPage) {
+                            .pointerInput(playlist.size) {
                                 var totalX = 0f
                                 detectHorizontalDragGestures(
                                     onDragStart = { totalX = 0f },

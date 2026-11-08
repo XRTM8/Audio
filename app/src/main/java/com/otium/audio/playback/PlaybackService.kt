@@ -68,9 +68,9 @@ class PlaybackService : MediaSessionService() {
             ): AudioSink? {
                 val controller = (context.applicationContext as OtiumApplication).equalizerController
                 return DefaultAudioSink.Builder(context)
-                    // Float output would bypass the platform effects; our own processor runs
-                    // on 16-bit PCM and does not care either way.
-                    .setEnableFloatOutput(true)
+                    // Direct 16-bit PCM output uses the low-latency direct HAL audio path,
+                    // avoiding the 50-150ms mixer initialization latency of 32-bit float output
+                    .setEnableFloatOutput(false)
                     .setAudioProcessorChain(
                         DefaultAudioSink.DefaultAudioProcessorChain(OtiumAudioProcessor(controller))
                     )

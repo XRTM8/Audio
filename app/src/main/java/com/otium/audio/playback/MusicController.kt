@@ -95,11 +95,25 @@ class MusicController(
         persistQueue()
     }
 
+    private var lastPersistedPlaylist: List<Song>? = null
+    private var lastPersistedIndex: Int = -1
+
     private fun persistQueue() {
         val controller = mediaController ?: return
+        val currentIndex = controller.currentMediaItemIndex
+        if (currentPlaylistSongs === lastPersistedPlaylist && currentIndex == lastPersistedIndex) return
+
+        if (currentPlaylistSongs === lastPersistedPlaylist) {
+            lastPersistedIndex = currentIndex
+            persistence.saveIndex(currentIndex)
+            return
+        }
+
         val ids = currentPlaylistSongs.map { it.id }
         if (ids.isEmpty()) return
-        persistence.saveQueue(ids, controller.currentMediaItemIndex)
+        lastPersistedPlaylist = currentPlaylistSongs
+        lastPersistedIndex = currentIndex
+        persistence.saveQueue(ids, currentIndex)
     }
 
     fun hasSavedSession(): Boolean = persistence.hasSession()
