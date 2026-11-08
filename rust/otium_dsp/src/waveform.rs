@@ -42,6 +42,74 @@ pub fn compute_spectrum(samples: &[f32], band_count: usize) -> Vec<f32> {
     magnitudes
 }
 
+/// Computes logarithmic spectrum magnitudes directly from raw PCM buffer pointer
+/// with ZERO intermediate heap allocations or copies.
+pub fn compute_spectrum_direct(
+    buffer_ptr: *const u8,
+    byte_offset: usize,
+    byte_length: usize,
+    is_float: bool,
+    band_count: usize,
+) -> Vec<f32> {
+    if buffer_ptr.is_null() || byte_length == 0 || band_count == 0 {
+        return vec![0.0; band_count];
+    }
+
+    let min_freq = 40.0f32;
+    let max_freq = 16000.0f32;
+    let sample_rate = 44100.0f32;
+    let mut magnitudes = vec![0.0f32; band_count];
+
+    let n = if is_float {
+        (byte_length / 4).min(512)
+    } else {
+        (byte_length / 2).min(512)
+    };
+
+    if n < 32 {
+        return magnitudes;
+    }
+
+    // Local stack window buffer
+    let mut window = [0.0f32; 512];
+    unsafe {
+        let ptr = buffer_ptr.add(byte_offset);
+        if is_float {
+            let fptr = ptr as *const f32;
+            for i in 0..n {
+                window[i] = *fptr.add(i);
+            }
+        } else {
+            let sptr = ptr as *const i16;
+            for i in 0..n {
+                window[i] = (*sptr.add(i) as f32) / 32768.0;
+            }
+        }
+    }
+
+    for band in 0..band_count {
+        let t = band as f32 / (band_count as f32 - 1.0).max(1.0);
+        let center_freq = min_freq * (max_freq / min_freq).powf(t);
+        let omega = 2.0 * PI * center_freq / sample_rate;
+
+        let coeff = 2.0 * omega.cos();
+        let mut s_prev = 0.0f32;
+        let mut s_prev2 = 0.0f32;
+
+        for &sample in &window[..n] {
+            let s = sample + coeff * s_prev - s_prev2;
+            s_prev2 = s_prev;
+            s_prev = s;
+        }
+
+        let power = s_prev * s_prev + s_prev2 * s_prev2 - coeff * s_prev * s_prev2;
+        let mag = (power.max(0.0).sqrt() / (n as f32)).min(1.0);
+        magnitudes[band] = (mag * 2.5).clamp(0.0, 1.0);
+    }
+
+    magnitudes
+}
+
 /// Generates a normalized peak waveform vector of N points (e.g. 100 points)
 /// from raw PCM bytes (either PCM16 or PCM Float).
 pub fn compute_waveform_peaks(pcm_bytes: &[u8], is_float: bool, num_points: usize) -> Vec<f32> {

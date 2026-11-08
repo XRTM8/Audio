@@ -30,6 +30,7 @@ object NativeAudioDsp {
         enginePtr: Long,
         preAmpDb: Float,
         bandGainsDb: FloatArray,
+        virtualizerStrength: Int,
         reverbStrength: Int,
         reverbPreset: Int,
         chorusStrength: Int,
@@ -62,6 +63,13 @@ object NativeAudioDsp {
 
     // --- 4. Waveform & FFT Spectrum Analyzer ---
     external fun computeSpectrum(samples: FloatArray, bandCount: Int): FloatArray?
+    external fun computeSpectrumDirectBuffer(
+        buffer: ByteBuffer,
+        byteOffset: Int,
+        byteLength: Int,
+        isFloat: Boolean,
+        bandCount: Int
+    ): FloatArray?
     external fun computeWaveformPeaks(pcmData: ByteArray, isFloat: Boolean, points: Int): FloatArray?
 
     // --- 5. High-Speed LRC Lyrics Parser & Synchronizer ---
@@ -128,6 +136,21 @@ object NativeAudioDsp {
         if (!isAvailable || samples.isEmpty()) return null
         return try {
             computeSpectrum(samples, bandCount)
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    fun analyzeSpectrumDirectBuffer(
+        buffer: ByteBuffer,
+        byteOffset: Int = 0,
+        byteLength: Int = buffer.remaining(),
+        isFloat: Boolean = false,
+        bandCount: Int = 16
+    ): FloatArray? {
+        if (!isAvailable || !buffer.isDirect || byteLength <= 0) return null
+        return try {
+            computeSpectrumDirectBuffer(buffer, byteOffset, byteLength, isFloat, bandCount)
         } catch (_: Throwable) {
             null
         }

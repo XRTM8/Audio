@@ -116,7 +116,13 @@ data class Song(
         }
     }
 
+    @Transient
+    private var cachedMediaItem: MediaItem? = null
+
     fun toMediaItem(): MediaItem {
+        val cached = cachedMediaItem
+        if (cached != null) return cached
+
         val metadata = MediaMetadata.Builder()
             .setTitle(title)
             .setArtist(artist)
@@ -129,11 +135,13 @@ data class Song(
             .setMediaUri(contentUri)
             .build()
 
-        return MediaItem.Builder()
+        val item = MediaItem.Builder()
             .setMediaId(id.toString())
             .setUri(contentUri)
             .setRequestMetadata(requestMetadata)
             .setMediaMetadata(metadata)
             .build()
+        cachedMediaItem = item
+        return item
     }
 }

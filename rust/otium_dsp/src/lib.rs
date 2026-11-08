@@ -60,6 +60,7 @@ pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_setParamete
     engine_ptr: jlong,
     pre_amp_db: jfloat,
     band_gains_db: JFloatArray,
+    virtualizer_strength: jint,
     reverb_strength: jint,
     reverb_preset: jint,
     chorus_strength: jint,
@@ -77,6 +78,7 @@ pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_setParamete
     engine.set_parameters(
         pre_amp_db,
         &gains,
+        virtualizer_strength,
         reverb_strength,
         reverb_preset,
         chorus_strength,
@@ -349,6 +351,46 @@ pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_computeSpec
     }
 
     let bands = waveform::compute_spectrum(&buf, band_count.max(1) as usize);
+
+    match env.new_float_array(bands.len() as i32) {
+        Ok(arr) => {
+            let _ = env.set_float_array_region(&arr, 0, &bands);
+            arr.into_raw()
+        }
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+#[no_mangle]
+pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_computeSpectrumDirectBuffer(
+    env: JNIEnv,
+    _class: JClass,
+    buffer_obj: JByteBuffer,
+    byte_offset: jint,
+    byte_length: jint,
+    is_float: jboolean,
+    band_count: jint,
+) -> jni::sys::jfloatArray {
+    if buffer_obj.is_null() || byte_length <= 0 {
+        return std::ptr::null_mut();
+    }
+
+    let buffer_address = match env.get_direct_buffer_address(&buffer_obj) {
+        Ok(addr) => addr,
+        Err(_) => return std::ptr::null_mut(),
+    };
+
+    if buffer_address.is_null() {
+        return std::ptr::null_mut();
+    }
+
+    let bands = waveform::compute_spectrum_direct(
+        buffer_address,
+        byte_offset.max(0) as usize,
+        byte_length as usize,
+        is_float != 0,
+        band_count.max(1) as usize,
+    );
 
     match env.new_float_array(bands.len() as i32) {
         Ok(arr) => {

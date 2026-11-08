@@ -16,6 +16,7 @@ pub struct OtiumDspEngine {
     chorus: StereoChorus,
     reverb: AudiophileReverb,
     limiter: PeakLimiter,
+    pub virtualizer_strength: i32,
 
     pub is_enabled: bool,
     pub is_bypass: bool,
@@ -39,6 +40,7 @@ impl OtiumDspEngine {
             chorus: StereoChorus::new(sample_rate_hz),
             reverb: AudiophileReverb::new(),
             limiter: PeakLimiter::new(sample_rate_hz),
+            virtualizer_strength: 0,
             is_enabled: true,
             is_bypass: false,
             applied_pre_amp_db: 0.0,
@@ -50,6 +52,7 @@ impl OtiumDspEngine {
         &mut self,
         pre_amp_db: f32,
         band_gains_db: &[f32],
+        virtualizer_strength: i32,
         reverb_strength: i32,
         reverb_preset: i32,
         chorus_strength: i32,
@@ -57,6 +60,7 @@ impl OtiumDspEngine {
         is_enabled: bool,
     ) {
         self.is_enabled = is_enabled;
+        self.virtualizer_strength = if is_enabled { virtualizer_strength } else { 0 };
 
         if pre_amp_db != self.applied_pre_amp_db {
             self.applied_pre_amp_db = pre_amp_db;
@@ -86,7 +90,7 @@ impl OtiumDspEngine {
         self.chorus.strength = if is_enabled { chorus_strength } else { 0 };
         self.clarity.strength = if is_enabled { clarity_strength } else { 0 };
 
-        let has_fx = reverb_strength > 0 || chorus_strength > 0 || clarity_strength > 0;
+        let has_fx = reverb_strength > 0 || chorus_strength > 0 || clarity_strength > 0 || virtualizer_strength > 0;
         self.limiter.enabled = is_enabled && (has_boost || has_fx);
         self.is_bypass = !is_enabled || (!has_boost && !has_cut && !has_fx);
     }
@@ -121,7 +125,16 @@ impl OtiumDspEngine {
                 right = self.filters[band][1].process(right);
             }
 
-            // 3. Clarity & De-Harsh
+            // 3. Virtualizer (Mid/Side Stereo Soundfield Widener)
+            if self.virtualizer_strength > 0 {
+                let width_factor = 1.0 + (self.virtualizer_strength as f32 / 1000.0) * 1.5;
+                let mid = (left + right) * 0.5;
+                let side = (left - right) * 0.5 * width_factor;
+                left = mid + side;
+                right = mid - side;
+            }
+
+            // 4. Clarity & De-Harsh
             if self.clarity.strength > 0 {
                 left = self.clarity.process(left, 0);
                 right = self.clarity.process(right, 1);
@@ -164,6 +177,14 @@ impl OtiumDspEngine {
             for band in 0..10 {
                 left = self.filters[band][0].process(left);
                 right = self.filters[band][1].process(right);
+            }
+
+            if self.virtualizer_strength > 0 {
+                let width_factor = 1.0 + (self.virtualizer_strength as f32 / 1000.0) * 1.5;
+                let mid = (left + right) * 0.5;
+                let side = (left - right) * 0.5 * width_factor;
+                left = mid + side;
+                right = mid - side;
             }
 
             if self.clarity.strength > 0 {

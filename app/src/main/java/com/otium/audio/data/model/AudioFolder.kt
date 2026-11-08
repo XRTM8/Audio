@@ -29,9 +29,9 @@ data class AudioFolder(
                     name = folderName,
                     path = path,
                     songCount = songList.size,
-                    songs = songList.sortedBy { it.title.lowercase() }
+                    songs = songList
                 )
-            }.sortedBy { it.name.lowercase() }
+            }.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
         }
 
         private val SEPARATORS = charArrayOf('/', '\\')

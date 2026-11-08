@@ -144,13 +144,21 @@ impl SearchEngine {
 }
 
 fn fuzzy_match_tokens(query: &str, tokens: &[String]) -> Option<i32> {
-    if query.chars().count() < 3 {
+    let q_chars: Vec<char> = query.chars().collect();
+    let q_len = q_chars.len();
+    if q_len < 3 || q_len > 60 {
         return None;
     }
-    let max_dist = if query.chars().count() >= 5 { 2 } else { 1 };
+    let max_dist = if q_len >= 5 { 2 } else { 1 };
 
     for tok in tokens {
-        let dist = levenshtein(query, tok);
+        let t_chars: Vec<char> = tok.chars().collect();
+        let t_len = t_chars.len();
+        if t_len > 60 || t_len.abs_diff(q_len) > max_dist {
+            continue;
+        }
+
+        let dist = levenshtein_bounded(&q_chars, &t_chars, max_dist);
         if dist <= max_dist {
             return Some(120 - (dist as i32 * 40));
         }
@@ -158,31 +166,43 @@ fn fuzzy_match_tokens(query: &str, tokens: &[String]) -> Option<i32> {
     None
 }
 
-fn levenshtein(a: &str, b: &str) -> usize {
-    let a_chars: Vec<char> = a.chars().collect();
-    let b_chars: Vec<char> = b.chars().collect();
-
-    let m = a_chars.len();
-    let n = b_chars.len();
+/// Zero-heap-allocation, stack-based Levenshtein distance with early-exit termination.
+fn levenshtein_bounded(a: &[char], b: &[char], max_dist: usize) -> usize {
+    let m = a.len();
+    let n = b.len();
 
     if m == 0 { return n; }
     if n == 0 { return m; }
+    if m.abs_diff(n) > max_dist { return max_dist + 1; }
 
-    let mut dp = vec![vec![0usize; n + 1]; m + 1];
+    let mut prev = [0usize; 64];
+    let mut curr = [0usize; 64];
 
-    for i in 0..=m { dp[i][0] = i; }
-    for j in 0..=n { dp[0][j] = j; }
-
-    for i in 1..=m {
-        for j in 1..=n {
-            let cost = if a_chars[i - 1] == b_chars[j - 1] { 0 } else { 1 };
-            dp[i][j] = (dp[i - 1][j] + 1)
-                .min(dp[i][j - 1] + 1)
-                .min(dp[i - 1][j - 1] + cost);
-        }
+    for j in 0..=n {
+        prev[j] = j;
     }
 
-    dp[m][n]
+    for i in 1..=m {
+        curr[0] = i;
+        let mut min_in_row = curr[0];
+
+        for j in 1..=n {
+            let cost = if a[i - 1] == b[j - 1] { 0 } else { 1 };
+            curr[j] = (prev[j] + 1).min(curr[j - 1] + 1).min(prev[j - 1] + cost);
+            if curr[j] < min_in_row {
+                min_in_row = curr[j];
+            }
+        }
+
+        // Early termination: if minimum distance in current row already exceeds max_dist, abort immediately
+        if min_in_row > max_dist {
+            return max_dist + 1;
+        }
+
+        prev[..=n].copy_from_slice(&curr[..=n]);
+    }
+
+    prev[n]
 }
 
 lazy_static_search_engine!();

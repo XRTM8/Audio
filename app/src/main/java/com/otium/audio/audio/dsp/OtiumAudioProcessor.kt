@@ -324,6 +324,7 @@ class OtiumAudioProcessor(
                 enginePtr = nativeEnginePtr,
                 preAmpDb = state.preAmpDb,
                 bandGainsDb = gains,
+                virtualizerStrength = if (state.isEnabled) state.virtualizerStrength else 0,
                 reverbStrength = if (state.isEnabled) state.reverbStrength else 0,
                 reverbPreset = presetIdx,
                 chorusStrength = if (state.isEnabled) state.chorusStrength else 0,
@@ -408,6 +409,21 @@ class OtiumAudioProcessor(
         lastSpectrumTimeMs = now
 
         try {
+            // Direct zero-copy Rust FFT spectrum calculation directly from native buffer memory
+            if (buffer.isDirect) {
+                val directBands = NativeAudioDsp.analyzeSpectrumDirectBuffer(
+                    buffer = buffer,
+                    byteOffset = buffer.position(),
+                    byteLength = byteLength,
+                    isFloat = isFloat,
+                    bandCount = 16
+                )
+                if (directBands != null) {
+                    VisualizerBridge.updateBands(directBands)
+                    return
+                }
+            }
+
             val sampleCount = if (isFloat) (byteLength / 4).coerceAtMost(512) else (byteLength / 2).coerceAtMost(512)
             if (sampleCount < 64) return
 
