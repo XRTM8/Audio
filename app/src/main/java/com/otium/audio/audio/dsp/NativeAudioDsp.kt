@@ -114,4 +114,22 @@ object NativeAudioDsp {
             null
         }
     }
+
+    fun extractWaveformPeaks(pcmBytes: ByteArray, isFloat: Boolean = false, points: Int = 100): FloatArray? {
+        if (!isAvailable || pcmBytes.isEmpty()) return null
+        return try {
+            computeWaveformPeaks(pcmBytes, isFloat, points)
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    fun analyzeSpectrum(samples: FloatArray, bandCount: Int = 16): FloatArray? {
+        if (!isAvailable || samples.isEmpty()) return null
+        return try {
+            computeSpectrum(samples, bandCount)
+        } catch (_: Throwable) {
+            null
+        }
+    }
 }
