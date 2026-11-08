@@ -377,7 +377,7 @@ private fun MiniPlayerTactileSeekStrip(
                         .padding(horizontal = 12.dp, vertical = 3.dp)
                 ) {
                     Text(
-                        text = "${formatDuration(scrubMs)} / ${formatDuration(durationMs)}",
+                        text = "${Song.formatDurationFast(scrubMs)} / ${Song.formatDurationFast(durationMs)}",
                         color = Color.White,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -386,13 +386,4 @@ private fun MiniPlayerTactileSeekStrip(
             }
         }
     }
-}
-
-private fun formatDuration(durationMs: Long): String {
-    val totalSeconds = (durationMs.coerceAtLeast(0L) / 1000).toInt()
-    val minutes = totalSeconds / 60
-    val seconds = totalSeconds % 60
-    val minStr = if (minutes < 10) "0$minutes" else minutes.toString()
-    val secStr = if (seconds < 10) "0$seconds" else seconds.toString()
-    return "$minStr:$secStr"
 }

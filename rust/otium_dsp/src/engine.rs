@@ -26,6 +26,7 @@ pub struct OtiumDspEngine {
     pub is_bypass: bool,
     applied_pre_amp_db: f32,
     applied_gains: [f32; 10],
+    fade_in_remaining: usize,
 }
 
 impl OtiumDspEngine {
@@ -53,6 +54,7 @@ impl OtiumDspEngine {
             is_bypass: false,
             applied_pre_amp_db: 0.0,
             applied_gains: [0.0; 10],
+            fade_in_remaining: 0,
         }
     }
 
@@ -117,6 +119,7 @@ impl OtiumDspEngine {
         self.peak_r = 0.0;
         self.rms_l = 0.0;
         self.rms_r = 0.0;
+        self.fade_in_remaining = (0.005 * self.sample_rate_hz).max(64.0) as usize;
     }
 
     #[inline(always)]
@@ -187,6 +190,14 @@ impl OtiumDspEngine {
             sum_sq_l += left * left;
             sum_sq_r += right * right;
 
+            if self.fade_in_remaining > 0 {
+                let total = (0.005 * self.sample_rate_hz).max(64.0);
+                let ramp = 1.0 - (self.fade_in_remaining as f32 / total);
+                left *= ramp.clamp(0.0, 1.0);
+                right *= ramp.clamp(0.0, 1.0);
+                self.fade_in_remaining -= 1;
+            }
+
             samples[f * 2] = left;
             samples[f * 2 + 1] = right;
         }
@@ -256,6 +267,14 @@ impl OtiumDspEngine {
             if abs_r > max_r { max_r = abs_r; }
             sum_sq_l += left * left;
             sum_sq_r += right * right;
+
+            if self.fade_in_remaining > 0 {
+                let total = (0.005 * self.sample_rate_hz).max(64.0);
+                let ramp = 1.0 - (self.fade_in_remaining as f32 / total);
+                left *= ramp.clamp(0.0, 1.0);
+                right *= ramp.clamp(0.0, 1.0);
+                self.fade_in_remaining -= 1;
+            }
 
             samples[f * 2] = (left.clamp(-1.0, 1.0) * 32767.0) as i16;
             samples[f * 2 + 1] = (right.clamp(-1.0, 1.0) * 32767.0) as i16;

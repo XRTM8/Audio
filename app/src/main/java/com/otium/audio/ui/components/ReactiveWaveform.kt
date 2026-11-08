@@ -34,7 +34,6 @@ fun ReactiveWaveform(
     waveformSeed: Long = 0L,
     modifier: Modifier = Modifier
 ) {
-    val liveEnergy by VisualizerBridge.averageEnergy.collectAsState()
     val transition = rememberInfiniteTransition(label = "waveform")
     val animatedPhase = if (isPlaying) {
         transition.animateFloat(
@@ -49,6 +48,7 @@ fun ReactiveWaveform(
     } else null
 
     Canvas(modifier = modifier) {
+        val liveEnergy = VisualizerBridge.averageEnergy.value
         val phase = animatedPhase?.value ?: 0f
         val barCount = 56
         val gap = 2.dp.toPx()

@@ -260,9 +260,6 @@ fun SongListItem(
  */
 @Composable
 fun MiniEqBars(modifier: Modifier = Modifier) {
-    val spectrum by VisualizerBridge.spectrumBands.collectAsState()
-    val hasLiveAudio = spectrum.isNotEmpty() && (spectrum[0] > 0.005f || spectrum[2] > 0.005f)
-
     val inf = rememberInfiniteTransition(label = "eq_bars")
     val b1 = inf.animateFloat(
         initialValue = 0.15f, targetValue = 0.90f,
@@ -282,6 +279,8 @@ fun MiniEqBars(modifier: Modifier = Modifier) {
     )
 
     Canvas(modifier = modifier.size(width = 16.dp, height = 13.dp)) {
+        val spectrum = VisualizerBridge.spectrumBands.value
+        val hasLiveAudio = spectrum.isNotEmpty() && (spectrum[0] > 0.005f || spectrum[2] > 0.005f)
         val totalWidth = size.width
         val totalHeight = size.height
         val barCount = 4
