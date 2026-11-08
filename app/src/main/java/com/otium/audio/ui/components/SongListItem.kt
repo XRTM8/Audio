@@ -43,8 +43,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
-
-private val EmptyRowInteractionSource = MutableInteractionSource()
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.platform.LocalContext
@@ -81,6 +79,7 @@ private val SubtitleStyle = TextStyle(
     textDirection = TextDirection.ContentOrLtr,
     fontSize = 11.5.sp
 )
+private val EmptyRowInteractionSource = MutableInteractionSource()
 
 /**
  * Ultra-optimized 120 FPS Audiophile Track Row.
