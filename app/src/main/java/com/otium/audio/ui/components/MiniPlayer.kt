@@ -94,6 +94,7 @@ fun MiniPlayer(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
 
     val hasAlbumArt = currentSong.albumArtUri != android.net.Uri.EMPTY
     val thumbReq = if (hasAlbumArt) {
