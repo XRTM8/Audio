@@ -726,7 +726,10 @@ fun NowPlayingScreen(
                     Box(
                         modifier = Modifier
                             .size(72.dp)
-                            .scale(playBtnScale)
+                            .graphicsLayer {
+                                scaleX = playBtnScale
+                                scaleY = playBtnScale
+                            }
                             .shadow(
                                 elevation = 14.dp,
                                 shape = CircleShape,

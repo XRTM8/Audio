@@ -41,6 +41,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+
+private val EmptyRowInteractionSource = MutableInteractionSource()
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.platform.LocalContext
@@ -114,10 +118,26 @@ fun SongListItem(
         }
     } else null
 
-    val onRowClick = remember(song, onSongClick) { { onSongClick(song) } }
-    val onFavClick = remember(song, onFavoriteClick) { { onFavoriteClick(song) } }
+    val haptic = LocalHapticFeedback.current
+    val onRowClick = remember(song, onSongClick) {
+        {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onSongClick(song)
+        }
+    }
+    val onFavClick = remember(song, onFavoriteClick) {
+        {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onFavoriteClick(song)
+        }
+    }
     val onRowLongClick = remember(song, onLongClick) {
-        if (onLongClick != null) { { onLongClick(song) } } else null
+        if (onLongClick != null) {
+            {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onLongClick(song)
+            }
+        } else null
     }
 
     Row(
@@ -141,7 +161,7 @@ fun SongListItem(
                 )
             }
             .combinedClickable(
-                interactionSource = remember { MutableInteractionSource() },
+                interactionSource = EmptyRowInteractionSource,
                 indication = null,
                 onClick = onRowClick,
                 onLongClick = onRowLongClick

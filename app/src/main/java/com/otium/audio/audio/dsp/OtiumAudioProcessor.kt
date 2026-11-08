@@ -406,7 +406,7 @@ class OtiumAudioProcessor(
 
     private fun sampleSpectrumIfNeeded(buffer: ByteBuffer, isFloat: Boolean, byteLength: Int) {
         val now = android.os.SystemClock.uptimeMillis()
-        if (now - lastSpectrumTimeMs < 50L) return
+        if (now - lastSpectrumTimeMs < 16L) return
         lastSpectrumTimeMs = now
 
         try {

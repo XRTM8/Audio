@@ -223,7 +223,10 @@ fun MiniPlayer(
                     Box(
                         modifier = Modifier
                             .size(46.dp)
-                            .scale(btnScale)
+                            .graphicsLayer {
+                                scaleX = btnScale
+                                scaleY = btnScale
+                            }
                             .shadow(elevation = 6.dp, shape = CircleShape, spotColor = Color(0x66FFFFFF))
                             .clip(CircleShape)
                             .background(Color.White),

@@ -139,7 +139,11 @@ fun QueueSheet(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    itemsIndexed(queue, key = { index, song -> "${song.id}_$index" }) { index, song ->
+                    itemsIndexed(
+                        items = queue,
+                        key = { index, song -> (song.id shl 16) or (index.toLong() and 0xFFFFL) },
+                        contentType = { "queue_item" }
+                    ) { index, song ->
                         val isPlaying = currentSong?.id == song.id
 
                         val thumbnailRequest = if (song.albumArtUri != android.net.Uri.EMPTY) {

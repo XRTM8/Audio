@@ -195,7 +195,7 @@ class MusicController(
                     }
                 }
                 ticks++
-                delay(250L)
+                delay(50L)
             }
         }
     }
@@ -248,10 +248,12 @@ class MusicController(
 
     fun togglePlayPause() {
         val controller = mediaController ?: return
-        if (controller.isPlaying) {
-            controller.pause()
-        } else {
+        val willPlay = !controller.isPlaying
+        _playbackState.update { it.copy(isPlaying = willPlay) }
+        if (willPlay) {
             controller.play()
+        } else {
+            controller.pause()
         }
     }
 
@@ -259,8 +261,8 @@ class MusicController(
         val controller = mediaController ?: return
         val duration = _playbackState.value.durationMs.coerceAtLeast(0L)
         val clamped = if (duration > 0) positionMs.coerceIn(0L, duration) else positionMs.coerceAtLeast(0L)
-        controller.seekTo(clamped)
         _position.value = clamped
+        controller.seekTo(clamped)
     }
 
     fun seekBy(deltaMs: Long) {
@@ -270,6 +272,25 @@ class MusicController(
 
     fun skipToNext() {
         val controller = mediaController ?: return
+        val queue = currentPlaylistSongs
+        val currentIndex = controller.currentMediaItemIndex
+        val nextIndex = if (controller.hasNextMediaItem()) {
+            currentIndex + 1
+        } else if (controller.mediaItemCount > 0) {
+            0
+        } else -1
+
+        if (nextIndex in queue.indices) {
+            val nextSong = queue[nextIndex]
+            _playbackState.update {
+                it.copy(
+                    currentSong = nextSong,
+                    isPlaying = true,
+                    durationMs = nextSong.durationMs
+                )
+            }
+        }
+
         if (controller.hasNextMediaItem()) {
             controller.seekToNextMediaItem()
         } else if (controller.mediaItemCount > 0) {
@@ -281,10 +302,31 @@ class MusicController(
         val controller = mediaController ?: return
         if (controller.currentPosition > 3000L) {
             controller.seekTo(0L)
-        } else if (controller.hasPreviousMediaItem()) {
-            controller.seekToPreviousMediaItem()
+            _position.value = 0L
         } else {
-            controller.seekTo(0L)
+            val queue = currentPlaylistSongs
+            val currentIndex = controller.currentMediaItemIndex
+            val prevIndex = if (controller.hasPreviousMediaItem()) {
+                currentIndex - 1
+            } else 0
+
+            if (prevIndex in queue.indices) {
+                val prevSong = queue[prevIndex]
+                _playbackState.update {
+                    it.copy(
+                        currentSong = prevSong,
+                        isPlaying = true,
+                        durationMs = prevSong.durationMs
+                    )
+                }
+            }
+
+            if (controller.hasPreviousMediaItem()) {
+                controller.seekToPreviousMediaItem()
+            } else {
+                controller.seekTo(0L)
+                _position.value = 0L
+            }
         }
     }
 
