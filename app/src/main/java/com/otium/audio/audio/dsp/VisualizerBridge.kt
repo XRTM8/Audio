@@ -17,6 +17,10 @@ object VisualizerBridge {
     private val _averageEnergy = MutableStateFlow(0f)
     val averageEnergy: StateFlow<Float> = _averageEnergy.asStateFlow()
 
+    private val defaultLevels = NativeAudioDsp.PeakRmsLevels(0f, 0f, 0f, 0f)
+    private val _peakLevels = MutableStateFlow(defaultLevels)
+    val peakLevels: StateFlow<NativeAudioDsp.PeakRmsLevels> = _peakLevels.asStateFlow()
+
     fun updateBands(bands: FloatArray) {
         _spectrumBands.value = bands
         var sum = 0f
@@ -26,8 +30,13 @@ object VisualizerBridge {
         _averageEnergy.value = (sum / bands.size.coerceAtLeast(1)).coerceIn(0f, 1f)
     }
 
+    fun updatePeakLevels(levels: NativeAudioDsp.PeakRmsLevels) {
+        _peakLevels.value = levels
+    }
+
     fun reset() {
         _spectrumBands.value = emptyBands
         _averageEnergy.value = 0f
+        _peakLevels.value = defaultLevels
     }
 }

@@ -114,16 +114,22 @@ object LrcParser {
         try {
             if (audioPath.isBlank()) return null
             val cached = lyricsCache[audioPath]
-            if (cached != null) return cached
+            if (cached != null) return if (cached.lines.isEmpty()) null else cached
 
             val dot = audioPath.lastIndexOf('.')
-            if (dot <= 0) return null
+            if (dot <= 0) {
+                lyricsCache[audioPath] = TrackLyrics()
+                return null
+            }
             val lrcPath = audioPath.substring(0, dot) + ".lrc"
             val lrcFile = File(lrcPath)
             if (lrcFile.exists() && lrcFile.canRead()) {
                 val parsed = parse(lrcFile.readText())
                 lyricsCache[audioPath] = parsed
                 return parsed
+            } else {
+                // Negative cache to prevent repeated disk I/O for songs without lyrics
+                lyricsCache[audioPath] = TrackLyrics()
             }
         } catch (_: Exception) {
             // Ignore I/O issues gracefully

@@ -420,6 +420,14 @@ class OtiumAudioProcessor(
                 )
                 if (directBands != null) {
                     VisualizerBridge.updateBands(directBands)
+                }
+                if (nativeEnginePtr != 0L) {
+                    val peaks = NativeAudioDsp.readPeakLevels(nativeEnginePtr)
+                    if (peaks != null) {
+                        VisualizerBridge.updatePeakLevels(peaks)
+                    }
+                }
+                if (directBands != null) {
                     return
                 }
             }

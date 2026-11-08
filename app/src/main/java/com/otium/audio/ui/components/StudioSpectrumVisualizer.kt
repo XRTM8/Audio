@@ -34,32 +34,30 @@ fun StudioSpectrumVisualizer(
         val barWidth = ((totalWidth - gap * (barCount - 1)) / barCount).coerceAtLeast(2.5f)
         val radius = CornerRadius(barWidth / 2f, barWidth / 2f)
 
+        val activeBrush = Brush.verticalGradient(
+            colors = listOf(
+                Color.White,
+                accentColor.copy(alpha = 0.85f)
+            ),
+            startY = 0f,
+            endY = totalHeight
+        )
+        val inactiveBrush = Brush.verticalGradient(
+            colors = listOf(
+                Color(0x33FFFFFF),
+                Color(0x1AFFFFFF)
+            ),
+            startY = 0f,
+            endY = totalHeight
+        )
+        val barBrush = if (isPlaying) activeBrush else inactiveBrush
+
         for (i in 0 until barCount) {
             val rawMag = if (isPlaying && spectrum.size > i) spectrum[i] else 0f
             val mag = (rawMag * 1.85f).coerceIn(0.08f, 1f)
             val barHeight = totalHeight * mag
             val left = i * (barWidth + gap)
             val top = totalHeight - barHeight
-
-            val barBrush = if (isPlaying) {
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White,
-                        accentColor.copy(alpha = 0.85f)
-                    ),
-                    startY = top,
-                    endY = totalHeight
-                )
-            } else {
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0x33FFFFFF),
-                        Color(0x1AFFFFFF)
-                    ),
-                    startY = top,
-                    endY = totalHeight
-                )
-            }
 
             drawRoundRect(
                 brush = barBrush,
