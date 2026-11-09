@@ -115,6 +115,10 @@ import kotlinx.coroutines.withContext
 
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDirection
+import com.otium.audio.ui.actions.PlaybackActions
+import com.otium.audio.ui.actions.EqualizerActions
+import com.otium.audio.ui.actions.QueueActions
+import com.otium.audio.ui.actions.SleepTimerActions
 
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -148,6 +152,66 @@ import com.otium.audio.ui.theme.rememberTrackColors
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
+
+@Composable
+fun NowPlayingScreen(
+    song: Song,
+    isPlaying: Boolean,
+    positionFlow: StateFlow<Long>,
+    durationMs: Long,
+    repeatMode: Int,
+    isShuffleEnabled: Boolean,
+    playbackSpeed: Float,
+    equalizerState: EqualizerState,
+    queue: List<Song>,
+    sleepTimerState: SleepTimerState,
+    playbackActions: PlaybackActions,
+    equalizerActions: EqualizerActions,
+    queueActions: QueueActions,
+    sleepTimerActions: SleepTimerActions,
+    onCollapse: () -> Unit,
+    onEditTagClick: () -> Unit,
+    modifier: Modifier = Modifier
+) = NowPlayingScreen(
+    song = song,
+    isPlaying = isPlaying,
+    positionFlow = positionFlow,
+    durationMs = durationMs,
+    repeatMode = repeatMode,
+    isShuffleEnabled = isShuffleEnabled,
+    playbackSpeed = playbackSpeed,
+    equalizerState = equalizerState,
+    queue = queue,
+    sleepTimerState = sleepTimerState,
+    onCollapse = onCollapse,
+    onPlayPause = playbackActions.onPlayPause,
+    onSeekTo = playbackActions.onSeekTo,
+    onSeekBy = playbackActions.onSeekBy,
+    onSkipNext = playbackActions.onSkipNext,
+    onSkipPrevious = playbackActions.onSkipPrevious,
+    onToggleRepeat = playbackActions.onToggleRepeat,
+    onToggleShuffle = playbackActions.onToggleShuffle,
+    onToggleFavorite = { playbackActions.onToggleFavorite(song) },
+    onSetPlaybackSpeed = playbackActions.onSetPlaybackSpeed,
+    onToggleEqualizer = equalizerActions.onToggle,
+    onEqualizerBandChange = equalizerActions.onBandLevelChange,
+    onBassBoostChange = equalizerActions.onBassBoostChange,
+    onVirtualizerChange = equalizerActions.onVirtualizerChange,
+    onEqualizerPresetSelected = equalizerActions.onPresetSelected,
+    onPreAmpChange = equalizerActions.onPreAmpChange,
+    onReverbChange = equalizerActions.onReverbChange,
+    onReverbPresetChange = equalizerActions.onReverbPresetChange,
+    onChorusChange = equalizerActions.onChorusChange,
+    onClarityChange = equalizerActions.onClarityChange,
+    onPlayQueueIndex = queueActions.onPlayQueueIndex,
+    onRemoveQueueItem = queueActions.onRemoveQueueItem,
+    onMoveQueueItem = queueActions.onMoveQueueItem,
+    onStartSleepTimer = sleepTimerActions.onStartTimer,
+    onStartSleepEndOfTrack = sleepTimerActions.onStartEndOfTrack,
+    onCancelSleepTimer = sleepTimerActions.onCancelTimer,
+    onEditTagClick = onEditTagClick,
+    modifier = modifier
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

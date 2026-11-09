@@ -92,7 +92,45 @@ import com.otium.audio.ui.theme.TextPrimary
 import com.otium.audio.ui.theme.TextSecondary
 import com.otium.audio.ui.viewmodel.LibraryTab
 import com.otium.audio.ui.viewmodel.MusicUiState
+import com.otium.audio.ui.actions.PlaybackActions
+import com.otium.audio.ui.actions.LibraryActions
 import kotlinx.coroutines.launch
+
+@Composable
+fun HomeScreen(
+    uiState: MusicUiState,
+    positionFlow: StateFlow<Long>,
+    libraryActions: LibraryActions,
+    playbackActions: PlaybackActions,
+    onOpenNowPlaying: () -> Unit,
+    onOpenEqualizer: () -> Unit,
+    modifier: Modifier = Modifier
+) = HomeScreen(
+    uiState = uiState,
+    positionFlow = positionFlow,
+    onTabSelected = libraryActions.onTabSelected,
+    onSearchQueryChanged = libraryActions.onSearchQueryChanged,
+    onSongSelected = libraryActions.onSongSelected,
+    onFavoriteToggle = libraryActions.onFavoriteToggle,
+    onPlaylistSelected = libraryActions.onPlaylistSelected,
+    onClearSelectedPlaylist = libraryActions.onClearSelectedPlaylist,
+    onFolderSelected = libraryActions.onFolderSelected,
+    onClearSelectedFolder = libraryActions.onClearSelectedFolder,
+    onCreatePlaylist = libraryActions.onCreatePlaylist,
+    onDeletePlaylist = libraryActions.onDeletePlaylist,
+    onPlayPause = playbackActions.onPlayPause,
+    onSkipNext = playbackActions.onSkipNext,
+    onSkipPrevious = playbackActions.onSkipPrevious,
+    onOpenNowPlaying = onOpenNowPlaying,
+    onSeekTo = playbackActions.onSeekTo,
+    onOpenEqualizer = onOpenEqualizer,
+    onEditTagClick = libraryActions.onEditTagClick,
+    onSongLongPress = libraryActions.onSongLongPress,
+    onSaveMetadata = libraryActions.onSaveMetadata,
+    onDismissTagEditor = libraryActions.onDismissTagEditor,
+    onDismissUpdate = libraryActions.onDismissUpdate,
+    modifier = modifier
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

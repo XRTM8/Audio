@@ -1,9 +1,13 @@
 package com.otium.audio.data.local.entity
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "playback_history")
+@Entity(
+    tableName = "playback_history",
+    indices = [Index(value = ["songId"]), Index(value = ["playedAt"])]
+)
 data class HistoryEntity(
     @PrimaryKey(autoGenerate = true)
     val historyId: Long = 0,

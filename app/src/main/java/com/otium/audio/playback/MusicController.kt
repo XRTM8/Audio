@@ -428,8 +428,8 @@ class MusicController(
     }
 
     private companion object {
-        /** 250 ms per tick, so twenty ticks is roughly five seconds. */
-        const val POSITION_SAVE_TICKS = 20
+        /** 50 ms per tick, so 200 ticks is exactly 10 seconds of continuous playback before saving to disk. */
+        const val POSITION_SAVE_TICKS = 200
     }
 
     fun release() {

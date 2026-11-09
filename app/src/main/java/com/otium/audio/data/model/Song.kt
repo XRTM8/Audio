@@ -17,14 +17,14 @@ data class Song(
     val size: Long,
     val relativePath: String,
     val dateAdded: Long,
-    val isFavorite: Boolean = false,
-    val formattedDuration: String = formatDurationFast(durationMs),
-    val audioFormatBadge: String = determineAudioBadgeFast(relativePath, contentUri),
-    val displayTitle: String = cleanDisplayTitleFast(title),
-    val indexLetter: String = extractIndexLetterFast(title),
-    val subtitle: String = "$artist  ·  $formattedDuration",
-    val normalizedSearchTarget: String = normalizeForSearchFast("$title $artist $album")
+    val isFavorite: Boolean = false
 ) {
+    val formattedDuration: String get() = formatDurationFast(durationMs)
+    val audioFormatBadge: String get() = determineAudioBadgeFast(relativePath, contentUri)
+    val displayTitle: String get() = cleanDisplayTitleFast(title)
+    val indexLetter: String get() = extractIndexLetterFast(title)
+    val subtitle: String get() = "$artist  ·  $formattedDuration"
+    val normalizedSearchTarget: String get() = normalizeForSearchFast("$title $artist $album")
     companion object {
         fun normalizeForSearchFast(input: String): String {
             if (input.isEmpty()) return ""

@@ -38,6 +38,11 @@ import com.otium.audio.ui.theme.OtiumAccent
 import com.otium.audio.ui.theme.OtiumAudioTheme
 import com.otium.audio.ui.theme.PaletteManager
 import com.otium.audio.ui.viewmodel.MusicViewModel
+import com.otium.audio.ui.actions.PlaybackActions
+import com.otium.audio.ui.actions.EqualizerActions
+import com.otium.audio.ui.actions.QueueActions
+import com.otium.audio.ui.actions.SleepTimerActions
+import com.otium.audio.ui.actions.LibraryActions
 
 class MainActivity : ComponentActivity() {
 
@@ -81,16 +86,53 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    if (!uiState.hasStoragePermission) {
-                        PermissionScreen(
-                            onPermissionGranted = {
-                                viewModel.onPermissionGranted()
-                            }
+                    val playbackActions = remember(viewModel) {
+                        PlaybackActions(
+                            onPlayPause = viewModel::togglePlayPause,
+                            onSeekTo = viewModel::seekTo,
+                            onSeekBy = viewModel::seekBy,
+                            onSkipNext = viewModel::skipToNext,
+                            onSkipPrevious = viewModel::skipToPrevious,
+                            onToggleRepeat = viewModel::toggleRepeatMode,
+                            onToggleShuffle = viewModel::toggleShuffle,
+                            onToggleFavorite = viewModel::toggleFavorite,
+                            onSetPlaybackSpeed = viewModel::setPlaybackSpeed
                         )
-                    } else {
-                        HomeScreen(
-                            uiState = uiState,
-                            positionFlow = viewModel.position,
+                    }
+
+                    val equalizerActions = remember(viewModel) {
+                        EqualizerActions(
+                            onToggle = viewModel::toggleEqualizer,
+                            onBandLevelChange = viewModel::setEqualizerBandLevel,
+                            onBassBoostChange = viewModel::setBassBoost,
+                            onVirtualizerChange = viewModel::setVirtualizer,
+                            onPresetSelected = viewModel::applyEqualizerPreset,
+                            onPreAmpChange = viewModel::setPreAmpGain,
+                            onReverbChange = viewModel::setReverb,
+                            onReverbPresetChange = viewModel::setReverbPreset,
+                            onChorusChange = viewModel::setChorus,
+                            onClarityChange = viewModel::setClarity
+                        )
+                    }
+
+                    val queueActions = remember(viewModel) {
+                        QueueActions(
+                            onPlayQueueIndex = viewModel::playQueueIndex,
+                            onRemoveQueueItem = viewModel::removeQueueItem,
+                            onMoveQueueItem = viewModel::moveQueueItem
+                        )
+                    }
+
+                    val sleepTimerActions = remember(viewModel) {
+                        SleepTimerActions(
+                            onStartTimer = viewModel::startSleepTimer,
+                            onStartEndOfTrack = viewModel::startSleepEndOfTrack,
+                            onCancelTimer = viewModel::cancelSleepTimer
+                        )
+                    }
+
+                    val libraryActions = remember(viewModel) {
+                        LibraryActions(
                             onTabSelected = viewModel::selectTab,
                             onSearchQueryChanged = viewModel::onSearchQueryChanged,
                             onSongSelected = viewModel::playSong,
@@ -101,17 +143,28 @@ class MainActivity : ComponentActivity() {
                             onClearSelectedFolder = viewModel::clearSelectedFolder,
                             onCreatePlaylist = viewModel::createPlaylist,
                             onDeletePlaylist = viewModel::deletePlaylist,
-                            onPlayPause = viewModel::togglePlayPause,
-                            onSkipNext = viewModel::skipToNext,
-                            onSkipPrevious = viewModel::skipToPrevious,
-                            onOpenNowPlaying = { viewModel.setNowPlayingExpanded(true) },
-                            onSeekTo = viewModel::seekTo,
-                            onOpenEqualizer = { showHomeEqualizer = true },
                             onEditTagClick = viewModel::openTagEditor,
                             onSaveMetadata = viewModel::saveSongMetadata,
+                            onSongLongPress = { songToDelete = it },
                             onDismissTagEditor = { viewModel.openTagEditor(null) },
-                            onDismissUpdate = viewModel::dismissUpdate,
-                            onSongLongPress = { songToDelete = it }
+                            onDismissUpdate = viewModel::dismissUpdate
+                        )
+                    }
+
+                    if (!uiState.hasStoragePermission) {
+                        PermissionScreen(
+                            onPermissionGranted = {
+                                viewModel.onPermissionGranted()
+                            }
+                        )
+                    } else {
+                        HomeScreen(
+                            uiState = uiState,
+                            positionFlow = viewModel.position,
+                            libraryActions = libraryActions,
+                            playbackActions = playbackActions,
+                            onOpenNowPlaying = { viewModel.setNowPlayingExpanded(true) },
+                            onOpenEqualizer = { showHomeEqualizer = true }
                         )
 
                         DeleteSongDialog(
@@ -127,16 +180,16 @@ class MainActivity : ComponentActivity() {
                         if (showHomeEqualizer) {
                             EqualizerSheet(
                                 state = uiState.equalizerState,
-                                onToggleEnabled = viewModel::toggleEqualizer,
-                                onBandLevelChange = viewModel::setEqualizerBandLevel,
-                                onBassBoostChange = viewModel::setBassBoost,
-                                onVirtualizerChange = viewModel::setVirtualizer,
-                                onPresetSelected = viewModel::applyEqualizerPreset,
-                                onPreAmpChange = viewModel::setPreAmpGain,
-                                onReverbChange = viewModel::setReverb,
-                                onReverbPresetChange = viewModel::setReverbPreset,
-                                onChorusChange = viewModel::setChorus,
-                                onClarityChange = viewModel::setClarity,
+                                onToggleEnabled = equalizerActions.onToggle,
+                                onBandLevelChange = equalizerActions.onBandLevelChange,
+                                onBassBoostChange = equalizerActions.onBassBoostChange,
+                                onVirtualizerChange = equalizerActions.onVirtualizerChange,
+                                onPresetSelected = equalizerActions.onPresetSelected,
+                                onPreAmpChange = equalizerActions.onPreAmpChange,
+                                onReverbChange = equalizerActions.onReverbChange,
+                                onReverbPresetChange = equalizerActions.onReverbPresetChange,
+                                onChorusChange = equalizerActions.onChorusChange,
+                                onClarityChange = equalizerActions.onClarityChange,
                                 onDismiss = { showHomeEqualizer = false }
                             )
                         }
@@ -179,32 +232,11 @@ class MainActivity : ComponentActivity() {
                                     equalizerState = uiState.equalizerState,
                                     queue = if (uiState.playbackState.queue.isNotEmpty()) uiState.playbackState.queue else uiState.songs,
                                     sleepTimerState = uiState.sleepTimerState,
+                                    playbackActions = playbackActions,
+                                    equalizerActions = equalizerActions,
+                                    queueActions = queueActions,
+                                    sleepTimerActions = sleepTimerActions,
                                     onCollapse = { viewModel.setNowPlayingExpanded(false) },
-                                    onPlayPause = viewModel::togglePlayPause,
-                                    onSeekTo = viewModel::seekTo,
-                                    onSeekBy = viewModel::seekBy,
-                                    onSkipNext = viewModel::skipToNext,
-                                    onSkipPrevious = viewModel::skipToPrevious,
-                                    onToggleRepeat = viewModel::toggleRepeatMode,
-                                    onToggleShuffle = viewModel::toggleShuffle,
-                                    onToggleFavorite = { viewModel.toggleFavorite(currentSong) },
-                                    onSetPlaybackSpeed = viewModel::setPlaybackSpeed,
-                                    onToggleEqualizer = viewModel::toggleEqualizer,
-                                    onEqualizerBandChange = viewModel::setEqualizerBandLevel,
-                                    onBassBoostChange = viewModel::setBassBoost,
-                                    onVirtualizerChange = viewModel::setVirtualizer,
-                                    onEqualizerPresetSelected = viewModel::applyEqualizerPreset,
-                                    onPreAmpChange = viewModel::setPreAmpGain,
-                                    onReverbChange = viewModel::setReverb,
-                                    onReverbPresetChange = viewModel::setReverbPreset,
-                                    onChorusChange = viewModel::setChorus,
-                                    onClarityChange = viewModel::setClarity,
-                                    onPlayQueueIndex = viewModel::playQueueIndex,
-                                    onRemoveQueueItem = viewModel::removeQueueItem,
-                                    onMoveQueueItem = viewModel::moveQueueItem,
-                                    onStartSleepTimer = viewModel::startSleepTimer,
-                                    onStartSleepEndOfTrack = viewModel::startSleepEndOfTrack,
-                                    onCancelSleepTimer = viewModel::cancelSleepTimer,
                                     onEditTagClick = { viewModel.openTagEditor(currentSong) }
                                 )
                             }
