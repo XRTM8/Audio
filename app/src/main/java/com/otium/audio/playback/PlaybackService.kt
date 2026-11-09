@@ -228,6 +228,8 @@ class PlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        VisualizerBridge.stopWorker()
+        serviceScope.cancel()
         closeSystemAudioEffectSession(activeAudioSessionId)
         mediaSession?.run {
             player.release()
@@ -272,16 +274,6 @@ class PlaybackService : MediaSessionService() {
             Log.w(TAG, "Error broadcasting ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION", e)
         }
         activeAudioSessionId = C.AUDIO_SESSION_ID_UNSET
-    }
-
-    override fun onDestroy() {
-        VisualizerBridge.stopWorker()
-        serviceScope.cancel()
-        closeSystemAudioEffectSession(activeAudioSessionId)
-        player.release()
-        mediaSession?.release()
-        mediaSession = null
-        super.onDestroy()
     }
 
     private inner class PlayerEventListener : Player.Listener {
