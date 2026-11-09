@@ -132,17 +132,16 @@ object LrcParser {
             // Fallback: extract embedded lyrics from file tags via Rust
             val embedded = NativeAudioDsp.extractLyricsSafe(audioPath)
             if (!embedded.isNullOrBlank()) {
-                    val parsed = parse(embedded)
-                    val result = if (parsed.lines.isNotEmpty()) {
-                        parsed
-                    } else {
-                        val plainLines = embedded.lines().filter { it.isNotBlank() }.map { LyricLine(0L, it.trim()) }
-                        if (plainLines.isNotEmpty()) TrackLyrics(lines = plainLines, isSynced = false) else null
-                    }
-                    if (result != null) {
-                        synchronized(lyricsCache) { lyricsCache.put(audioPath, result) }
-                        return result
-                    }
+                val parsed = parse(embedded)
+                val result = if (parsed.lines.isNotEmpty()) {
+                    parsed
+                } else {
+                    val plainLines = embedded.lines().filter { it.isNotBlank() }.map { LyricLine(0L, it.trim()) }
+                    if (plainLines.isNotEmpty()) TrackLyrics(lines = plainLines, isSynced = false) else null
+                }
+                if (result != null) {
+                    synchronized(lyricsCache) { lyricsCache.put(audioPath, result) }
+                    return result
                 }
             }
 
