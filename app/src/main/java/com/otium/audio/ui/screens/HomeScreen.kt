@@ -94,6 +94,9 @@ import com.otium.audio.ui.viewmodel.LibraryTab
 import com.otium.audio.ui.viewmodel.MusicUiState
 import com.otium.audio.ui.actions.PlaybackActions
 import com.otium.audio.ui.actions.LibraryActions
+import com.otium.audio.ui.components.home.HomeTopBar
+import com.otium.audio.ui.components.home.HomeSearchBar
+import com.otium.audio.ui.components.home.HomeFilterPills
 import kotlinx.coroutines.launch
 
 @Composable
@@ -187,128 +190,25 @@ fun HomeScreen(
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
 
-                // ── Poweramp Precision Top Bar ──────────────────────────────
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 20.dp, end = 12.dp, top = 10.dp, bottom = 6.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // The library answers "what do I have" before anything else.
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "مكتبتك",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = TextTertiary
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "${uiState.songs.size} أغنية",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = TextPrimary
-                        )
-                    }
-
-                    // Icon Cluster
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (uiState.availableUpdate != null) {
-                            IconButton(onClick = {
-                                // Open Settings sheet (full in-app download UI).
-                                showSettings = true
-                            }) {
-                                Icon(
-                                    imageVector = Icons.Default.SystemUpdate,
-                                    contentDescription = "Update Available",
-                                    tint = AccentGold,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-
-                        IconButton(onClick = onOpenEqualizer) {
-                            Icon(
-                                imageVector = Icons.Default.Equalizer,
-                                contentDescription = "Equalizer",
-                                tint = if (uiState.equalizerState.isEnabled) AccentGold else TextSecondary,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-
-                        IconButton(onClick = { showSettings = true }) {
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = "Settings",
-                                tint = TextSecondary,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                    }
-                }
-
-                // ── Fast Poweramp Search Bar ─────────────────────────────
-                OutlinedTextField(
-                    value = uiState.searchQuery,
-                    onValueChange = onSearchQueryChanged,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 2.dp)
-                        .height(48.dp),
-                    placeholder = {
-                        Text(
-                            text = "بحث في ${uiState.songs.size} مقطعاً، فناناً، ألبوماً...",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = TextSecondary,
-                            fontSize = 12.5.sp
-                        )
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = null,
-                            tint = TextSecondary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    },
-                    trailingIcon = {
-                        if (uiState.searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { onSearchQueryChanged("") }) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Clear",
-                                    tint = TextSecondary,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                        }
-                    },
-                    shape = RoundedCornerShape(12.dp),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = DarkSurfaceContainer,
-                        unfocusedContainerColor = DarkSurfaceContainer,
-                        focusedBorderColor = AccentGold.copy(alpha = 0.5f),
-                        unfocusedBorderColor = DarkCardBorder,
-                        cursorColor = AccentGold,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary
-                    ),
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp)
+                HomeTopBar(
+                    songCount = uiState.songs.size,
+                    isEqualizerEnabled = uiState.equalizerState.isEnabled,
+                    availableUpdate = uiState.availableUpdate,
+                    onOpenEqualizer = onOpenEqualizer,
+                    onOpenSettings = { showSettings = true }
                 )
 
-                // ── Quick Filter Stream Pills (In-place filter, NO tab lag) ──
+                HomeSearchBar(
+                    query = uiState.searchQuery,
+                    songCount = uiState.songs.size,
+                    onQueryChanged = onSearchQueryChanged,
+                    focusManager = focusManager
+                )
+
                 if (!uiState.isSearching && uiState.selectedPlaylist == null && uiState.selectedFolder == null) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                            .padding(horizontal = 14.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        val filterPills = remember(
+                    HomeFilterPills(
+                        selectedTab = uiState.selectedTab,
+                        counts = listOf(
                             uiState.songs.size,
                             uiState.favorites.size,
                             uiState.folders.size,
@@ -316,42 +216,10 @@ fun HomeScreen(
                             uiState.playlists.size,
                             uiState.mostPlayed.size,
                             uiState.history.size
-                        ) {
-                            listOf(
-                                Triple(LibraryTab.TRACKS, "جميع المقاطع", uiState.songs.size),
-                                Triple(LibraryTab.FAVORITES, "المفضلة", uiState.favorites.size),
-                                Triple(LibraryTab.FOLDERS, "المجلدات", uiState.folders.size),
-                                Triple(LibraryTab.RECENTLY_ADDED, "المضافة حديثاً", uiState.recentlyAdded.size),
-                                Triple(LibraryTab.PLAYLISTS, "قوائم التشغيل", uiState.playlists.size),
-                                Triple(LibraryTab.MOST_PLAYED, "الأكثر استماعاً", uiState.mostPlayed.size),
-                                Triple(LibraryTab.HISTORY, "سجل التشغيل", uiState.history.size)
-                            )
-                        }
-
-                        filterPills.forEach { (tab, label, count) ->
-                            val isSelected = uiState.selectedTab == tab
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(if (isSelected) Color(0xFF242430) else DarkSurfaceContainer)
-                                    .border(1.dp, if (isSelected) Color(0x33FFFFFF) else Color.Transparent, RoundedCornerShape(16.dp))
-                                    .clickable {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        onTabSelected(tab)
-                                    }
-                                    .padding(horizontal = 14.dp, vertical = 6.dp)
-                            ) {
-                                Text(
-                                    text = label,
-                                    style = MaterialTheme.typography.labelMedium.copy(
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        fontSize = 11.5.sp
-                                    ),
-                                    color = if (isSelected) Color.White else TextSecondary
-                                )
-                            }
-                        }
-                    }
+                        ),
+                        onTabSelected = onTabSelected,
+                        haptic = haptic
+                    )
                 }
 
                 // ── Breadcrumb headers for Folders or Playlists ──────────────

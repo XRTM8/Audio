@@ -27,6 +27,22 @@ pub struct OtiumDspEngine {
     applied_pre_amp_db: f32,
     applied_gains: [f32; 10],
     fade_in_remaining: usize,
+    dither_prng: u32,
+}
+
+#[inline(always)]
+fn next_tpdf_dither(state: &mut u32) -> f32 {
+    *state ^= *state << 13;
+    *state ^= *state >> 17;
+    *state ^= *state << 5;
+    let r1 = (*state as f32) * (1.0 / 4294967296.0);
+
+    *state ^= *state << 13;
+    *state ^= *state >> 17;
+    *state ^= *state << 5;
+    let r2 = (*state as f32) * (1.0 / 4294967296.0);
+
+    r1 - r2
 }
 
 impl OtiumDspEngine {
@@ -55,6 +71,7 @@ impl OtiumDspEngine {
             applied_pre_amp_db: 0.0,
             applied_gains: [0.0; 10],
             fade_in_remaining: 0,
+            dither_prng: 0x12345678,
         }
     }
 
@@ -276,8 +293,12 @@ impl OtiumDspEngine {
                 self.fade_in_remaining -= 1;
             }
 
-            samples[f * 2] = (left.clamp(-1.0, 1.0) * 32767.0) as i16;
-            samples[f * 2 + 1] = (right.clamp(-1.0, 1.0) * 32767.0) as i16;
+            let d_l = next_tpdf_dither(&mut self.dither_prng);
+            let d_r = next_tpdf_dither(&mut self.dither_prng);
+            let out_l = (left.clamp(-1.0, 1.0) * 32767.0) + d_l;
+            let out_r = (right.clamp(-1.0, 1.0) * 32767.0) + d_r;
+            samples[f * 2] = out_l.clamp(-32768.0, 32767.0) as i16;
+            samples[f * 2 + 1] = out_r.clamp(-32768.0, 32767.0) as i16;
         }
 
         if frames > 0 {

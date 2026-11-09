@@ -108,29 +108,46 @@ object LrcParser {
         )
     }
 
-    private val lyricsCache = java.util.concurrent.ConcurrentHashMap<String, TrackLyrics>()
+    private val lyricsCache = androidx.collection.LruCache<String, TrackLyrics>(64)
 
     fun findLrcForAudio(audioPath: String): TrackLyrics? {
         try {
             if (audioPath.isBlank()) return null
-            val cached = lyricsCache[audioPath]
+            val cached = synchronized(lyricsCache) { lyricsCache.get(audioPath) }
             if (cached != null) return if (cached.lines.isEmpty()) null else cached
 
             val dot = audioPath.lastIndexOf('.')
             if (dot <= 0) {
-                lyricsCache[audioPath] = TrackLyrics()
+                synchronized(lyricsCache) { lyricsCache.put(audioPath, TrackLyrics()) }
                 return null
             }
             val lrcPath = audioPath.substring(0, dot) + ".lrc"
             val lrcFile = File(lrcPath)
             if (lrcFile.exists() && lrcFile.canRead()) {
                 val parsed = parse(lrcFile.readText())
-                lyricsCache[audioPath] = parsed
+                synchronized(lyricsCache) { lyricsCache.put(audioPath, parsed) }
                 return parsed
-            } else {
-                // Negative cache to prevent repeated disk I/O for songs without lyrics
-                lyricsCache[audioPath] = TrackLyrics()
             }
+
+            // Fallback: extract embedded lyrics from file tags via Rust
+            val embedded = NativeAudioDsp.extractLyricsSafe(audioPath)
+            if (!embedded.isNullOrBlank()) {
+                    val parsed = parse(embedded)
+                    val result = if (parsed.lines.isNotEmpty()) {
+                        parsed
+                    } else {
+                        val plainLines = embedded.lines().filter { it.isNotBlank() }.map { LyricLine(0L, it.trim()) }
+                        if (plainLines.isNotEmpty()) TrackLyrics(lines = plainLines, isSynced = false) else null
+                    }
+                    if (result != null) {
+                        synchronized(lyricsCache) { lyricsCache.put(audioPath, result) }
+                        return result
+                    }
+                }
+            }
+
+            // Negative cache to prevent repeated disk I/O for songs without lyrics
+            synchronized(lyricsCache) { lyricsCache.put(audioPath, TrackLyrics()) }
         } catch (_: Exception) {
             // Ignore I/O issues gracefully
         }

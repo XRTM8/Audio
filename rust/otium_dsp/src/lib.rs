@@ -221,6 +221,27 @@ pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_extractArtw
 }
 
 #[no_mangle]
+pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_extractLyrics(
+    mut env: JNIEnv,
+    _class: JClass,
+    path: JString,
+) -> jni::sys::jstring {
+    let path_str: String = match env.get_string(&path) {
+        Ok(js) => js.into(),
+        Err(_) => return std::ptr::null_mut(),
+    };
+
+    if let Some(lyrics_str) = scanner::extract_lyrics(&path_str) {
+        match env.new_string(lyrics_str) {
+            Ok(js) => js.into_raw(),
+            Err(_) => std::ptr::null_mut(),
+        }
+    } else {
+        std::ptr::null_mut()
+    }
+}
+
+#[no_mangle]
 pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_writeAudioTags(
     mut env: JNIEnv,
     _class: JClass,

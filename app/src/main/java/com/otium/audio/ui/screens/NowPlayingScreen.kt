@@ -119,6 +119,8 @@ import com.otium.audio.ui.actions.PlaybackActions
 import com.otium.audio.ui.actions.EqualizerActions
 import com.otium.audio.ui.actions.QueueActions
 import com.otium.audio.ui.actions.SleepTimerActions
+import com.otium.audio.ui.components.nowplaying.NowPlayingTopBar
+import com.otium.audio.ui.components.nowplaying.NowPlayingControls
 
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -450,73 +452,16 @@ fun NowPlayingScreen(
                         .clickable { triggerDismiss() }
                 )
 
-                // ── Minimalist Poweramp Top Bar with swipe-down dismiss ──────────────
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 2.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                    IconButton(onClick = ::triggerDismiss) {
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowDown,
-                            contentDescription = "Collapse",
-                            tint = TextPrimary,
-                            modifier = Modifier.size(30.dp)
-                        )
-                    }
-
-                    // Lossless Audio Badge Pill
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(DarkSurfaceContainer.copy(alpha = 0.9f))
-                            .padding(horizontal = 8.dp, vertical = 3.dp)
-                    ) {
-                        Text(
-                            text = song.audioFormatBadge,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp,
-                            color = AccentGold
-                        )
-                    }
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            onToggleFavorite()
-                        }) {
-                            Icon(
-                                imageVector = if (song.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                                contentDescription = "Favorite",
-                                tint = if (song.isFavorite) ErrorRed else TextSecondary,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-
-                        IconButton(onClick = { showEqualizer = true }) {
-                            Icon(
-                                imageVector = Icons.Default.Equalizer,
-                                contentDescription = "Equalizer",
-                                tint = if (equalizerState.isEnabled) AccentGold else TextSecondary,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-
-                        IconButton(onClick = { showMoreSheet = true }) {
-                            Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "More",
-                                tint = TextSecondary,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                    }
-                }
-            }
+                NowPlayingTopBar(
+                    audioFormatBadge = song.audioFormatBadge,
+                    isFavorite = song.isFavorite,
+                    isEqualizerEnabled = equalizerState.isEnabled,
+                    onCollapse = ::triggerDismiss,
+                    onToggleFavorite = onToggleFavorite,
+                    onOpenEqualizer = { showEqualizer = true },
+                    onOpenMore = { showMoreSheet = true },
+                    haptic = haptic
+                )
 
                 // ── Cinematic Artwork HorizontalPager Carousel ───────────────
                 Box(
@@ -753,102 +698,18 @@ fun NowPlayingScreen(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // ── Main Audio Playback Controls ────────────────────────────
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                    IconButton(onClick = onToggleShuffle) {
-                        Icon(
-                            imageVector = Icons.Default.Shuffle,
-                            contentDescription = "Shuffle",
-                            tint = if (isShuffleEnabled) AccentGold else TextSecondary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-
-                    IconButton(
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            onSkipPrevious()
-                        },
-                        modifier = Modifier.size(52.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.SkipPrevious,
-                            contentDescription = "Previous",
-                            tint = TextPrimary,
-                            modifier = Modifier.size(34.dp)
-                        )
-                    }
-
-                    // Tactile Master Play / Pause
-                    Box(
-                        modifier = Modifier
-                            .size(72.dp)
-                            .graphicsLayer {
-                                scaleX = playBtnScale
-                                scaleY = playBtnScale
-                            }
-                            .shadow(
-                                elevation = 14.dp,
-                                shape = CircleShape,
-                                spotColor = Color(0x66FFFFFF)
-                            )
-                            .clip(CircleShape)
-                            .background(Color.White),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        IconButton(
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onPlayPause()
-                            },
-                            modifier = Modifier.size(72.dp)
-                        ) {
-                            Icon(
-                                imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                                contentDescription = if (isPlaying) "Pause" else "Play",
-                                tint = Color.Black,
-                                modifier = Modifier.size(36.dp)
-                            )
-                        }
-                    }
-
-                    IconButton(
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            onSkipNext()
-                        },
-                        modifier = Modifier.size(52.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.SkipNext,
-                            contentDescription = "Next",
-                            tint = TextPrimary,
-                            modifier = Modifier.size(34.dp)
-                        )
-                    }
-
-                    IconButton(onClick = onToggleRepeat) {
-                        val (icon, tint) = when (repeatMode) {
-                            Player.REPEAT_MODE_ONE -> Pair(Icons.Default.RepeatOne, AccentGold)
-                            Player.REPEAT_MODE_ALL -> Pair(Icons.Default.Repeat, AccentGold)
-                            else -> Pair(Icons.Default.Repeat, TextSecondary)
-                        }
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = "Repeat",
-                            tint = tint,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
-            }
+                NowPlayingControls(
+                    isPlaying = isPlaying,
+                    repeatMode = repeatMode,
+                    isShuffleEnabled = isShuffleEnabled,
+                    activeAccent = animatedVibrant,
+                    onPlayPause = onPlayPause,
+                    onSkipNext = onSkipNext,
+                    onSkipPrevious = onSkipPrevious,
+                    onToggleRepeat = onToggleRepeat,
+                    onToggleShuffle = onToggleShuffle,
+                    haptic = haptic
+                )
 
                 Spacer(modifier = Modifier.height(10.dp))
             }

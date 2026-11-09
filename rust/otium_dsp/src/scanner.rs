@@ -66,6 +66,13 @@ pub fn extract_artwork(file_path: &str) -> Option<Vec<u8>> {
     Some(pic.data().to_vec())
 }
 
+pub fn extract_lyrics(file_path: &str) -> Option<String> {
+    let path = Path::new(file_path);
+    let tagged_file = Probe::open(path).ok()?.read().ok()?;
+    let tag = tagged_file.primary_tag().or_else(|| tagged_file.first_tag())?;
+    tag.get_string(&lofty::tag::ItemKey::Lyrics).map(|s| s.to_string())
+}
+
 pub fn write_tags(file_path: &str, title: &str, artist: &str, album: &str) -> bool {
     let path = Path::new(file_path);
     if let Ok(mut tagged_file) = Probe::open(path).and_then(|p| p.read()) {

@@ -50,6 +50,7 @@ object NativeAudioDsp {
     // --- 2. Fast Audio Metadata & Tag Scanner (Lofty) ---
     external fun scanAudioFile(path: String): String?
     external fun extractArtwork(path: String): ByteArray?
+    external fun extractLyrics(path: String): String?
     external fun writeAudioTags(path: String, title: String, artist: String, album: String): Boolean
 
     // --- 3. In-Memory Intelligent Arabic Fuzzy Search Engine ---
@@ -120,6 +121,15 @@ object NativeAudioDsp {
                 target.writeBytes(bytes)
             }
             android.net.Uri.fromFile(target)
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    fun extractLyricsSafe(path: String): String? {
+        if (!isAvailable || path.isBlank()) return null
+        return try {
+            extractLyrics(path)
         } catch (_: Throwable) {
             null
         }
