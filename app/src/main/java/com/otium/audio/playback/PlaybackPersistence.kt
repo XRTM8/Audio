@@ -27,6 +27,12 @@ class PlaybackPersistence(private val context: Context) {
         prefs.edit().putLong(KEY_POSITION, positionMs).apply()
     }
 
+    fun saveSkipSilence(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_SKIP_SILENCE, enabled).apply()
+    }
+
+    fun isSkipSilenceEnabled(): Boolean = prefs.getBoolean(KEY_SKIP_SILENCE, false)
+
     fun clearQueue() {
         prefs.edit().remove(KEY_IDS).remove(KEY_INDEX).remove(KEY_POSITION).apply()
     }
@@ -47,5 +53,6 @@ class PlaybackPersistence(private val context: Context) {
         const val KEY_IDS = "queue_ids"
         const val KEY_INDEX = "queue_index"
         const val KEY_POSITION = "queue_position"
+        const val KEY_SKIP_SILENCE = "skip_silence"
     }
 }

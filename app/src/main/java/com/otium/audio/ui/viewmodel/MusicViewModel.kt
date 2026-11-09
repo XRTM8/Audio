@@ -23,6 +23,8 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.FlowPreview
@@ -48,6 +50,21 @@ class MusicViewModel(
     /** Ticks four times a second while playing; collected only by the progress widgets. */
     val position: StateFlow<Long> = musicController.position
 
+    /** Fine-grained flows for isolated UI recomposition */
+    val currentSong: StateFlow<Song?> = musicController.playbackState
+        .map { it.currentSong }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    val isPlaying: StateFlow<Boolean> = musicController.playbackState
+        .map { it.isPlaying }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    val isScanning: StateFlow<Boolean> = repository.isScanningFlow()
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
     private val searchQuery = MutableStateFlow("")
 
     private var libraryLoaded = false
@@ -61,6 +78,7 @@ class MusicViewModel(
         observeEqualizer()
         observeSleepTimer()
         observeSearch()
+        observeScanningState()
         checkForUpdates()
     }
 
@@ -183,6 +201,14 @@ class MusicViewModel(
         }
     }
 
+    private fun observeScanningState() {
+        viewModelScope.launch {
+            repository.isScanningFlow().collectLatest { scanning ->
+                _uiState.update { it.copy(isScanning = scanning) }
+            }
+        }
+    }
+
     fun checkForUpdates() {
         viewModelScope.launch {
             // Not on the first frame: a network round trip should never race the UI.
@@ -249,6 +275,7 @@ class MusicViewModel(
     fun toggleRepeatMode() = musicController.toggleRepeatMode()
     fun toggleShuffle() = musicController.toggleShuffle()
     fun setPlaybackSpeed(speed: Float) = musicController.setPlaybackSpeed(speed)
+    fun setSkipSilence(enabled: Boolean) = musicController.setSkipSilence(enabled)
 
     fun playNext(song: Song) = musicController.playNext(song)
     fun addToQueue(song: Song) = musicController.addToQueue(song)
@@ -291,9 +318,12 @@ class MusicViewModel(
         }
     }
 
+    fun rescanLibrary() = repository.refresh()
+
     // --- Equalizer ---------------------------------------------------------
 
     fun toggleEqualizer(enabled: Boolean) = equalizerController.setEnabled(enabled)
+    fun setAutoPreAmp(enabled: Boolean) = equalizerController.setAutoPreAmp(enabled)
     fun setPreAmpGain(gainDb: Float) {
         // Only the DSP applies gain. Doing it here as well made every boost twice as loud,
         // which is exactly what a clipped, dirty sound feels like.

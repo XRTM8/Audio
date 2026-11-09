@@ -29,4 +29,7 @@ interface AudioRepository {
 
     /** Force an immediate MediaStore re-scan without waiting for the observer debounce. */
     fun refresh()
+
+    /** Observes whether an explicit library rescan is currently in progress. */
+    fun isScanningFlow(): Flow<Boolean>
 }

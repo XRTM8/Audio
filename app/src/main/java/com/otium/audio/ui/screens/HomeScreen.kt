@@ -93,6 +93,7 @@ import com.otium.audio.ui.theme.TextSecondary
 import com.otium.audio.ui.viewmodel.LibraryTab
 import com.otium.audio.ui.viewmodel.MusicUiState
 import com.otium.audio.ui.actions.PlaybackActions
+import com.otium.audio.ui.actions.EqualizerActions
 import com.otium.audio.ui.actions.LibraryActions
 import com.otium.audio.ui.components.home.HomeTopBar
 import com.otium.audio.ui.components.home.HomeSearchBar
@@ -105,6 +106,7 @@ fun HomeScreen(
     positionFlow: StateFlow<Long>,
     libraryActions: LibraryActions,
     playbackActions: PlaybackActions,
+    equalizerActions: EqualizerActions = EqualizerActions(),
     onOpenNowPlaying: () -> Unit,
     onOpenEqualizer: () -> Unit,
     modifier: Modifier = Modifier
@@ -132,6 +134,9 @@ fun HomeScreen(
     onSaveMetadata = libraryActions.onSaveMetadata,
     onDismissTagEditor = libraryActions.onDismissTagEditor,
     onDismissUpdate = libraryActions.onDismissUpdate,
+    onToggleSkipSilence = playbackActions.onToggleSkipSilence,
+    onToggleAutoPreAmp = equalizerActions.onToggleAutoPreAmp,
+    onRescanLibrary = libraryActions.onRescanLibrary,
     modifier = modifier
 )
 
@@ -161,6 +166,9 @@ fun HomeScreen(
     onSaveMetadata: (Long, String, String, String) -> Unit = { _, _, _, _ -> },
     onDismissTagEditor: () -> Unit = {},
     onDismissUpdate: () -> Unit = {},
+    onToggleSkipSilence: (Boolean) -> Unit = {},
+    onToggleAutoPreAmp: (Boolean) -> Unit = {},
+    onRescanLibrary: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -359,6 +367,12 @@ fun HomeScreen(
                 SettingsSheet(
                     trackCount = uiState.songs.size,
                     availableUpdate = uiState.availableUpdate,
+                    isSkipSilenceEnabled = uiState.playbackState.isSkipSilenceEnabled,
+                    onToggleSkipSilence = onToggleSkipSilence,
+                    isAutoPreAmpEnabled = uiState.equalizerState.isAutoPreAmpEnabled,
+                    onToggleAutoPreAmp = onToggleAutoPreAmp,
+                    isScanning = uiState.isScanning,
+                    onRescanLibrary = onRescanLibrary,
                     onOpenEqualizer = onOpenEqualizer,
                     onDismiss = { showSettings = false }
                 )

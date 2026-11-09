@@ -20,7 +20,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.ui.draw.rotate
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.GraphicEq
@@ -77,6 +86,12 @@ import kotlinx.coroutines.launch
 fun SettingsSheet(
     trackCount: Int,
     availableUpdate: UpdateInfo?,
+    isSkipSilenceEnabled: Boolean = false,
+    onToggleSkipSilence: (Boolean) -> Unit = {},
+    isAutoPreAmpEnabled: Boolean = true,
+    onToggleAutoPreAmp: (Boolean) -> Unit = {},
+    isScanning: Boolean = false,
+    onRescanLibrary: () -> Unit = {},
     onOpenEqualizer: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
@@ -353,9 +368,79 @@ fun SettingsSheet(
 
             Spacer(modifier = Modifier.height(20.dp))
 
+            // Section: Library Management
+            Text(
+                text = "إدارة وسائط المكتبة",
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                color = AccentGold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            val infiniteTransition = rememberInfiniteTransition(label = "rescan_rotation")
+            val rotationAngle by infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = 360f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(durationMillis = 1000, easing = LinearEasing)
+                ),
+                label = "rescan_angle"
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = DarkSurfaceVariant),
+                border = androidx.compose.foundation.BorderStroke(1.dp, DarkCardBorder)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "فهرسة الملفات الصوتية",
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "$trackCount مسار صوتي مفهرس في المكتبة",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary
+                            )
+                        }
+
+                        Button(
+                            onClick = onRescanLibrary,
+                            enabled = !isScanning,
+                            colors = ButtonDefaults.buttonColors(containerColor = DarkSurfaceContainer),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .then(if (isScanning) Modifier.rotate(rotationAngle) else Modifier),
+                                tint = AccentGold
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (isScanning) "جاري الفحص..." else "فحص الآن",
+                                color = TextPrimary
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
             // Section: Audio DSP & Playback
             Text(
-                text = "معالجة الصوت (DSP)",
+                text = "معالجة الصوت الاحترافية (Audiophile DSP)",
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                 color = AccentGold
             )
@@ -368,6 +453,41 @@ fun SettingsSheet(
                 border = androidx.compose.foundation.BorderStroke(1.dp, DarkCardBorder)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
+                    // Rust Native DSP status chip
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(DarkSurface)
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(SuccessGreen)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "محرك Rust Native DSP (TPDF Dithered)",
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary
+                            )
+                        }
+                        Text(
+                            text = "نشط ⚡",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = SuccessGreen
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
                     // Open Equalizer Shortcut
                     Row(
                         modifier = Modifier
@@ -380,7 +500,7 @@ fun SettingsSheet(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                             Icon(imageVector = Icons.Default.Equalizer, contentDescription = null, tint = AccentGold)
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
@@ -391,6 +511,79 @@ fun SettingsSheet(
                         Icon(imageVector = Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(18.dp))
                     }
 
+                    Spacer(modifier = Modifier.height(10.dp))
+                    HorizontalDivider(color = DarkCardBorder.copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Auto-Preamp Headroom Switch
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                            Text(
+                                text = "الحماية التلقائية من التشويه (Auto-Preamp)",
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "خفض الـ Pre-Amp تلقائياً عند رفع المعادل لحماية سقف 0 dBFS ومنع الكبت الديناميكي",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary
+                            )
+                        }
+                        Switch(
+                            checked = isAutoPreAmpEnabled,
+                            onCheckedChange = onToggleAutoPreAmp,
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = AccentGold,
+                                checkedTrackColor = DarkSurface,
+                                uncheckedThumbColor = TextSecondary,
+                                uncheckedTrackColor = DarkSurfaceVariant
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    HorizontalDivider(color = DarkCardBorder.copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Silence Skipping Switch
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                            Text(
+                                text = "تخطي الصمت التلقائي (Skip Silence)",
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "تجاوز فترات الصمت الرقمي في بدايات ونهايات المسارات دون تقطيع",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary
+                            )
+                        }
+                        Switch(
+                            checked = isSkipSilenceEnabled,
+                            onCheckedChange = onToggleSkipSilence,
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = AccentGold,
+                                checkedTrackColor = DarkSurface,
+                                uncheckedThumbColor = TextSecondary,
+                                uncheckedTrackColor = DarkSurfaceVariant
+                            )
+                        )
+                    }
                 }
             }
 

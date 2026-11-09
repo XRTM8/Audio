@@ -48,6 +48,8 @@ class PlaybackService : MediaSessionService() {
         const val NOTIFICATION_CHANNEL_ID = "otium_playback_channel"
         const val NOTIFICATION_ID = 1001
         private const val TAG = "PlaybackService"
+        const val COMMAND_SET_SKIP_SILENCE = "com.otium.audio.SET_SKIP_SILENCE"
+        const val EXTRA_SKIP_SILENCE = "extra_skip_silence"
     }
 
     @OptIn(UnstableApi::class)
@@ -120,6 +122,7 @@ class PlaybackService : MediaSessionService() {
             .apply {
                 repeatMode = Player.REPEAT_MODE_OFF
                 shuffleModeEnabled = false
+                skipSilenceEnabled = PlaybackPersistence(this@PlaybackService).isSkipSilenceEnabled()
                 addListener(PlayerEventListener())
             }
 
@@ -364,12 +367,31 @@ class PlaybackService : MediaSessionService() {
             return Futures.immediateFuture(updatedMediaItems)
         }
 
+        override fun onConnect(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo
+        ): MediaSession.ConnectionResult {
+            val connectionResult = super.onConnect(session, controller)
+            val sessionCommands = connectionResult.availableSessionCommands.buildUpon()
+                .add(SessionCommand(COMMAND_SET_SKIP_SILENCE, Bundle.EMPTY))
+                .build()
+            return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
+                .setAvailableSessionCommands(sessionCommands)
+                .build()
+        }
+
         override fun onCustomCommand(
             session: MediaSession,
             controller: MediaSession.ControllerInfo,
             customCommand: SessionCommand,
             args: Bundle
         ): ListenableFuture<SessionResult> {
+            if (customCommand.customAction == COMMAND_SET_SKIP_SILENCE) {
+                val enabled = args.getBoolean(EXTRA_SKIP_SILENCE, false)
+                player.skipSilenceEnabled = enabled
+                PlaybackPersistence(this@PlaybackService).saveSkipSilence(enabled)
+                return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+            }
             return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
         }
     }

@@ -96,13 +96,15 @@ class MainActivity : ComponentActivity() {
                             onToggleRepeat = viewModel::toggleRepeatMode,
                             onToggleShuffle = viewModel::toggleShuffle,
                             onToggleFavorite = viewModel::toggleFavorite,
-                            onSetPlaybackSpeed = viewModel::setPlaybackSpeed
+                            onSetPlaybackSpeed = viewModel::setPlaybackSpeed,
+                            onToggleSkipSilence = viewModel::setSkipSilence
                         )
                     }
 
                     val equalizerActions = remember(viewModel) {
                         EqualizerActions(
                             onToggle = viewModel::toggleEqualizer,
+                            onToggleAutoPreAmp = viewModel::setAutoPreAmp,
                             onBandLevelChange = viewModel::setEqualizerBandLevel,
                             onBassBoostChange = viewModel::setBassBoost,
                             onVirtualizerChange = viewModel::setVirtualizer,
@@ -147,7 +149,8 @@ class MainActivity : ComponentActivity() {
                             onSaveMetadata = viewModel::saveSongMetadata,
                             onSongLongPress = { songToDelete = it },
                             onDismissTagEditor = { viewModel.openTagEditor(null) },
-                            onDismissUpdate = viewModel::dismissUpdate
+                            onDismissUpdate = viewModel::dismissUpdate,
+                            onRescanLibrary = viewModel::rescanLibrary
                         )
                     }
 
@@ -163,6 +166,7 @@ class MainActivity : ComponentActivity() {
                             positionFlow = viewModel.position,
                             libraryActions = libraryActions,
                             playbackActions = playbackActions,
+                            equalizerActions = equalizerActions,
                             onOpenNowPlaying = { viewModel.setNowPlayingExpanded(true) },
                             onOpenEqualizer = { showHomeEqualizer = true }
                         )

@@ -21,12 +21,14 @@ data class PlaybackActions(
     val onToggleRepeat: () -> Unit = {},
     val onToggleShuffle: () -> Unit = {},
     val onToggleFavorite: (Song) -> Unit = {},
-    val onSetPlaybackSpeed: (Float) -> Unit = {}
+    val onSetPlaybackSpeed: (Float) -> Unit = {},
+    val onToggleSkipSilence: (Boolean) -> Unit = {}
 )
 
 @Immutable
 data class EqualizerActions(
     val onToggle: (Boolean) -> Unit = {},
+    val onToggleAutoPreAmp: (Boolean) -> Unit = {},
     val onBandLevelChange: (Short, Float) -> Unit = { _, _ -> },
     val onBassBoostChange: (Int) -> Unit = {},
     val onVirtualizerChange: (Int) -> Unit = {},
@@ -68,5 +70,6 @@ data class LibraryActions(
     val onSaveMetadata: (Long, String, String, String) -> Unit = { _, _, _, _ -> },
     val onSongLongPress: (Song) -> Unit = {},
     val onDismissTagEditor: () -> Unit = {},
-    val onDismissUpdate: () -> Unit = {}
+    val onDismissUpdate: () -> Unit = {},
+    val onRescanLibrary: () -> Unit = {}
 )

@@ -44,6 +44,7 @@ class MusicController(
     private val persistence = PlaybackPersistence(context)
 
     init {
+        _playbackState.update { it.copy(isSkipSilenceEnabled = persistence.isSkipSilenceEnabled()) }
         initializeController()
     }
 
@@ -369,6 +370,18 @@ class MusicController(
     /** Sleep timer and micro fades only. Gain belongs to the DSP, not to the player. */
     fun setVolume(volume: Float) {
         mediaController?.volume = volume.coerceIn(0f, 1f)
+    }
+
+    fun setSkipSilence(enabled: Boolean) {
+        persistence.saveSkipSilence(enabled)
+        _playbackState.update { it.copy(isSkipSilenceEnabled = enabled) }
+        val bundle = android.os.Bundle().apply {
+            putBoolean(PlaybackService.EXTRA_SKIP_SILENCE, enabled)
+        }
+        mediaController?.sendCustomCommand(
+            androidx.media3.session.SessionCommand(PlaybackService.COMMAND_SET_SKIP_SILENCE, android.os.Bundle.EMPTY),
+            bundle
+        )
     }
 
     fun playNext(song: Song) {

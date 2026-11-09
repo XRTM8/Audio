@@ -37,6 +37,7 @@ data class MusicUiState(
     val isSearching: Boolean = false,
     val isNowPlayingExpanded: Boolean = false,
     val hasStoragePermission: Boolean = false,
+    val isScanning: Boolean = false,
     val playbackState: MusicPlaybackState = MusicPlaybackState(),
     val equalizerState: EqualizerState = EqualizerState(),
     val sleepTimerState: SleepTimerState = SleepTimerState(),

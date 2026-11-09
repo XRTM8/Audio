@@ -249,9 +249,10 @@ class OtiumAudioProcessor(
         if (state == lastSyncedState) return
         lastSyncedState = state
 
-        if (state.preAmpDb != appliedPreAmpDb) {
-            appliedPreAmpDb = state.preAmpDb
-            preAmp.configureGain(state.preAmpDb)
+        val effPreAmp = state.effectivePreAmpDb
+        if (effPreAmp != appliedPreAmpDb) {
+            appliedPreAmpDb = effPreAmp
+            preAmp.configureGain(effPreAmp)
         }
 
         if (state.bassBoostStrength != appliedBassBoost) {
@@ -291,7 +292,7 @@ class OtiumAudioProcessor(
         clarity.strength = if (state.isEnabled) state.clarityStrength else 0
 
         // Limiting is needed when something in the chain adds gain or effects.
-        val boosting = state.preAmpDb > 0.05f ||
+        val boosting = state.effectivePreAmpDb > 0.05f ||
             levels.any { it.levelDb > 0.05f } ||
             (state.isEnabled && state.bassBoostStrength > 0) ||
             (state.isEnabled && state.virtualizerStrength > 0) ||
@@ -321,7 +322,7 @@ class OtiumAudioProcessor(
             }
             NativeAudioDsp.setParameters(
                 enginePtr = nativeEnginePtr,
-                preAmpDb = state.preAmpDb,
+                preAmpDb = state.effectivePreAmpDb,
                 bandGainsDb = gains,
                 virtualizerStrength = if (state.isEnabled) state.virtualizerStrength else 0,
                 reverbStrength = if (state.isEnabled) state.reverbStrength else 0,

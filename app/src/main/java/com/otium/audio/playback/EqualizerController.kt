@@ -42,6 +42,7 @@ private val DEFAULT_10_BANDS = listOf(
 data class EqualizerState(
     val isEnabled: Boolean = true,
     val isBound: Boolean = false,
+    val isAutoPreAmpEnabled: Boolean = true,
     val deviceLabel: String = "",
     val preAmpDb: Float = 0f, // -10dB to +10dB Pre-Amp gain
     val bands: List<EqualizerBand> = DEFAULT_10_BANDS,
@@ -61,7 +62,25 @@ data class EqualizerState(
         "Loudness",
         "Custom"
     )
-)
+) {
+    /**
+     * Audiophile dynamic headroom calculation (Poweramp reference).
+     * If Auto-Preamp is enabled, lowers pre-amp gain by the maximum positive boost in EQ
+     * or bass-boost to guarantee 0 dBFS ceiling without engaging digital limiter pumping.
+     */
+    val effectivePreAmpDb: Float
+        get() {
+            if (!isEnabled || !isAutoPreAmpEnabled) return preAmpDb
+            val maxBandGain = bands.maxOfOrNull { it.levelDb } ?: 0f
+            val bassDb = (bassBoostStrength / 1000f) * 9.0f
+            val maxGain = maxOf(0f, maxBandGain, bassDb)
+            return if (maxGain > 0f) {
+                (preAmpDb - maxGain).coerceIn(-20f, 10f)
+            } else {
+                preAmpDb
+            }
+        }
+}
 
 class EqualizerController(
     private val context: Context,
@@ -77,6 +96,7 @@ class EqualizerController(
         store.load(OutputDevice.detect(context).key)?.let { saved ->
             EqualizerState(
                 isEnabled = saved.enabled,
+                isAutoPreAmpEnabled = saved.isAutoPreAmp,
                 preAmpDb = saved.preAmpDb,
                 bassBoostStrength = saved.bassBoost,
                 virtualizerStrength = saved.virtualizer,
@@ -128,6 +148,7 @@ class EqualizerController(
                 deviceLabel = detected.label,
                 bands = bands,
                 preAmpDb = saved?.preAmpDb ?: 0f,
+                isAutoPreAmpEnabled = saved?.isAutoPreAmp ?: true,
                 bassBoostStrength = saved?.bassBoost ?: 0,
                 virtualizerStrength = saved?.virtualizer ?: 0,
                 reverbStrength = saved?.reverb ?: 0,
@@ -206,6 +227,11 @@ class EqualizerController(
     fun setPreAmpGain(gainDb: Float) {
         val safeGain = gainDb.coerceIn(-10f, 10f)
         _state.update { it.copy(preAmpDb = safeGain) }
+    }
+
+    fun setAutoPreAmp(enabled: Boolean) {
+        _state.update { it.copy(isAutoPreAmpEnabled = enabled) }
+        store.save(currentDevice.key, _state.value, force = true)
     }
 
     fun setBandLevel(bandIndex: Short, levelDb: Float) {

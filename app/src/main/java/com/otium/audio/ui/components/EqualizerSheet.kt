@@ -243,12 +243,23 @@ fun EqualizerSheet(
                     modifier = Modifier.weight(1f)
                 )
 
-                Text(
-                    text = String.format(Locale.getDefault(), "%+.1fdB", state.preAmpDb),
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                    color = TextPrimary,
-                    modifier = Modifier.width(48.dp)
-                )
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    modifier = Modifier.width(62.dp)
+                ) {
+                    Text(
+                        text = String.format(Locale.getDefault(), "%+.1fdB", state.preAmpDb),
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = TextPrimary
+                    )
+                    if (state.isAutoPreAmpEnabled && state.effectivePreAmpDb != state.preAmpDb) {
+                        Text(
+                            text = String.format(Locale.getDefault(), "فعلي: %+.1f", state.effectivePreAmpDb),
+                            fontSize = 8.5.sp,
+                            color = AccentCyan
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))

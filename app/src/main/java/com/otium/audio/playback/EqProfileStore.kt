@@ -24,6 +24,7 @@ class EqProfileStore(context: Context) {
             .putInt(key(device, BASS), state.bassBoostStrength)
             .putInt(key(device, VIRTUALIZER), state.virtualizerStrength)
             .putFloat(key(device, PREAMP), state.preAmpDb)
+            .putBoolean(key(device, AUTO_PREAMP), state.isAutoPreAmpEnabled)
             .putBoolean(key(device, ENABLED), state.isEnabled)
             .putString(key(device, PRESET), state.currentPreset)
             .putInt(key(device, REVERB), state.reverbStrength)
@@ -42,6 +43,7 @@ class EqProfileStore(context: Context) {
             bassBoost = prefs.getInt(key(device, BASS), 0),
             virtualizer = prefs.getInt(key(device, VIRTUALIZER), 0),
             preAmpDb = prefs.getFloat(key(device, PREAMP), 0f),
+            isAutoPreAmp = prefs.getBoolean(key(device, AUTO_PREAMP), true),
             enabled = prefs.getBoolean(key(device, ENABLED), true),
             preset = prefs.getString(key(device, PRESET), null),
             reverb = prefs.getInt(key(device, REVERB), 0),
@@ -56,6 +58,7 @@ class EqProfileStore(context: Context) {
         val bassBoost: Int,
         val virtualizer: Int,
         val preAmpDb: Float,
+        val isAutoPreAmp: Boolean = true,
         val enabled: Boolean,
         val preset: String?,
         val reverb: Int = 0,
@@ -72,6 +75,7 @@ class EqProfileStore(context: Context) {
         const val BASS = "bass"
         const val VIRTUALIZER = "virtualizer"
         const val PREAMP = "preamp"
+        const val AUTO_PREAMP = "auto_preamp"
         const val ENABLED = "enabled"
         const val PRESET = "preset"
         const val REVERB = "reverb"

@@ -170,9 +170,17 @@ class AudioRepositoryImpl(
         }
     }
 
+    private val isScanning = MutableStateFlow(false)
+    override fun isScanningFlow(): Flow<Boolean> = isScanning.asStateFlow()
+
     override fun refresh() {
         scope.launch {
-            updateLibrary(readLibrary(songs.value))
+            isScanning.value = true
+            try {
+                updateLibrary(readLibrary(songs.value))
+            } finally {
+                isScanning.value = false
+            }
         }
     }
 
