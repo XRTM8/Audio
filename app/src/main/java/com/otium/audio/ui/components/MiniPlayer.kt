@@ -328,7 +328,7 @@ private fun MiniPlayerTactileSeekStrip(
         ) {
             // Tactile Waveform
             ReactiveWaveform(
-                progress = activeProgress,
+                progressProvider = { activeProgress },
                 accent = Color.White,
                 trackColor = DarkCardBorder.copy(alpha = 0.5f),
                 isPlaying = isPlaying,

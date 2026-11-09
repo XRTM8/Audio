@@ -48,7 +48,7 @@ fun FastAlphabetScroller(
     val haptic = LocalHapticFeedback.current
 
     // Dynamically generate alphabet strictly matching what is in the library
-    val (alphabet, letterIndexMap) = remember(songs) {
+    val (alphabet, letterIndexMap) = remember(songs.size, songs.firstOrNull()?.id, songs.lastOrNull()?.id) {
         val map = LinkedHashMap<String, Int>()
         val arabicLetters = mutableSetOf<String>()
         val latinLetters = mutableSetOf<String>()

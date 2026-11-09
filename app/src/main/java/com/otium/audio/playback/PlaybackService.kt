@@ -17,6 +17,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
+import androidx.media3.exoplayer.audio.DefaultAudioTrackBufferSizeProvider
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.DefaultMediaNotificationProvider
@@ -27,12 +28,18 @@ import androidx.media3.session.SessionResult
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.otium.audio.audio.dsp.OtiumAudioProcessor
+import com.otium.audio.audio.dsp.VisualizerBridge
 import com.otium.audio.OtiumApplication
 import com.otium.audio.R
 import com.otium.audio.ui.MainActivity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 
 class PlaybackService : MediaSessionService() {
 
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var mediaSession: MediaSession? = null
     private lateinit var player: ExoPlayer
     private var activeAudioSessionId: Int = C.AUDIO_SESSION_ID_UNSET
@@ -46,6 +53,7 @@ class PlaybackService : MediaSessionService() {
     @OptIn(UnstableApi::class)
     override fun onCreate() {
         super.onCreate()
+        VisualizerBridge.startWorker(serviceScope)
         initializePlayer()
         initializeMediaSession()
         setupNotificationProvider()
@@ -67,10 +75,16 @@ class PlaybackService : MediaSessionService() {
                 enableAudioTrackPlaybackParams: Boolean
             ): AudioSink? {
                 val controller = (context.applicationContext as OtiumApplication).equalizerController
+                val bufferSizeProvider = DefaultAudioTrackBufferSizeProvider.Builder()
+                    .setMinPcmBufferDurationUs(500_000)
+                    .setMaxPcmBufferDurationUs(2_000_000)
+                    .build()
+
                 return DefaultAudioSink.Builder(context)
                     // Direct 16-bit PCM output uses the low-latency direct HAL audio path,
                     // avoiding the 50-150ms mixer initialization latency of 32-bit float output
                     .setEnableFloatOutput(false)
+                    .setAudioTrackBufferSizeProvider(bufferSizeProvider)
                     .setAudioProcessorChain(
                         DefaultAudioSink.DefaultAudioProcessorChain(OtiumAudioProcessor(controller))
                     )
@@ -258,6 +272,16 @@ class PlaybackService : MediaSessionService() {
             Log.w(TAG, "Error broadcasting ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION", e)
         }
         activeAudioSessionId = C.AUDIO_SESSION_ID_UNSET
+    }
+
+    override fun onDestroy() {
+        VisualizerBridge.stopWorker()
+        serviceScope.cancel()
+        closeSystemAudioEffectSession(activeAudioSessionId)
+        player.release()
+        mediaSession?.release()
+        mediaSession = null
+        super.onDestroy()
     }
 
     private inner class PlayerEventListener : Player.Listener {

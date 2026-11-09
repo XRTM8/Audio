@@ -30,21 +30,21 @@ data class TrackColors(
 )
 
 object PaletteManager {
-    private val colorCache = ConcurrentHashMap<String, TrackColors>()
+    private val colorCache = android.util.LruCache<String, TrackColors>(128)
 
     private fun getImageLoader(context: Context): ImageLoader = context.imageLoader
 
-    fun getCached(key: String): TrackColors? = colorCache[key]
+    fun getCached(key: String): TrackColors? = synchronized(colorCache) { colorCache.get(key) }
 
     suspend fun extractColors(context: Context, albumArtUri: Uri): TrackColors = withContext(Dispatchers.IO) {
         val key = albumArtUri.toString()
-        colorCache[key]?.let { return@withContext it }
+        synchronized(colorCache) { colorCache.get(key) }?.let { return@withContext it }
 
         try {
             val loader = getImageLoader(context)
             val request = ImageRequest.Builder(context)
                 .data(albumArtUri)
-                .size(128, 128) // Crucial OOM prevention on 4K/8K embedded covers
+                .size(64, 64) // Fast 64x64 decode, 75% less RAM and 4x faster CPU processing for Palette
                 .allowHardware(false) // Required for Palette Bitmap access
                 .build()
 
@@ -63,7 +63,7 @@ object PaletteManager {
                         vibrant = Color(safeVibrant),
                         darkVibrant = Color(darkVibrant)
                     )
-                    colorCache[key] = trackColors
+                    synchronized(colorCache) { colorCache.put(key, trackColors) }
                     return@withContext trackColors
                 }
             }
@@ -72,7 +72,7 @@ object PaletteManager {
         }
 
         val defaultColors = TrackColors()
-        colorCache[key] = defaultColors
+        synchronized(colorCache) { colorCache.put(key, defaultColors) }
         defaultColors
     }
 }

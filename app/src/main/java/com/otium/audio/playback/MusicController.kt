@@ -105,7 +105,10 @@ class MusicController(
             startProgressTracker()
         } else {
             stopProgressTracker()
-            persistence.savePosition(_position.value)
+            val pos = _position.value
+            coroutineScope.launch(Dispatchers.IO) {
+                persistence.savePosition(pos)
+            }
         }
         persistQueue()
     }
@@ -116,19 +119,25 @@ class MusicController(
     private fun persistQueue() {
         val controller = mediaController ?: return
         val currentIndex = controller.currentMediaItemIndex
-        if (currentPlaylistSongs === lastPersistedPlaylist && currentIndex == lastPersistedIndex) return
+        val playlist = currentPlaylistSongs
+        if (playlist === lastPersistedPlaylist && currentIndex == lastPersistedIndex) return
 
-        if (currentPlaylistSongs === lastPersistedPlaylist) {
+        if (playlist === lastPersistedPlaylist) {
             lastPersistedIndex = currentIndex
-            persistence.saveIndex(currentIndex)
+            coroutineScope.launch(Dispatchers.IO) {
+                persistence.saveIndex(currentIndex)
+            }
             return
         }
 
-        val ids = currentPlaylistSongs.map { it.id }
-        if (ids.isEmpty()) return
-        lastPersistedPlaylist = currentPlaylistSongs
+        lastPersistedPlaylist = playlist
         lastPersistedIndex = currentIndex
-        persistence.saveQueue(ids, currentIndex)
+        coroutineScope.launch(Dispatchers.IO) {
+            val ids = playlist.map { it.id }
+            if (ids.isNotEmpty()) {
+                persistence.saveQueue(ids, currentIndex)
+            }
+        }
     }
 
     fun hasSavedSession(): Boolean = persistence.hasSession()
@@ -189,9 +198,12 @@ class MusicController(
             while (isActive) {
                 val controller = mediaController
                 if (controller != null && controller.isPlaying) {
-                    _position.value = controller.currentPosition.coerceAtLeast(0L)
+                    val pos = controller.currentPosition.coerceAtLeast(0L)
+                    _position.value = pos
                     if (ticks % POSITION_SAVE_TICKS == 0) {
-                        persistence.savePosition(_position.value)
+                        coroutineScope.launch(Dispatchers.IO) {
+                            persistence.savePosition(pos)
+                        }
                     }
                 }
                 ticks++

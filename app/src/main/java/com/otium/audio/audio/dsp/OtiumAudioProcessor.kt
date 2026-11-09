@@ -41,8 +41,6 @@ class OtiumAudioProcessor(
     private var nativeSampleRateHz: Int = 0
     private var lastSyncedState: com.otium.audio.playback.EqualizerState? = null
     private var lastSpectrumTimeMs: Long = 0L
-    private val spectrumSampleBuffer = FloatArray(512)
-    private val scratchPeakBuffer = FloatArray(4)
 
     override fun onConfigure(inputAudioFormat: androidx.media3.common.audio.AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         channelCount = inputAudioFormat.channelCount
@@ -408,48 +406,7 @@ class OtiumAudioProcessor(
         val now = android.os.SystemClock.uptimeMillis()
         if (now - lastSpectrumTimeMs < 16L) return
         lastSpectrumTimeMs = now
-
-        try {
-            // Direct zero-copy Rust FFT spectrum calculation directly from native buffer memory
-            if (buffer.isDirect) {
-                val directBands = NativeAudioDsp.analyzeSpectrumDirectBuffer(
-                    buffer = buffer,
-                    byteOffset = buffer.position(),
-                    byteLength = byteLength,
-                    isFloat = isFloat,
-                    bandCount = 16
-                )
-                if (directBands != null) {
-                    VisualizerBridge.updateBands(directBands)
-                }
-                if (nativeEnginePtr != 0L) {
-                    if (NativeAudioDsp.readPeakLevelsDirect(nativeEnginePtr, scratchPeakBuffer)) {
-                        VisualizerBridge.updatePeakLevelsDirect(scratchPeakBuffer)
-                    }
-                }
-                if (directBands != null) {
-                    return
-                }
-            }
-
-            val sampleCount = if (isFloat) (byteLength / 4).coerceAtMost(512) else (byteLength / 2).coerceAtMost(512)
-            if (sampleCount < 64) return
-
-            val origPos = buffer.position()
-            if (isFloat) {
-                for (i in 0 until sampleCount) {
-                    spectrumSampleBuffer[i] = buffer.getFloat(origPos + i * 4)
-                }
-            } else {
-                for (i in 0 until sampleCount) {
-                    spectrumSampleBuffer[i] = buffer.getShort(origPos + i * 2) / 32768.0f
-                }
-            }
-            val bands = NativeAudioDsp.analyzeSpectrum(spectrumSampleBuffer, 16)
-            if (bands != null) {
-                VisualizerBridge.updateBands(bands)
-            }
-        } catch (_: Throwable) {}
+        VisualizerBridge.postSamples(buffer, isFloat, byteLength, nativeEnginePtr)
     }
 
     companion object {

@@ -27,7 +27,7 @@ import kotlin.math.sin
  */
 @Composable
 fun ReactiveWaveform(
-    progress: Float,
+    progressProvider: () -> Float,
     accent: Color,
     trackColor: Color,
     isPlaying: Boolean,
@@ -48,6 +48,7 @@ fun ReactiveWaveform(
     } else null
 
     Canvas(modifier = modifier) {
+        val currentProgress = progressProvider()
         val liveEnergy = VisualizerBridge.averageEnergy.value
         val phase = animatedPhase?.value ?: 0f
         val barCount = 56
@@ -69,7 +70,7 @@ fun ReactiveWaveform(
 
             val height = (maxHeight * shape.coerceIn(0.18f, 1f))
             val left = index * (barWidth + gap)
-            val played = position <= progress
+            val played = position <= currentProgress
 
             val barColor = if (played) accent else trackColor
 
@@ -82,3 +83,20 @@ fun ReactiveWaveform(
         }
     }
 }
+
+@Composable
+fun ReactiveWaveform(
+    progress: Float,
+    accent: Color,
+    trackColor: Color,
+    isPlaying: Boolean,
+    waveformSeed: Long = 0L,
+    modifier: Modifier = Modifier
+) = ReactiveWaveform(
+    progressProvider = { progress },
+    accent = accent,
+    trackColor = trackColor,
+    isPlaying = isPlaying,
+    waveformSeed = waveformSeed,
+    modifier = modifier
+)
