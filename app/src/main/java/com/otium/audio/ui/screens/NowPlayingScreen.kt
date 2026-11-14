@@ -80,6 +80,7 @@ import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -90,6 +91,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -300,6 +302,7 @@ fun NowPlayingScreen(
     var showQueue       by remember { mutableStateOf(false) }
     var showSleepTimer  by remember { mutableStateOf(false) }
     var showSpeedDialog by remember { mutableStateOf(false) }
+    var showAudioInspector by remember { mutableStateOf(false) }
 
     var lyrics by remember { mutableStateOf(TrackLyrics()) }
     LaunchedEffect(song.relativePath, song.id) {
@@ -709,6 +712,7 @@ fun NowPlayingScreen(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(4.dp))
                                     .background(DarkSurfaceContainer.copy(alpha = 0.85f))
+                                    .clickable { showAudioInspector = true }
                                     .padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
                                 Text(
@@ -887,6 +891,60 @@ fun NowPlayingScreen(
                         Spacer(modifier = Modifier.height(20.dp))
                     }
                 }
+            }
+
+            // ── Audio Inspector Dialog ─────────────────────────────────────
+            if (showAudioInspector) {
+                AlertDialog(
+                    onDismissRequest = { showAudioInspector = false },
+                    title = {
+                        Text(
+                            text = "تفاصيل الملف الصوتي",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = TextPrimary
+                        )
+                    },
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Column {
+                                Text("العنوان", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                                Text(targetSong.displayTitle, style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
+                            }
+                            Column {
+                                Text("الفنان والألبوم", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                                Text("${targetSong.artist}  •  ${targetSong.album}", style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
+                            }
+                            Column {
+                                Text("المواصفات والترميز", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                                Text(audioSpecs ?: targetSong.audioFormatBadge, style = MaterialTheme.typography.bodyMedium, color = AccentGold)
+                            }
+                            Column {
+                                Text("المدة الزمنية", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                                Text(targetSong.formattedDuration, style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
+                            }
+                            if (targetSong.size > 0) {
+                                Column {
+                                    Text("حجم الملف", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                                    val sizeMb = String.format(java.util.Locale.US, "%.2f MB", targetSong.size / (1024f * 1024f))
+                                    Text(sizeMb, style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
+                                }
+                            }
+                            if (targetSong.relativePath.isNotBlank()) {
+                                Column {
+                                    Text("المسار على الذاكرة", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                                    Text(targetSong.relativePath, style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp), color = TextTertiary)
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showAudioInspector = false }) {
+                            Text("إغلاق", color = AccentGold, fontWeight = FontWeight.Bold)
+                        }
+                    },
+                    containerColor = DarkSurfaceElevated,
+                    shape = RoundedCornerShape(16.dp)
+                )
             }
 
             // ── Equalizer Sheet ─────────────────────────────────────────────

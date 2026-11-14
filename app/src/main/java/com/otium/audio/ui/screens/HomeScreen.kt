@@ -26,13 +26,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Album
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SystemUpdate
@@ -73,9 +76,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import coil.request.CachePolicy
+import coil.request.ImageRequest
 import com.otium.audio.data.local.entity.PlaylistEntity
+import com.otium.audio.data.model.AudioAlbum
+import com.otium.audio.data.model.AudioArtist
 import com.otium.audio.data.model.AudioFolder
 import com.otium.audio.data.model.Song
 import com.otium.audio.data.model.SortOrder
@@ -123,6 +132,12 @@ fun HomeScreen(
     onClearSelectedPlaylist = libraryActions.onClearSelectedPlaylist,
     onFolderSelected = libraryActions.onFolderSelected,
     onClearSelectedFolder = libraryActions.onClearSelectedFolder,
+    onFolderSelected = libraryActions.onFolderSelected,
+    onClearSelectedFolder = libraryActions.onClearSelectedFolder,
+    onArtistSelected = libraryActions.onArtistSelected,
+    onClearSelectedArtist = libraryActions.onClearSelectedArtist,
+    onAlbumSelected = libraryActions.onAlbumSelected,
+    onClearSelectedAlbum = libraryActions.onClearSelectedAlbum,
     onCreatePlaylist = libraryActions.onCreatePlaylist,
     onDeletePlaylist = libraryActions.onDeletePlaylist,
     onPlayPause = playbackActions.onPlayPause,
@@ -156,6 +171,10 @@ fun HomeScreen(
     onClearSelectedPlaylist: () -> Unit,
     onFolderSelected: (AudioFolder) -> Unit = {},
     onClearSelectedFolder: () -> Unit = {},
+    onArtistSelected: (AudioArtist) -> Unit = {},
+    onClearSelectedArtist: () -> Unit = {},
+    onAlbumSelected: (AudioAlbum) -> Unit = {},
+    onClearSelectedAlbum: () -> Unit = {},
     onCreatePlaylist: (String) -> Unit,
     onDeletePlaylist: (Long) -> Unit,
     onPlayPause: () -> Unit,
@@ -187,6 +206,8 @@ fun HomeScreen(
         uiState.isSearching -> uiState.searchResults
         uiState.selectedPlaylist != null -> uiState.selectedPlaylistSongs
         uiState.selectedFolder != null -> uiState.selectedFolder.songs
+        uiState.selectedArtist != null -> uiState.selectedArtist.songs
+        uiState.selectedAlbum != null -> uiState.selectedAlbum.songs
         uiState.selectedTab == LibraryTab.FAVORITES -> uiState.favorites
         uiState.selectedTab == LibraryTab.RECENTLY_ADDED -> uiState.recentlyAdded
         uiState.selectedTab == LibraryTab.MOST_PLAYED -> uiState.mostPlayed
@@ -226,11 +247,13 @@ fun HomeScreen(
                     focusManager = focusManager
                 )
 
-                if (!uiState.isSearching && uiState.selectedPlaylist == null && uiState.selectedFolder == null) {
+                if (!uiState.isSearching && uiState.selectedPlaylist == null && uiState.selectedFolder == null && uiState.selectedArtist == null && uiState.selectedAlbum == null) {
                     HomeFilterPills(
                         selectedTab = uiState.selectedTab,
                         counts = listOf(
                             uiState.songs.size,
+                            uiState.artists.size,
+                            uiState.albums.size,
                             uiState.favorites.size,
                             uiState.folders.size,
                             uiState.recentlyAdded.size,
@@ -243,7 +266,83 @@ fun HomeScreen(
                     )
                 }
 
-                // ── Breadcrumb headers for Folders or Playlists ──────────────
+                // ── Breadcrumb headers for Folders, Playlists, Artists or Albums ──
+                if (uiState.selectedArtist != null) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = onClearSelectedArtist) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = uiState.selectedArtist.name,
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = TextPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "${uiState.selectedArtist.songCount} مقطع",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = TextSecondary
+                            )
+                        }
+                        Button(
+                            onClick = {
+                                if (uiState.selectedArtist.songs.isNotEmpty()) {
+                                    onSongSelected(uiState.selectedArtist.songs.first(), uiState.selectedArtist.songs)
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = Color.White),
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Text("تشغيل الكل", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                    }
+                }
+
+                if (uiState.selectedAlbum != null) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = onClearSelectedAlbum) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = uiState.selectedAlbum.name,
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = TextPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "${uiState.selectedAlbum.artist}  •  ${uiState.selectedAlbum.songCount} مقطع",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = TextSecondary
+                            )
+                        }
+                        Button(
+                            onClick = {
+                                if (uiState.selectedAlbum.songs.isNotEmpty()) {
+                                    onSongSelected(uiState.selectedAlbum.songs.first(), uiState.selectedAlbum.songs)
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = Color.White),
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Text("تشغيل الكل", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                    }
+                }
+
                 if (uiState.selectedPlaylist != null) {
                     Row(
                         modifier = Modifier
@@ -306,7 +405,17 @@ fun HomeScreen(
                         .weight(1f)
                         .fillMaxWidth()
                 ) {
-                    if (uiState.selectedTab == LibraryTab.FOLDERS && uiState.selectedFolder == null && !uiState.isSearching) {
+                    if (uiState.selectedTab == LibraryTab.ARTISTS && uiState.selectedArtist == null && !uiState.isSearching) {
+                        ArtistListView(
+                            artists = uiState.artists,
+                            onArtistClick = onArtistSelected
+                        )
+                    } else if (uiState.selectedTab == LibraryTab.ALBUMS && uiState.selectedAlbum == null && !uiState.isSearching) {
+                        AlbumListView(
+                            albums = uiState.albums,
+                            onAlbumClick = onAlbumSelected
+                        )
+                    } else if (uiState.selectedTab == LibraryTab.FOLDERS && uiState.selectedFolder == null && !uiState.isSearching) {
                         FolderListView(
                             folders = uiState.folders,
                             onFolderClick = onFolderSelected
@@ -330,7 +439,8 @@ fun HomeScreen(
                             onFavoriteClick = onFavoriteToggle,
                             onEditTagClick = onEditTagClick,
                             onSongLongPress = onSongLongPress,
-                            showAlphabetScroller = !uiState.isSearching && uiState.selectedFolder == null && uiState.selectedPlaylist == null
+                            searchQuery = uiState.searchQuery,
+                            showAlphabetScroller = !uiState.isSearching && uiState.selectedFolder == null && uiState.selectedPlaylist == null && uiState.selectedArtist == null && uiState.selectedAlbum == null
                         )
                     }
                 }
@@ -411,6 +521,7 @@ private fun MasterSongListView(
     onFavoriteClick: (Song) -> Unit,
     onEditTagClick: ((Song) -> Unit)? = null,
     onSongLongPress: (Song) -> Unit,
+    searchQuery: String = "",
     showAlphabetScroller: Boolean = true,
     modifier: Modifier = Modifier
 ) {
@@ -448,7 +559,8 @@ private fun MasterSongListView(
                     onSongClick = onSongClick,
                     onFavoriteClick = onFavoriteClick,
                     onEditTagClick = onEditTagClick,
-                    onLongClick = onSongLongPress
+                    onLongClick = onSongLongPress,
+                    searchQuery = searchQuery
                 )
             }
             item { Spacer(modifier = Modifier.height(10.dp)) }
@@ -467,6 +579,146 @@ private fun MasterSongListView(
                     }
                 )
             }
+        }
+    }
+}
+
+// ── Artists View ─────────────────────────────────────────────────────────────
+@Composable
+private fun ArtistListView(
+    artists: List<AudioArtist>,
+    onArtistClick: (AudioArtist) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (artists.isEmpty()) {
+        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("لا يوجد فنانون", color = TextSecondary)
+        }
+        return
+    }
+    LazyColumn(modifier = modifier.fillMaxSize()) {
+        items(artists, key = { it.name }, contentType = { "artist_row" }) { artist ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(DarkSurfaceVariant)
+                    .clickable { onArtistClick(artist) }
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(DarkSurfaceContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = null,
+                        tint = AccentGold,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = artist.name,
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold, fontSize = 14.sp),
+                        color = TextPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "${artist.songCount} مقطع",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
+                        color = TextSecondary
+                    )
+                }
+            }
+            HorizontalDivider(thickness = 0.5.dp, color = DarkCardBorder.copy(alpha = 0.25f))
+        }
+    }
+}
+
+// ── Albums View ──────────────────────────────────────────────────────────────
+@Composable
+private fun AlbumListView(
+    albums: List<AudioAlbum>,
+    onAlbumClick: (AudioAlbum) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    if (albums.isEmpty()) {
+        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("لا توجد ألبومات", color = TextSecondary)
+        }
+        return
+    }
+    LazyColumn(modifier = modifier.fillMaxSize()) {
+        items(albums, key = { "${it.name}_${it.artist}" }, contentType = { "album_row" }) { album ->
+            val thumbReq = if (album.albumArtUri != android.net.Uri.EMPTY) {
+                remember(album.albumArtUri) {
+                    ImageRequest.Builder(context)
+                        .data(album.albumArtUri)
+                        .size(128, 128)
+                        .bitmapConfig(android.graphics.Bitmap.Config.RGB_565)
+                        .crossfade(false)
+                        .memoryCachePolicy(CachePolicy.ENABLED)
+                        .diskCachePolicy(CachePolicy.ENABLED)
+                        .build()
+                }
+            } else null
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(DarkSurfaceVariant)
+                    .clickable { onAlbumClick(album) }
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(DarkSurfaceContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Album,
+                        contentDescription = null,
+                        tint = TextTertiary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    if (thumbReq != null) {
+                        AsyncImage(
+                            model = thumbReq,
+                            contentDescription = album.name,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.matchParentSize()
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = album.name,
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold, fontSize = 14.sp),
+                        color = TextPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "${album.artist}  •  ${album.songCount} مقطع",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
+                        color = TextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+            HorizontalDivider(thickness = 0.5.dp, color = DarkCardBorder.copy(alpha = 0.25f))
         }
     }
 }
@@ -642,7 +894,7 @@ private fun PlaylistsView(
 
 // ── Create Playlist Dialog ───────────────────────────────────────────────────
 @Composable
-private fun CreatePlaylistDialog(
+internal fun CreatePlaylistDialog(
     onDismiss: () -> Unit,
     onCreate: (String) -> Unit
 ) {

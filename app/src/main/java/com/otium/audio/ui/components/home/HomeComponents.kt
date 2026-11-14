@@ -205,12 +205,14 @@ fun HomeFilterPills(
         val filterPills = remember(counts) {
             listOf(
                 Triple(LibraryTab.TRACKS, "جميع المقاطع", counts.getOrElse(0) { 0 }),
-                Triple(LibraryTab.FAVORITES, "المفضلة", counts.getOrElse(1) { 0 }),
-                Triple(LibraryTab.FOLDERS, "المجلدات", counts.getOrElse(2) { 0 }),
-                Triple(LibraryTab.RECENTLY_ADDED, "المضافة حديثاً", counts.getOrElse(3) { 0 }),
-                Triple(LibraryTab.PLAYLISTS, "قوائم التشغيل", counts.getOrElse(4) { 0 }),
-                Triple(LibraryTab.MOST_PLAYED, "الأكثر استماعاً", counts.getOrElse(5) { 0 }),
-                Triple(LibraryTab.HISTORY, "سجل التشغيل", counts.getOrElse(6) { 0 })
+                Triple(LibraryTab.ARTISTS, "الفنانين", counts.getOrElse(1) { 0 }),
+                Triple(LibraryTab.ALBUMS, "الألبومات", counts.getOrElse(2) { 0 }),
+                Triple(LibraryTab.FAVORITES, "المفضلة", counts.getOrElse(3) { 0 }),
+                Triple(LibraryTab.FOLDERS, "المجلدات", counts.getOrElse(4) { 0 }),
+                Triple(LibraryTab.RECENTLY_ADDED, "المضافة حديثاً", counts.getOrElse(5) { 0 }),
+                Triple(LibraryTab.PLAYLISTS, "قوائم التشغيل", counts.getOrElse(6) { 0 }),
+                Triple(LibraryTab.MOST_PLAYED, "الأكثر استماعاً", counts.getOrElse(7) { 0 }),
+                Triple(LibraryTab.HISTORY, "سجل التشغيل", counts.getOrElse(8) { 0 })
             )
         }
 

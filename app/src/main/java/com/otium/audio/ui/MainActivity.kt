@@ -27,8 +27,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import com.otium.audio.OtiumApplication
+import com.otium.audio.data.model.Song
 import com.otium.audio.ui.components.DeleteSongDialog
 import com.otium.audio.ui.components.EqualizerSheet
+import com.otium.audio.ui.components.PlaylistPickerBottomSheet
+import com.otium.audio.ui.components.SongOptionsBottomSheet
+import com.otium.audio.ui.screens.CreatePlaylistDialog
 import com.otium.audio.ui.screens.HomeScreen
 import com.otium.audio.ui.screens.NowPlayingScreen
 import com.otium.audio.ui.screens.PermissionScreen
@@ -78,7 +82,10 @@ class MainActivity : ComponentActivity() {
                         OtiumAccent.color = colors.vibrant.asReadableAccent()
                     }
                     var showHomeEqualizer by remember { mutableStateOf(false) }
-                    var songToDelete by remember { mutableStateOf<com.otium.audio.data.model.Song?>(null) }
+                    var songToDelete by remember { mutableStateOf<Song?>(null) }
+                    var songForOptions by remember { mutableStateOf<Song?>(null) }
+                    var songForPlaylistPicker by remember { mutableStateOf<Song?>(null) }
+                    var showCreatePlaylistFromPicker by remember { mutableStateOf(false) }
 
                     LaunchedEffect(Unit) {
                         if (hasRequiredAudioPermission(this@MainActivity)) {
@@ -143,11 +150,18 @@ class MainActivity : ComponentActivity() {
                             onClearSelectedPlaylist = viewModel::clearSelectedPlaylist,
                             onFolderSelected = viewModel::selectFolder,
                             onClearSelectedFolder = viewModel::clearSelectedFolder,
+                            onArtistSelected = viewModel::selectArtist,
+                            onClearSelectedArtist = viewModel::clearSelectedArtist,
+                            onAlbumSelected = viewModel::selectAlbum,
+                            onClearSelectedAlbum = viewModel::clearSelectedAlbum,
+                            onAddToPlaylist = viewModel::addSongToPlaylist,
+                            onPlayNext = viewModel::playNext,
+                            onAddToQueue = viewModel::addToQueue,
                             onCreatePlaylist = viewModel::createPlaylist,
                             onDeletePlaylist = viewModel::deletePlaylist,
                             onEditTagClick = viewModel::openTagEditor,
                             onSaveMetadata = viewModel::saveSongMetadata,
-                            onSongLongPress = { songToDelete = it },
+                            onSongLongPress = { songForOptions = it },
                             onDismissTagEditor = { viewModel.openTagEditor(null) },
                             onDismissUpdate = viewModel::dismissUpdate,
                             onRescanLibrary = viewModel::rescanLibrary,
@@ -171,6 +185,58 @@ class MainActivity : ComponentActivity() {
                             onOpenNowPlaying = { viewModel.setNowPlayingExpanded(true) },
                             onOpenEqualizer = { showHomeEqualizer = true }
                         )
+
+                        if (songForOptions != null) {
+                            SongOptionsBottomSheet(
+                                song = songForOptions!!,
+                                onPlayNext = {
+                                    viewModel.playNext(songForOptions!!)
+                                    songForOptions = null
+                                },
+                                onAddToQueue = {
+                                    viewModel.addToQueue(songForOptions!!)
+                                    songForOptions = null
+                                },
+                                onAddToPlaylistClick = {
+                                    songForPlaylistPicker = songForOptions
+                                    songForOptions = null
+                                },
+                                onEditTagClick = {
+                                    viewModel.openTagEditor(songForOptions!!)
+                                    songForOptions = null
+                                },
+                                onDeleteClick = {
+                                    songToDelete = songForOptions
+                                    songForOptions = null
+                                },
+                                onDismiss = { songForOptions = null }
+                            )
+                        }
+
+                        if (songForPlaylistPicker != null) {
+                            PlaylistPickerBottomSheet(
+                                playlists = uiState.playlists,
+                                songTitle = songForPlaylistPicker!!.displayTitle,
+                                onSelectPlaylist = { playlist ->
+                                    viewModel.addSongToPlaylist(playlist.playlistId, songForPlaylistPicker!!.id)
+                                    songForPlaylistPicker = null
+                                },
+                                onCreateNewPlaylistClick = {
+                                    showCreatePlaylistFromPicker = true
+                                },
+                                onDismiss = { songForPlaylistPicker = null }
+                            )
+                        }
+
+                        if (showCreatePlaylistFromPicker) {
+                            CreatePlaylistDialog(
+                                onDismiss = { showCreatePlaylistFromPicker = false },
+                                onCreate = { name ->
+                                    viewModel.createPlaylist(name)
+                                    showCreatePlaylistFromPicker = false
+                                }
+                            )
+                        }
 
                         DeleteSongDialog(
                             song = songToDelete,

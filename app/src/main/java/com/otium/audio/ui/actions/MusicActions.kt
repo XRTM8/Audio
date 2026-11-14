@@ -2,6 +2,8 @@ package com.otium.audio.ui.actions
 
 import androidx.compose.runtime.Immutable
 import com.otium.audio.data.local.entity.PlaylistEntity
+import com.otium.audio.data.model.AudioAlbum
+import com.otium.audio.data.model.AudioArtist
 import com.otium.audio.data.model.AudioFolder
 import com.otium.audio.data.model.Song
 import com.otium.audio.data.model.SortOrder
@@ -65,6 +67,13 @@ data class LibraryActions(
     val onClearSelectedPlaylist: () -> Unit = {},
     val onFolderSelected: (AudioFolder) -> Unit = {},
     val onClearSelectedFolder: () -> Unit = {},
+    val onArtistSelected: (AudioArtist) -> Unit = {},
+    val onClearSelectedArtist: () -> Unit = {},
+    val onAlbumSelected: (AudioAlbum) -> Unit = {},
+    val onClearSelectedAlbum: () -> Unit = {},
+    val onAddToPlaylist: (Long, Long) -> Unit = { _, _ -> },
+    val onPlayNext: (Song) -> Unit = {},
+    val onAddToQueue: (Song) -> Unit = {},
     val onCreatePlaylist: (String) -> Unit = {},
     val onDeletePlaylist: (Long) -> Unit = {},
     val onEditTagClick: (Song) -> Unit = {},

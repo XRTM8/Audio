@@ -50,7 +50,10 @@ import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.otium.audio.data.model.Song
+import com.otium.audio.ui.theme.AccentGold
 import com.otium.audio.ui.theme.AccentTitaniumWhite
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import com.otium.audio.ui.theme.DarkCardBorder
 import com.otium.audio.ui.theme.DarkSurface
 import com.otium.audio.ui.theme.DarkSurfaceContainer
@@ -90,6 +93,7 @@ fun SongListItem(
     onFavoriteClick: (Song) -> Unit,
     onEditTagClick: ((Song) -> Unit)? = null,
     onLongClick: ((Song) -> Unit)? = null,
+    searchQuery: String = "",
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -209,10 +213,17 @@ fun SongListItem(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.Center
         ) {
+            val titleAnnotated = remember(song.displayTitle, searchQuery, isCurrentSong) {
+                buildHighlightedText(
+                    text = song.displayTitle,
+                    query = searchQuery,
+                    defaultColor = if (isCurrentSong) AccentTitaniumWhite else TextPrimary,
+                    highlightColor = AccentGold
+                )
+            }
             Text(
-                text = song.displayTitle,
+                text = titleAnnotated,
                 style = if (isCurrentSong) TitleStyleActive else TitleStyleRegular,
-                color = if (isCurrentSong) AccentTitaniumWhite else TextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -304,4 +315,31 @@ fun MiniEqBars(modifier: Modifier = Modifier) {
         val h4 = totalHeight * v4
         drawRoundRect(color = c, topLeft = Offset(stride * 3f, totalHeight - h4), size = Size(barWidth, h4), cornerRadius = radius)
     }
+}
+
+private fun buildHighlightedText(
+    text: String,
+    query: String,
+    defaultColor: Color,
+    highlightColor: Color
+): AnnotatedString {
+    val trimmed = query.trim()
+    if (trimmed.isEmpty()) {
+        return AnnotatedString(text, SpanStyle(color = defaultColor))
+    }
+    val builder = AnnotatedString.Builder(text)
+    builder.addStyle(SpanStyle(color = defaultColor), 0, text.length)
+    val lowerText = text.lowercase()
+    val lowerQuery = trimmed.lowercase()
+    var idx = lowerText.indexOf(lowerQuery)
+    while (idx >= 0) {
+        val end = (idx + lowerQuery.length).coerceAtMost(text.length)
+        builder.addStyle(
+            SpanStyle(color = highlightColor, fontWeight = FontWeight.Bold),
+            idx,
+            end
+        )
+        idx = lowerText.indexOf(lowerQuery, end)
+    }
+    return builder.toAnnotatedString()
 }

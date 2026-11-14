@@ -8,6 +8,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.otium.audio.BuildConfig
 import com.otium.audio.data.local.entity.PlaylistEntity
+import com.otium.audio.data.model.AudioAlbum
+import com.otium.audio.data.model.AudioArtist
 import com.otium.audio.data.model.AudioFolder
 import com.otium.audio.data.model.Song
 import com.otium.audio.data.model.SortOrder
@@ -126,9 +128,13 @@ class MusicViewModel(
                     lib.copy(recentlyAdded = added)
                 }
                 .collect { lib ->
+                    val extractedArtists = AudioArtist.extractArtistsFromSongs(lib.songs)
+                    val extractedAlbums = AudioAlbum.extractAlbumsFromSongs(lib.songs)
                     _uiState.update {
                         it.copy(
                             songs = lib.songs,
+                            artists = extractedArtists,
+                            albums = extractedAlbums,
                             favorites = lib.favorites,
                             folders = lib.folders,
                             playlists = lib.playlists,
@@ -246,10 +252,22 @@ class MusicViewModel(
     fun selectTab(tab: LibraryTab) {
         savedStateHandle?.set("selected_tab", tab.name)
         _uiState.update {
-            it.copy(selectedTab = tab, selectedPlaylist = null, selectedFolder = null)
+            it.copy(
+                selectedTab = tab,
+                selectedPlaylist = null,
+                selectedFolder = null,
+                selectedArtist = null,
+                selectedAlbum = null
+            )
         }
         playlistSongsJob?.cancel()
     }
+
+    fun selectArtist(artist: AudioArtist) = _uiState.update { it.copy(selectedArtist = artist) }
+    fun clearSelectedArtist() = _uiState.update { it.copy(selectedArtist = null) }
+
+    fun selectAlbum(album: AudioAlbum) = _uiState.update { it.copy(selectedAlbum = album) }
+    fun clearSelectedAlbum() = _uiState.update { it.copy(selectedAlbum = null) }
 
     fun selectFolder(folder: AudioFolder) = _uiState.update { it.copy(selectedFolder = folder) }
 
