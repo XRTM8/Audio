@@ -92,7 +92,7 @@ fun LyricsSheet(
 
         itemsIndexed(
             items = lyrics.lines,
-            key = { _, line -> line.timestampMs }
+            key = { index, line -> "${index}_${line.timeMs}" }
         ) { index, line ->
             val isActive = index == activeIndex
             val textColor by animateColorAsState(

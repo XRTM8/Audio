@@ -22,6 +22,9 @@ import com.otium.audio.data.local.entity.PlaylistSongCrossRef
 import com.otium.audio.data.model.AudioFolder
 import com.otium.audio.data.model.Song
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.CoroutineDispatcher
@@ -109,7 +112,7 @@ class AudioRepositoryImpl(
         if (newSongs.isNotEmpty() && NativeAudioDsp.isAvailable) {
             val ctx = context
             artExtractionJob = scope.launch(Dispatchers.IO) {
-                kotlinx.coroutines.delay(2500L)
+                delay(2500L)
                 val embeddedCacheDir = java.io.File(ctx.cacheDir, "embedded_art")
                 val missing = newSongs.filter { song ->
                     song.relativePath.isNotBlank() &&
@@ -122,7 +125,7 @@ class AudioRepositoryImpl(
                 val newArtworkMap = HashMap<Long, Uri>()
                 withContext(Dispatchers.IO.limitedParallelism(1)) {
                     for (song in missing) {
-                        if (!kotlinx.coroutines.isActive) break
+                        if (!isActive) break
                         val extracted = NativeAudioDsp.extractEmbeddedArtworkToFile(ctx, song.relativePath, song.id)
                         if (extracted != null) {
                             newArtworkMap[song.id] = extracted
