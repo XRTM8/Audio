@@ -418,8 +418,8 @@ fun NowPlayingScreen(
                             dragY.animateTo(
                                 targetValue = 0f,
                                 animationSpec = spring(
-                                    stiffness = Spring.StiffnessMediumLow,
-                                    dampingRatio = Spring.DampingRatioMediumBouncy
+                                    stiffness = Spring.StiffnessMedium,
+                                    dampingRatio = Spring.DampingRatioNoBouncy
                                 )
                             )
                         }

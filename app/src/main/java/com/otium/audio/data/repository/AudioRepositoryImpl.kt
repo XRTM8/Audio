@@ -114,6 +114,18 @@ class AudioRepositoryImpl(
             artExtractionJob = scope.launch(Dispatchers.IO) {
                 delay(2500L)
                 val embeddedCacheDir = java.io.File(ctx.cacheDir, "embedded_art")
+
+                // Prune orphaned cached artwork files for tracks deleted from device
+                if (embeddedCacheDir.isDirectory) {
+                    val validIds = newSongs.map { it.id }.toHashSet()
+                    embeddedCacheDir.listFiles()?.forEach { file ->
+                        val id = file.name.removeSuffix(".jpg").toLongOrNull()
+                        if (id != null && id !in validIds) {
+                            file.delete()
+                        }
+                    }
+                }
+
                 val missing = newSongs.filter { song ->
                     song.relativePath.isNotBlank() &&
                         (song.albumArtUri == Uri.EMPTY || !song.albumArtUri.toString().contains("embedded_art")) &&

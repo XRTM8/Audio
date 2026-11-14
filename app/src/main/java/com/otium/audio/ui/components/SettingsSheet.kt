@@ -303,7 +303,7 @@ fun SettingsSheet(
                             ) {
                                 Column {
                                     Text(
-                                        text = "⚡ إصدار جديد متوفر: ${update.versionName}",
+                                        text = "إصدار جديد متوفر: ${update.versionName}",
                                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                         color = AccentGold
                                     )
@@ -453,41 +453,6 @@ fun SettingsSheet(
                 border = androidx.compose.foundation.BorderStroke(1.dp, DarkCardBorder)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    // Rust Native DSP status chip
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(DarkSurface)
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(SuccessGreen)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "محرك Rust Native DSP (TPDF Dithered)",
-                                fontSize = 11.5.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = TextPrimary
-                            )
-                        }
-                        Text(
-                            text = "نشط ⚡",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = SuccessGreen
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
                     // Open Equalizer Shortcut
                     Row(
                         modifier = Modifier

@@ -55,7 +55,6 @@ class PlaybackService : MediaSessionService() {
     @OptIn(UnstableApi::class)
     override fun onCreate() {
         super.onCreate()
-        VisualizerBridge.startWorker(serviceScope)
         initializePlayer()
         initializeMediaSession()
         setupNotificationProvider()
@@ -306,6 +305,9 @@ class PlaybackService : MediaSessionService() {
             super.onIsPlayingChanged(isPlaying)
             if (isPlaying) {
                 consecutiveErrors = 0
+                VisualizerBridge.startWorker(serviceScope)
+            } else {
+                VisualizerBridge.stopWorker()
             }
             updateWidgetState()
             val currentId = player.audioSessionId

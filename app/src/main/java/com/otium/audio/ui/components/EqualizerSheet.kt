@@ -133,23 +133,6 @@ fun EqualizerSheet(
                                     color = if (state.isEnabled) SuccessGreen else TextSecondary
                                 )
                             }
-                            if (com.otium.audio.audio.dsp.NativeAudioDsp.isAvailable) {
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(3.dp))
-                                        .background(AccentGold.copy(alpha = 0.22f))
-                                        .padding(horizontal = 5.dp, vertical = 0.5.dp)
-                                ) {
-                                    Text(
-                                        text = "RUST NATIVE",
-                                        fontSize = 9.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        letterSpacing = 0.5.sp,
-                                        color = AccentGold
-                                    )
-                                }
-                            }
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = if (state.isBound) {
