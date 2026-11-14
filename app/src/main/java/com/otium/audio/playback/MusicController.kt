@@ -208,7 +208,7 @@ class MusicController(
                     }
                 }
                 ticks++
-                delay(50L)
+                delay(250L)
             }
         }
     }
@@ -441,8 +441,8 @@ class MusicController(
     }
 
     private companion object {
-        /** 50 ms per tick, so 200 ticks is exactly 10 seconds of continuous playback before saving to disk. */
-        const val POSITION_SAVE_TICKS = 200
+        /** 250 ms per tick (4 ticks/sec), so 40 ticks is exactly 10 seconds of continuous playback before saving to disk. */
+        const val POSITION_SAVE_TICKS = 40
     }
 
     fun release() {

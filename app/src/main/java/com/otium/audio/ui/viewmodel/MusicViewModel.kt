@@ -10,6 +10,7 @@ import com.otium.audio.BuildConfig
 import com.otium.audio.data.local.entity.PlaylistEntity
 import com.otium.audio.data.model.AudioFolder
 import com.otium.audio.data.model.Song
+import com.otium.audio.data.model.SortOrder
 import com.otium.audio.data.repository.AudioRepository
 import com.otium.audio.data.update.UpdateChecker
 import com.otium.audio.playback.EqualizerController
@@ -44,7 +45,16 @@ class MusicViewModel(
         ?.let { runCatching { LibraryTab.valueOf(it) }.getOrNull() }
         ?: LibraryTab.TRACKS
 
-    private val _uiState = MutableStateFlow(MusicUiState(selectedTab = initialTab))
+    private val initialSortOrder = savedStateHandle?.get<String>("sort_order")
+        ?.let { runCatching { SortOrder.valueOf(it) }.getOrNull() }
+        ?: SortOrder.DATE_ADDED_DESC
+
+    private val _uiState = MutableStateFlow(
+        MusicUiState(
+            selectedTab = initialTab,
+            sortOrder = initialSortOrder
+        )
+    )
     val uiState: StateFlow<MusicUiState> = _uiState.asStateFlow()
 
     /** Ticks four times a second while playing; collected only by the progress widgets. */
@@ -226,6 +236,11 @@ class MusicViewModel(
     fun onSearchQueryChanged(query: String) {
         _uiState.update { it.copy(searchQuery = query) }
         searchQuery.value = query
+    }
+
+    fun setSortOrder(order: SortOrder) {
+        savedStateHandle?.set("sort_order", order.name)
+        _uiState.update { it.copy(sortOrder = order) }
     }
 
     fun selectTab(tab: LibraryTab) {

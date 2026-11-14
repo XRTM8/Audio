@@ -78,10 +78,12 @@ import androidx.compose.ui.unit.sp
 import com.otium.audio.data.local.entity.PlaylistEntity
 import com.otium.audio.data.model.AudioFolder
 import com.otium.audio.data.model.Song
+import com.otium.audio.data.model.SortOrder
 import com.otium.audio.ui.components.FastAlphabetScroller
 import com.otium.audio.ui.components.MiniPlayer
 import com.otium.audio.ui.components.SettingsSheet
 import com.otium.audio.ui.components.SongListItem
+import com.otium.audio.ui.components.SortBottomSheet
 import com.otium.audio.ui.components.TagEditorSheet
 import com.otium.audio.ui.theme.AccentGold
 import com.otium.audio.ui.theme.DarkCardBorder
@@ -137,6 +139,7 @@ fun HomeScreen(
     onToggleSkipSilence = playbackActions.onToggleSkipSilence,
     onToggleAutoPreAmp = equalizerActions.onToggleAutoPreAmp,
     onRescanLibrary = libraryActions.onRescanLibrary,
+    onSortOrderChanged = libraryActions.onSortOrderChanged,
     modifier = modifier
 )
 
@@ -169,6 +172,7 @@ fun HomeScreen(
     onToggleSkipSilence: (Boolean) -> Unit = {},
     onToggleAutoPreAmp: (Boolean) -> Unit = {},
     onRescanLibrary: () -> Unit = {},
+    onSortOrderChanged: (SortOrder) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -176,18 +180,26 @@ fun HomeScreen(
     val focusManager = LocalFocusManager.current
     var showCreatePlaylistDialog by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
+    var showSortSheet by remember { mutableStateOf(false) }
 
-    // Active displayed track list based on selected filter. Cheap to evaluate and it
-    // returns the list instance itself, so reading it on every recomposition is free.
-    val displayedSongs = when {
-                uiState.isSearching -> uiState.searchResults
-                uiState.selectedPlaylist != null -> uiState.selectedPlaylistSongs
-                uiState.selectedFolder != null -> uiState.selectedFolder.songs
-                uiState.selectedTab == LibraryTab.FAVORITES -> uiState.favorites
-                uiState.selectedTab == LibraryTab.RECENTLY_ADDED -> uiState.recentlyAdded
-                uiState.selectedTab == LibraryTab.MOST_PLAYED -> uiState.mostPlayed
-                uiState.selectedTab == LibraryTab.HISTORY -> uiState.history
-                else -> uiState.songs
+    // Active displayed track list based on selected filter and user sort order.
+    val rawSongs = when {
+        uiState.isSearching -> uiState.searchResults
+        uiState.selectedPlaylist != null -> uiState.selectedPlaylistSongs
+        uiState.selectedFolder != null -> uiState.selectedFolder.songs
+        uiState.selectedTab == LibraryTab.FAVORITES -> uiState.favorites
+        uiState.selectedTab == LibraryTab.RECENTLY_ADDED -> uiState.recentlyAdded
+        uiState.selectedTab == LibraryTab.MOST_PLAYED -> uiState.mostPlayed
+        uiState.selectedTab == LibraryTab.HISTORY -> uiState.history
+        else -> uiState.songs
+    }
+
+    val displayedSongs = remember(rawSongs, uiState.sortOrder, uiState.isSearching, uiState.selectedTab) {
+        if (uiState.isSearching || uiState.selectedTab == LibraryTab.RECENTLY_ADDED || uiState.selectedTab == LibraryTab.MOST_PLAYED || uiState.selectedTab == LibraryTab.HISTORY) {
+            rawSongs
+        } else {
+            uiState.sortOrder.sort(rawSongs)
+        }
     }
 
         Box(
@@ -203,7 +215,8 @@ fun HomeScreen(
                     isEqualizerEnabled = uiState.equalizerState.isEnabled,
                     availableUpdate = uiState.availableUpdate,
                     onOpenEqualizer = onOpenEqualizer,
-                    onOpenSettings = { showSettings = true }
+                    onOpenSettings = { showSettings = true },
+                    onOpenSort = { showSortSheet = true }
                 )
 
                 HomeSearchBar(
@@ -375,6 +388,14 @@ fun HomeScreen(
                     onRescanLibrary = onRescanLibrary,
                     onOpenEqualizer = onOpenEqualizer,
                     onDismiss = { showSettings = false }
+                )
+            }
+
+            if (showSortSheet) {
+                SortBottomSheet(
+                    currentSortOrder = uiState.sortOrder,
+                    onSelectSortOrder = onSortOrderChanged,
+                    onDismiss = { showSortSheet = false }
                 )
             }
         }

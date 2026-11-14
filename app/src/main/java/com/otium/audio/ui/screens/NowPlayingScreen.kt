@@ -1,6 +1,7 @@
 package com.otium.audio.ui.screens
 
 import androidx.compose.animation.animateColorAsState
+import android.content.Intent
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloat
@@ -64,6 +65,7 @@ import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Lyrics
 import androidx.compose.material.icons.filled.MoreVert
@@ -128,6 +130,8 @@ import androidx.media3.common.Player
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import com.otium.audio.audio.dsp.NativeAudioDsp
+import com.otium.audio.data.lyrics.LrclibClient
 import com.otium.audio.data.lyrics.LrcParser
 import com.otium.audio.data.lyrics.TrackLyrics
 import com.otium.audio.data.model.Song
@@ -298,9 +302,35 @@ fun NowPlayingScreen(
     var showSpeedDialog by remember { mutableStateOf(false) }
 
     var lyrics by remember { mutableStateOf(TrackLyrics()) }
-    LaunchedEffect(song.relativePath) {
+    LaunchedEffect(song.relativePath, song.id) {
         lyrics = withContext(Dispatchers.IO) {
-            LrcParser.findLrcForAudio(song.relativePath) ?: TrackLyrics()
+            val local = LrcParser.findLrcForAudio(song.relativePath)
+            if (local != null && local.lines.isNotEmpty()) {
+                local
+            } else {
+                LrclibClient.fetchLyrics(
+                    context = context,
+                    songId = song.id,
+                    title = song.title,
+                    artist = song.artist,
+                    album = song.album,
+                    durationMs = song.durationMs
+                ) ?: TrackLyrics()
+            }
+        }
+    }
+
+    var audioSpecs by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(song.relativePath) {
+        audioSpecs = withContext(Dispatchers.IO) {
+            val meta = NativeAudioDsp.readAudioMetadata(song.relativePath)
+            if (meta != null && meta.sampleRate > 0) {
+                val khz = String.format(java.util.Locale.US, "%.1f kHz", meta.sampleRate / 1000f)
+                val kbps = if (meta.bitrate > 0) "${meta.bitrate} kbps" else null
+                listOfNotNull(meta.format, khz, kbps).joinToString("  •  ")
+            } else {
+                null
+            }
         }
     }
 
@@ -672,6 +702,26 @@ fun NowPlayingScreen(
                             maxLines = 1,
                             modifier = Modifier.basicMarquee()
                         )
+
+                        if (!audioSpecs.isNullOrBlank()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(DarkSurfaceContainer.copy(alpha = 0.85f))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = audioSpecs!!,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        letterSpacing = 0.5.sp
+                                    ),
+                                    color = AccentGold.copy(alpha = 0.9f)
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -748,6 +798,21 @@ fun NowPlayingScreen(
                             },
                             Triple(Icons.AutoMirrored.Filled.QueueMusic, "قائمة التشغيل الحالية (${queue.size} مقطع)") {
                                 showMoreSheet = false; showQueue = true
+                            },
+                            Triple(Icons.Default.Headphones, "مخرج الصوت (سماعات / بلوتوث)") {
+                                showMoreSheet = false
+                                try {
+                                    val intent = Intent(android.provider.Settings.ACTION_SOUND_SETTINGS).apply {
+                                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                    }
+                                    context.startActivity(intent)
+                                } catch (_: Exception) {
+                                    try {
+                                        context.startActivity(Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS).apply {
+                                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                        })
+                                    } catch (_: Exception) {}
+                                }
                             },
                             Triple(Icons.Default.EditNote, "تعديل بيانات المقطع الصوتي") {
                                 showMoreSheet = false; onEditTagClick()

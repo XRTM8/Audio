@@ -59,7 +59,7 @@ fun LyricsSheet(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "ضع ملف .lrc بنفس اسم المقطع في نفس المجلد",
+                    text = "ضع ملف .lrc في مجلد المقطع أو اتصل بالإنترنت للبحث التلقائي",
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextTertiary
                 )

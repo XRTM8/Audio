@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import com.otium.audio.data.local.entity.PlaylistEntity
 import com.otium.audio.data.model.AudioFolder
 import com.otium.audio.data.model.Song
+import com.otium.audio.data.model.SortOrder
 import com.otium.audio.playback.EqualizerState
 import com.otium.audio.playback.MusicPlaybackState
 import com.otium.audio.playback.SleepTimerState
@@ -21,6 +22,7 @@ enum class LibraryTab {
 @Immutable
 data class MusicUiState(
     val selectedTab: LibraryTab = LibraryTab.TRACKS,
+    val sortOrder: SortOrder = SortOrder.DATE_ADDED_DESC,
     val songs: List<Song> = emptyList(),
     val folders: List<AudioFolder> = emptyList(),
     val favorites: List<Song> = emptyList(),

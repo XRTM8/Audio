@@ -19,6 +19,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.Search
@@ -59,6 +60,7 @@ fun HomeTopBar(
     availableUpdate: UpdateInfo?,
     onOpenEqualizer: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenSort: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -83,6 +85,15 @@ fun HomeTopBar(
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onOpenSort) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Sort,
+                    contentDescription = "Sort",
+                    tint = TextSecondary,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
             if (availableUpdate != null) {
                 IconButton(onClick = onOpenSettings) {
                     Icon(

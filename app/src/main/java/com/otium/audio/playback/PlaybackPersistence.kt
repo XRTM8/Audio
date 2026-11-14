@@ -33,6 +33,16 @@ class PlaybackPersistence(private val context: Context) {
 
     fun isSkipSilenceEnabled(): Boolean = prefs.getBoolean(KEY_SKIP_SILENCE, false)
 
+    fun saveSortOrder(order: com.otium.audio.data.model.SortOrder) {
+        prefs.edit().putString(KEY_SORT_ORDER, order.name).apply()
+    }
+
+    fun getSortOrder(): com.otium.audio.data.model.SortOrder {
+        val name = prefs.getString(KEY_SORT_ORDER, null) ?: return com.otium.audio.data.model.SortOrder.DATE_ADDED_DESC
+        return runCatching { com.otium.audio.data.model.SortOrder.valueOf(name) }
+            .getOrDefault(com.otium.audio.data.model.SortOrder.DATE_ADDED_DESC)
+    }
+
     fun clearQueue() {
         prefs.edit().remove(KEY_IDS).remove(KEY_INDEX).remove(KEY_POSITION).apply()
     }
@@ -54,5 +64,6 @@ class PlaybackPersistence(private val context: Context) {
         const val KEY_INDEX = "queue_index"
         const val KEY_POSITION = "queue_position"
         const val KEY_SKIP_SILENCE = "skip_silence"
+        const val KEY_SORT_ORDER = "sort_order"
     }
 }

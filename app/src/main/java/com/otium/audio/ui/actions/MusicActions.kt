@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import com.otium.audio.data.local.entity.PlaylistEntity
 import com.otium.audio.data.model.AudioFolder
 import com.otium.audio.data.model.Song
+import com.otium.audio.data.model.SortOrder
 import com.otium.audio.ui.viewmodel.LibraryTab
 
 /**
@@ -71,5 +72,6 @@ data class LibraryActions(
     val onSongLongPress: (Song) -> Unit = {},
     val onDismissTagEditor: () -> Unit = {},
     val onDismissUpdate: () -> Unit = {},
-    val onRescanLibrary: () -> Unit = {}
+    val onRescanLibrary: () -> Unit = {},
+    val onSortOrderChanged: (SortOrder) -> Unit = {}
 )

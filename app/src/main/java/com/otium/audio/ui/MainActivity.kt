@@ -150,7 +150,8 @@ class MainActivity : ComponentActivity() {
                             onSongLongPress = { songToDelete = it },
                             onDismissTagEditor = { viewModel.openTagEditor(null) },
                             onDismissUpdate = viewModel::dismissUpdate,
-                            onRescanLibrary = viewModel::rescanLibrary
+                            onRescanLibrary = viewModel::rescanLibrary,
+                            onSortOrderChanged = viewModel::setSortOrder
                         )
                     }
 

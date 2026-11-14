@@ -1,10 +1,5 @@
 package com.otium.audio.ui.components
 
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.CornerRadius
@@ -279,24 +274,6 @@ fun SongListItem(
  */
 @Composable
 fun MiniEqBars(modifier: Modifier = Modifier) {
-    val inf = rememberInfiniteTransition(label = "eq_bars")
-    val b1 = inf.animateFloat(
-        initialValue = 0.15f, targetValue = 0.90f,
-        animationSpec = infiniteRepeatable(tween(350), RepeatMode.Reverse), label = "b1"
-    )
-    val b2 = inf.animateFloat(
-        initialValue = 0.50f, targetValue = 1.0f,
-        animationSpec = infiniteRepeatable(tween(270), RepeatMode.Reverse), label = "b2"
-    )
-    val b3 = inf.animateFloat(
-        initialValue = 0.20f, targetValue = 0.80f,
-        animationSpec = infiniteRepeatable(tween(420), RepeatMode.Reverse), label = "b3"
-    )
-    val b4 = inf.animateFloat(
-        initialValue = 0.60f, targetValue = 0.95f,
-        animationSpec = infiniteRepeatable(tween(310), RepeatMode.Reverse), label = "b4"
-    )
-
     Canvas(modifier = modifier.size(width = 16.dp, height = 13.dp)) {
         val spectrum = VisualizerBridge.spectrumBands.value
         val hasLiveAudio = spectrum.isNotEmpty() && (spectrum[0] > 0.005f || spectrum[2] > 0.005f)
@@ -310,10 +287,10 @@ fun MiniEqBars(modifier: Modifier = Modifier) {
 
         val c = Color.White
 
-        val v1 = if (hasLiveAudio) (spectrum.getOrElse(0) { 0.2f } * 1.5f).coerceIn(0.12f, 1f) else b1.value
-        val v2 = if (hasLiveAudio) (spectrum.getOrElse(2) { 0.5f } * 1.5f).coerceIn(0.12f, 1f) else b2.value
-        val v3 = if (hasLiveAudio) (spectrum.getOrElse(5) { 0.3f } * 1.5f).coerceIn(0.12f, 1f) else b3.value
-        val v4 = if (hasLiveAudio) (spectrum.getOrElse(8) { 0.6f } * 1.5f).coerceIn(0.12f, 1f) else b4.value
+        val v1 = if (hasLiveAudio) (spectrum.getOrElse(0) { 0.25f } * 1.5f).coerceIn(0.12f, 1f) else 0.35f
+        val v2 = if (hasLiveAudio) (spectrum.getOrElse(2) { 0.55f } * 1.5f).coerceIn(0.12f, 1f) else 0.70f
+        val v3 = if (hasLiveAudio) (spectrum.getOrElse(5) { 0.40f } * 1.5f).coerceIn(0.12f, 1f) else 0.50f
+        val v4 = if (hasLiveAudio) (spectrum.getOrElse(8) { 0.65f } * 1.5f).coerceIn(0.12f, 1f) else 0.85f
 
         val h1 = totalHeight * v1
         drawRoundRect(color = c, topLeft = Offset(0f, totalHeight - h1), size = Size(barWidth, h1), cornerRadius = radius)
