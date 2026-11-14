@@ -156,6 +156,7 @@ import com.otium.audio.ui.theme.DarkSurfaceVariant
 import com.otium.audio.ui.theme.ErrorRed
 import com.otium.audio.ui.theme.TextPrimary
 import com.otium.audio.ui.theme.TextSecondary
+import com.otium.audio.ui.theme.TextTertiary
 import com.otium.audio.ui.theme.rememberTrackColors
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -908,31 +909,31 @@ fun NowPlayingScreen(
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Column {
                                 Text("العنوان", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
-                                Text(targetSong.displayTitle, style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
+                                Text(song.displayTitle, style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
                             }
                             Column {
                                 Text("الفنان والألبوم", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
-                                Text("${targetSong.artist}  •  ${targetSong.album}", style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
+                                Text("${song.artist}  •  ${song.album}", style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
                             }
                             Column {
                                 Text("المواصفات والترميز", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
-                                Text(audioSpecs ?: targetSong.audioFormatBadge, style = MaterialTheme.typography.bodyMedium, color = AccentGold)
+                                Text(audioSpecs ?: song.audioFormatBadge, style = MaterialTheme.typography.bodyMedium, color = AccentGold)
                             }
                             Column {
                                 Text("المدة الزمنية", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
-                                Text(targetSong.formattedDuration, style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
+                                Text(song.formattedDuration, style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
                             }
-                            if (targetSong.size > 0) {
+                            if (song.size > 0L) {
                                 Column {
                                     Text("حجم الملف", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
-                                    val sizeMb = String.format(java.util.Locale.US, "%.2f MB", targetSong.size / (1024f * 1024f))
+                                    val sizeMb = String.format(java.util.Locale.US, "%.2f MB", song.size / (1024f * 1024f))
                                     Text(sizeMb, style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
                                 }
                             }
-                            if (targetSong.relativePath.isNotBlank()) {
+                            if (song.relativePath.isNotBlank()) {
                                 Column {
                                     Text("المسار على الذاكرة", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
-                                    Text(targetSong.relativePath, style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp), color = TextTertiary)
+                                    Text(song.relativePath, style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp), color = TextTertiary)
                                 }
                             }
                         }

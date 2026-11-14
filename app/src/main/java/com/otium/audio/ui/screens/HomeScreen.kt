@@ -132,8 +132,6 @@ fun HomeScreen(
     onClearSelectedPlaylist = libraryActions.onClearSelectedPlaylist,
     onFolderSelected = libraryActions.onFolderSelected,
     onClearSelectedFolder = libraryActions.onClearSelectedFolder,
-    onFolderSelected = libraryActions.onFolderSelected,
-    onClearSelectedFolder = libraryActions.onClearSelectedFolder,
     onArtistSelected = libraryActions.onArtistSelected,
     onClearSelectedArtist = libraryActions.onClearSelectedArtist,
     onAlbumSelected = libraryActions.onAlbumSelected,
