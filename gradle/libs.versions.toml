@@ -12,6 +12,7 @@ coroutines = "1.9.0"
 coil = "2.7.0"
 navigationCompose = "2.8.4"
 palette = "1.0.0"
+profileinstaller = "1.4.1"
 
 [libraries]
 androidx-palette = { group = "androidx.palette", name = "palette-ktx", version.ref = "palette" }
@@ -47,6 +48,9 @@ kotlinx-coroutines-guava = { group = "org.jetbrains.kotlinx", name = "kotlinx-co
 
 # Coil
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+
+# ProfileInstaller for Baseline Profiles AOT optimization
+androidx-profileinstaller = { group = "androidx.profileinstaller", name = "profileinstaller", version.ref = "profileinstaller" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

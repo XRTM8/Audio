@@ -279,6 +279,15 @@ fun NowPlayingScreen(
         label = "halo_alpha"
     )
     val animatedVibrant  by animateColorAsState(trackColors.vibrant,  tween(600), label = "vib")
+    val haloBrush = remember(animatedVibrant) {
+        androidx.compose.ui.graphics.Brush.radialGradient(
+            colors = listOf(
+                animatedVibrant.copy(alpha = 0.50f),
+                animatedVibrant.copy(alpha = 0.18f),
+                androidx.compose.ui.graphics.Color.Transparent
+            )
+        )
+    }
 
     // State for Sheets & Overlays
     var showMoreSheet   by remember { mutableStateOf(false) }
@@ -502,7 +511,6 @@ fun NowPlayingScreen(
                                     }
                                 ) { page ->
                                     val pageSong = playlist.getOrElse(page) { song }
-                                    val isCurrent = page == pagerState.currentPage
 
                                     val pageCoverRequest = remember(pageSong.albumArtUri) {
                                         ImageRequest.Builder(context)
@@ -520,8 +528,7 @@ fun NowPlayingScreen(
                                         modifier = Modifier
                                             .fillMaxSize()
                                             .graphicsLayer {
-                                                // Dynamic carousel depth calculation in unified LTR physics
-                                                // Executed strictly in Draw/Layout phase — ZERO recompositions during 120Hz swiping!
+                                                // Dynamic carousel depth calculation strictly in Draw/Layout phase
                                                 val rawOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
                                                 val pageOffset = rawOffset.absoluteValue
                                                 val pageScale = (1f - (pageOffset * 0.10f)).coerceIn(0.88f, 1f)
@@ -531,39 +538,34 @@ fun NowPlayingScreen(
                                             },
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        // Hardware-accelerated GPU ambient halo glow (zero per-frame allocations)
-                                        if (isCurrent) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth(0.96f)
-                                                    .aspectRatio(1f)
-                                                    .scale(1.22f)
-                                                    .graphicsLayer {
-                                                        val h = if (isPlaying) haloState.value else 0.15f
-                                                        alpha = h * if (isPlaying) 0.85f else 0.35f
-                                                    }
-                                                    .background(
-                                                        brush = Brush.radialGradient(
-                                                            colors = listOf(
-                                                                animatedVibrant.copy(alpha = 0.50f),
-                                                                animatedVibrant.copy(alpha = 0.18f),
-                                                                Color.Transparent
-                                                            )
-                                                        ),
-                                                        shape = CircleShape
-                                                    )
-                                            )
-                                        }
+                                        // Hardware-accelerated GPU ambient halo glow (zero recompositions during swipe)
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth(0.96f)
+                                                .aspectRatio(1f)
+                                                .scale(1.22f)
+                                                .graphicsLayer {
+                                                    val rawOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
+                                                    val pageOffset = rawOffset.absoluteValue
+                                                    val proximity = (1f - pageOffset * 2.5f).coerceIn(0f, 1f)
+                                                    val h = if (isPlaying) haloState.value else 0.15f
+                                                    alpha = proximity * h * (if (isPlaying) 0.85f else 0.35f)
+                                                }
+                                                .background(
+                                                    brush = haloBrush,
+                                                    shape = CircleShape
+                                                )
+                                        )
 
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxWidth(0.96f)
                                                 .aspectRatio(1f)
                                                 .shadow(
-                                                    elevation = 16.dp,
+                                                    elevation = 12.dp,
                                                     shape = RoundedCornerShape(20.dp),
-                                                    ambientColor = animatedDominant.copy(alpha = 0.45f),
-                                                    spotColor = animatedDominant.copy(alpha = 0.35f)
+                                                    ambientColor = Color.Black.copy(alpha = 0.45f),
+                                                    spotColor = Color.Black.copy(alpha = 0.35f)
                                                 )
                                                 .clip(RoundedCornerShape(20.dp))
                                                 .background(DarkSurfaceVariant),

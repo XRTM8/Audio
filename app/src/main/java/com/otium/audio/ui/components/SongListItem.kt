@@ -256,7 +256,7 @@ fun SongListItem(
             modifier = Modifier
                 .size(38.dp)
                 .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
+                    interactionSource = EmptyRowInteractionSource,
                     indication = null,
                     onClick = onFavClick
                 ),

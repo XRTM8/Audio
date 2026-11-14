@@ -80,7 +80,11 @@ object VisualizerBridge {
         if (workerJob?.isActive == true) return
         workerJob = scope.launch(Dispatchers.Default) {
             while (isActive) {
-                delay(16L) // 60 FPS sub-frame sync
+                if (!hasPendingSamples) {
+                    delay(60L) // Sleep deeper when playback is paused or idle
+                    continue
+                }
+                delay(16L) // 60 FPS sub-frame sync during active playback
                 if (hasPendingSamples) {
                     hasPendingSamples = false
                     val samples = activeBuffer

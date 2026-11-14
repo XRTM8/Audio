@@ -24,8 +24,8 @@ android {
         applicationId = "com.otium.audio"
         minSdk = 26
         targetSdk = 35
-        versionCode = 61
-        versionName = "5.1.0"
+        versionCode = 62
+        versionName = "5.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -141,6 +141,9 @@ dependencies {
 
     // Palette API for dynamic theme extraction
     implementation(libs.androidx.palette)
+
+    // Baseline Profile Installer for AOT startup and scroll optimization
+    implementation(libs.androidx.profileinstaller)
 
     testImplementation("junit:junit:4.13.2")
 }

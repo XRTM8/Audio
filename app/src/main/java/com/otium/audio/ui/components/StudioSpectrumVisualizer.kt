@@ -25,11 +25,11 @@ fun StudioSpectrumVisualizer(
     accentColor: Color,
     modifier: Modifier = Modifier
 ) {
-    val spectrum by VisualizerBridge.spectrumBands.collectAsState()
     val activeColors = remember(accentColor) { listOf(Color.White, accentColor.copy(alpha = 0.85f)) }
     val inactiveColors = remember { listOf(Color(0x33FFFFFF), Color(0x1AFFFFFF)) }
 
     Canvas(modifier = modifier) {
+        val spectrum = VisualizerBridge.spectrumBands.value
         val totalWidth = size.width
         val totalHeight = size.height
         val barCount = 16
