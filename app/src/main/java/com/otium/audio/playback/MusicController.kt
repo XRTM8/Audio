@@ -204,10 +204,6 @@ class MusicController(
                     if (ticks % POSITION_SAVE_TICKS == 0) {
                         coroutineScope.launch(Dispatchers.IO) {
                             persistence.savePosition(pos)
-                            val curr = _playbackState.value.currentSong
-                            if (curr != null && curr.durationMs >= 600_000L) {
-                                persistence.saveTrackResumePosition(curr.id, pos)
-                            }
                         }
                     }
                 }
@@ -228,17 +224,14 @@ class MusicController(
         val songIndex = playlist.indexOfFirst { it.id == song.id }
         if (songIndex == -1) return
 
-        val resumePos = persistence.getTrackResumePosition(song.id, song.durationMs)
-
         // Fast path: if the requested song is in the already-loaded queue, seek directly without rebuilding the queue
         val isSameQueue = controller.mediaItemCount == playlist.size &&
             (currentPlaylistSongs === playlist || (currentPlaylistSongs.isNotEmpty() && currentPlaylistSongs.size == playlist.size && currentPlaylistSongs[0].id == playlist[0].id && currentPlaylistSongs.last().id == playlist.last().id))
 
         if (isSameQueue) {
             currentPlaylistSongs = playlist
-            controller.seekTo(songIndex, resumePos)
+            controller.seekTo(songIndex, 0L)
             controller.play()
-            _position.value = resumePos
             _playbackState.update {
                 it.copy(
                     currentSong = song,
@@ -252,10 +245,9 @@ class MusicController(
 
         currentPlaylistSongs = playlist
         val mediaItems = playlist.map { it.toMediaItem() }
-        controller.setMediaItems(mediaItems, songIndex, resumePos)
+        controller.setMediaItems(mediaItems, songIndex, 0L)
         controller.prepare()
         controller.play()
-        _position.value = resumePos
 
         _playbackState.update {
             it.copy(

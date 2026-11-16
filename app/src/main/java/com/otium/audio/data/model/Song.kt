@@ -84,6 +84,20 @@ data class Song(
                 s = s.substring(1, s.length - 1).trim()
             } else if (s.startsWith("[") && s.endsWith("]") && s.length > 2) {
                 s = s.substring(1, s.length - 1).trim()
+            } else if (s.startsWith("(") && s.contains(")")) {
+                val closeIdx = s.indexOf(')')
+                if (closeIdx in 2..50) {
+                    val part1 = s.substring(1, closeIdx).trim()
+                    val part2 = s.substring(closeIdx + 1).trim()
+                    s = if (part2.isNotEmpty()) "$part1  ·  $part2" else part1
+                }
+            } else if (s.startsWith("[") && s.contains("]")) {
+                val closeIdx = s.indexOf(']')
+                if (closeIdx in 2..50) {
+                    val part1 = s.substring(1, closeIdx).trim()
+                    val part2 = s.substring(closeIdx + 1).trim()
+                    s = if (part2.isNotEmpty()) "$part1  ·  $part2" else part1
+                }
             }
             return s
         }

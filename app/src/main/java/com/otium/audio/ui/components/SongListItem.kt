@@ -68,15 +68,15 @@ import com.otium.audio.ui.theme.TextTertiary
 private val TitleStyleRegular = TextStyle(
     fontWeight = FontWeight.Medium,
     fontSize = 14.sp,
-    textDirection = TextDirection.Content
+    textDirection = TextDirection.ContentOrLtr
 )
 private val TitleStyleActive = TextStyle(
     fontWeight = FontWeight.Bold,
     fontSize = 14.sp,
-    textDirection = TextDirection.Content
+    textDirection = TextDirection.ContentOrLtr
 )
 private val SubtitleStyle = TextStyle(
-    textDirection = TextDirection.Content,
+    textDirection = TextDirection.ContentOrLtr,
     fontSize = 11.5.sp
 )
 private val EmptyRowInteractionSource = MutableInteractionSource()

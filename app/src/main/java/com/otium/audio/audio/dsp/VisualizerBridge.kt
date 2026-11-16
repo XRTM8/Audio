@@ -87,16 +87,22 @@ object VisualizerBridge {
         workerJob = scope.launch(Dispatchers.Default) {
             while (isActive) {
                 if (!isUiVisible || !hasPendingSamples) {
-                    delay(200L) // Sleep deeply when playback is paused or UI is hidden
+                    delay(120L) // Sleep deeply when playback is paused or UI is hidden
                     continue
                 }
-                delay(40L) // 25 FPS relaxed sync for mini-EQ icon (saving >60% CPU & battery vs 60 FPS)
+                delay(16L) // 60 FPS sub-frame sync during active playback & visible UI
                 if (hasPendingSamples && isUiVisible) {
                     hasPendingSamples = false
                     val samples = activeBuffer
                     val bands = NativeAudioDsp.analyzeSpectrum(samples, 16)
                     if (bands != null) {
                         updateBands(bands)
+                    }
+                    val enginePtr = activeEnginePtr
+                    if (enginePtr != 0L) {
+                        if (NativeAudioDsp.readPeakLevelsDirect(enginePtr, scratchPeaks)) {
+                            updatePeakLevelsDirect(scratchPeaks)
+                        }
                     }
                 }
             }

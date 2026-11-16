@@ -43,18 +43,6 @@ class PlaybackPersistence(private val context: Context) {
             .getOrDefault(com.otium.audio.data.model.SortOrder.DATE_ADDED_DESC)
     }
 
-    fun saveTrackResumePosition(songId: Long, positionMs: Long) {
-        if (positionMs > 15_000L) {
-            prefs.edit().putLong("resume_track_$songId", positionMs).apply()
-        }
-    }
-
-    fun getTrackResumePosition(songId: Long, durationMs: Long): Long {
-        if (durationMs < 600_000L) return 0L
-        val saved = prefs.getLong("resume_track_$songId", 0L)
-        return if (saved > 15_000L && saved < durationMs - 15_000L) saved else 0L
-    }
-
     fun clearQueue() {
         prefs.edit().remove(KEY_IDS).remove(KEY_INDEX).remove(KEY_POSITION).apply()
     }

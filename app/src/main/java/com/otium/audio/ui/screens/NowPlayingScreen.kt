@@ -41,7 +41,6 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
@@ -611,19 +610,7 @@ fun NowPlayingScreen(
                                                     spotColor = Color.Black.copy(alpha = 0.35f)
                                                 )
                                                 .clip(RoundedCornerShape(20.dp))
-                                                .background(DarkSurfaceVariant)
-                                                .pointerInput(Unit) {
-                                                    detectTapGestures(
-                                                        onDoubleTap = { offset ->
-                                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                            if (offset.x < size.width / 2f) {
-                                                                onSeekBy(-10_000L)
-                                                            } else {
-                                                                onSeekBy(10_000L)
-                                                            }
-                                                        }
-                                                    )
-                                                },
+                                                .background(DarkSurfaceVariant),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             AudiophileVinylCover()
@@ -694,7 +681,7 @@ fun NowPlayingScreen(
                             style = MaterialTheme.typography.headlineMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 20.sp,
-                                textDirection = TextDirection.Content
+                                textDirection = TextDirection.ContentOrLtr
                             ),
                             color = TextPrimary,
                             maxLines = 1,
@@ -720,7 +707,7 @@ fun NowPlayingScreen(
                                 }
                             },
                             style = MaterialTheme.typography.bodyMedium.copy(
-                                textDirection = TextDirection.Content,
+                                textDirection = TextDirection.ContentOrLtr,
                                 fontSize = 13.5.sp
                             ),
                             color = TextSecondary,

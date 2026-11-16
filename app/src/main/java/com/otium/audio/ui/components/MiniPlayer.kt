@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -127,13 +128,10 @@ fun MiniPlayer(
             .background(DarkSurfaceContainer)
             .clickable { onPlayerClick() }
     ) {
-        // Zero-Recomposition isolated interactive seek strip (only updates waveform/thumb without recomposing row)
-        MiniPlayerTactileSeekStrip(
+        // Sleek studio hairline progress bar (Apple Music / Spotify style)
+        MiniPlayerProgressBar(
             positionFlow = positionFlow,
-            durationMs = durationMs,
-            isPlaying = isPlaying,
-            onSeekTo = onSeekTo,
-            waveformSeed = currentSong.id
+            durationMs = durationMs
         )
 
         // Enlarged console row (72dp height, 54dp album art, full playback controls)
@@ -181,7 +179,7 @@ fun MiniPlayer(
                     style = MaterialTheme.typography.bodyLarge.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
-                        textDirection = TextDirection.Content
+                        textDirection = TextDirection.ContentOrLtr
                     ),
                     color = TextPrimary,
                     maxLines = 1,
@@ -191,7 +189,7 @@ fun MiniPlayer(
                 Text(
                     text = "${currentSong.artist}  ·  ${currentSong.audioFormatBadge}",
                     style = MaterialTheme.typography.bodySmall.copy(
-                        textDirection = TextDirection.Content,
+                        textDirection = TextDirection.ContentOrLtr,
                         fontSize = 12.sp
                     ),
                     color = TextSecondary,
@@ -275,147 +273,29 @@ fun MiniPlayer(
 }
 
 @Composable
-private fun MiniPlayerTactileSeekStrip(
+private fun MiniPlayerProgressBar(
     positionFlow: StateFlow<Long>,
-    durationMs: Long,
-    isPlaying: Boolean,
-    onSeekTo: (Long) -> Unit,
-    waveformSeed: Long = 0L
+    durationMs: Long
 ) {
-    val haptic = LocalHapticFeedback.current
     val position by positionFlow.collectAsState()
-
-    var isScrubbing by remember { mutableStateOf(false) }
-    var scrubProgress by remember { mutableFloatStateOf(0f) }
-
-    val rawProgress = if (durationMs > 0)
+    val progress = if (durationMs > 0)
         (position.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
     else 0f
-
-    val activeProgress = if (isScrubbing) scrubProgress else rawProgress
-
-    val barHeight by animateDpAsState(
-        targetValue = if (isScrubbing) 5.dp else 2.5.dp,
-        label = "mini_bar_height"
-    )
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(20.dp)
-                .pointerInput(durationMs) {
-                    awaitEachGesture {
-                        val down = awaitFirstDown(requireUnconsumed = false)
-                        down.consume()
-                        if (size.width > 0) {
-                            isScrubbing = true
-                            scrubProgress = (down.position.x / size.width).coerceIn(0f, 1f)
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        }
-                        while (true) {
-                            val event = awaitPointerEvent()
-                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                            if (!change.pressed) {
-                                change.consume()
-                                break
-                            }
-                            change.consume()
-                            if (size.width > 0) {
-                                val newProgress = (change.position.x / size.width).coerceIn(0f, 1f)
-                                if (kotlin.math.abs(newProgress - scrubProgress) > 0.003f) {
-                                    scrubProgress = newProgress
-                                }
-                            }
-                        }
-                        if (durationMs > 0) {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            onSeekTo((scrubProgress * durationMs).toLong())
-                        }
-                        isScrubbing = false
-                    }
-                }
+                .height(2.5.dp)
+                .background(Color(0x26FFFFFF))
         ) {
-            // Precision Straight Line Track (Minimalist, Architectural, No Blobs)
-            Canvas(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(barHeight)
-                    .align(Alignment.Center)
-            ) {
-                val totalWidth = size.width
-                val trackHeight = size.height
-                val radius = CornerRadius(trackHeight / 2f, trackHeight / 2f)
-
-                // 1. Inactive Background Track (subtle obsidian/titanium line)
-                drawRoundRect(
-                    color = Color(0x2EFFFFFF),
-                    topLeft = Offset.Zero,
-                    size = Size(totalWidth, trackHeight),
-                    cornerRadius = radius
+            if (progress > 0f) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(progress)
+                        .background(Color.White)
                 )
-
-                // 2. Active Played Track (Pure Titanium White)
-                val activeWidth = (activeProgress * totalWidth).coerceIn(0f, totalWidth)
-                if (activeWidth > 0f) {
-                    drawRoundRect(
-                        color = Color.White,
-                        topLeft = Offset.Zero,
-                        size = Size(activeWidth, trackHeight),
-                        cornerRadius = radius
-                    )
-                }
-            }
-
-            // Scrubber Thumb: ONLY visible while scrubbing (clean flat line otherwise)
-            if (isScrubbing) {
-                val thumbSize = 10.dp
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(20.dp)
-                        .align(Alignment.Center)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.CenterStart)
-                            .graphicsLayer {
-                                val halfPx = thumbSize.toPx() / 2f
-                                translationX = (activeProgress * size.width - halfPx)
-                                    .coerceIn(0f, (size.width - thumbSize.toPx()).coerceAtLeast(0f))
-                            }
-                            .size(thumbSize)
-                            .shadow(
-                                elevation = 6.dp,
-                                shape = CircleShape,
-                                spotColor = Color.White
-                            )
-                            .clip(CircleShape)
-                            .background(Color.White)
-                    )
-                }
-            }
-
-            // Floating Live Scrub Time Indicator Pill
-            if (isScrubbing && durationMs > 0) {
-                val scrubMs = (scrubProgress * durationMs).toLong()
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .offset(y = (-30).dp)
-                        .shadow(elevation = 8.dp, shape = RoundedCornerShape(12.dp))
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(DarkSurfaceElevated)
-                        .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(12.dp))
-                        .padding(horizontal = 12.dp, vertical = 3.dp)
-                ) {
-                    Text(
-                        text = "${Song.formatDurationFast(scrubMs)} / ${Song.formatDurationFast(durationMs)}",
-                        color = Color.White,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
             }
         }
     }
