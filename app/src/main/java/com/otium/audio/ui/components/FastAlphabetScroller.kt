@@ -47,35 +47,24 @@ fun FastAlphabetScroller(
 
     val haptic = LocalHapticFeedback.current
 
-    // Dynamically generate alphabet strictly matching what is in the library
+    // Dynamically generate alphabet strictly matching what is in the library with zero temporary set allocations
     val (alphabet, letterIndexMap) = remember(songs.size, songs.firstOrNull()?.id, songs.lastOrNull()?.id) {
-        val map = LinkedHashMap<String, Int>()
-        val arabicLetters = mutableSetOf<String>()
-        val latinLetters = mutableSetOf<String>()
-
-        songs.forEachIndexed { index, song ->
-            val key = song.indexLetter
+        val map = LinkedHashMap<String, Int>(64)
+        for (i in 0 until songs.size) {
+            val key = songs[i].indexLetter
             if (!map.containsKey(key)) {
-                map[key] = index
-            }
-            if (key.isNotEmpty()) {
-                val c = key[0]
-                if (c in 'A'..'Z') latinLetters.add(key)
-                else if (c in '\u0600'..'\u06FF') arabicLetters.add(key)
+                map[key] = i
             }
         }
 
         // Ordered alphabet
-        val alphaList = mutableListOf("#")
-        if (arabicLetters.isNotEmpty()) {
-            for (letter in ARABIC_ALPHABET) {
-                if (map.containsKey(letter)) alphaList.add(letter)
-            }
+        val alphaList = ArrayList<String>(40)
+        alphaList.add("#")
+        for (letter in ARABIC_ALPHABET) {
+            if (map.containsKey(letter)) alphaList.add(letter)
         }
-        if (latinLetters.isNotEmpty()) {
-            for (letter in LATIN_ALPHABET) {
-                if (map.containsKey(letter)) alphaList.add(letter)
-            }
+        for (letter in LATIN_ALPHABET) {
+            if (map.containsKey(letter)) alphaList.add(letter)
         }
 
         Pair(alphaList, map)

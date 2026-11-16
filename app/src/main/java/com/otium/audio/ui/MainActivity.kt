@@ -27,8 +27,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import com.otium.audio.OtiumApplication
+import com.otium.audio.audio.dsp.VisualizerBridge
 import com.otium.audio.data.model.Song
 import com.otium.audio.ui.components.DeleteSongDialog
+import com.otium.audio.ui.components.DeleteSongsDialog
 import com.otium.audio.ui.components.EqualizerSheet
 import com.otium.audio.ui.components.PlaylistPickerBottomSheet
 import com.otium.audio.ui.components.SongOptionsBottomSheet
@@ -83,6 +85,7 @@ class MainActivity : ComponentActivity() {
                     }
                     var showHomeEqualizer by remember { mutableStateOf(false) }
                     var songToDelete by remember { mutableStateOf<Song?>(null) }
+                    var songsToDelete by remember { mutableStateOf<List<Song>?>(null) }
                     var songForOptions by remember { mutableStateOf<Song?>(null) }
                     var songForPlaylistPicker by remember { mutableStateOf<Song?>(null) }
                     var showCreatePlaylistFromPicker by remember { mutableStateOf(false) }
@@ -165,7 +168,11 @@ class MainActivity : ComponentActivity() {
                             onDismissTagEditor = { viewModel.openTagEditor(null) },
                             onDismissUpdate = viewModel::dismissUpdate,
                             onRescanLibrary = viewModel::rescanLibrary,
-                            onSortOrderChanged = viewModel::setSortOrder
+                            onSortOrderChanged = viewModel::setSortOrder,
+                            onStartSelection = { song -> viewModel.startSelectionMode(song?.id) },
+                            onToggleSelection = viewModel::toggleSongSelection,
+                            onSelectAll = viewModel::selectAllSongs,
+                            onClearSelection = viewModel::clearSongSelection
                         )
                     }
 
@@ -183,7 +190,8 @@ class MainActivity : ComponentActivity() {
                             playbackActions = playbackActions,
                             equalizerActions = equalizerActions,
                             onOpenNowPlaying = { viewModel.setNowPlayingExpanded(true) },
-                            onOpenEqualizer = { showHomeEqualizer = true }
+                            onOpenEqualizer = { showHomeEqualizer = true },
+                            onBatchDeleteClick = { songsToDelete = it }
                         )
 
                         if (songForOptions != null) {
@@ -208,6 +216,11 @@ class MainActivity : ComponentActivity() {
                                 onDeleteClick = {
                                     songToDelete = songForOptions
                                     songForOptions = null
+                                },
+                                onSelectMultipleClick = {
+                                    val targetId = songForOptions?.id
+                                    songForOptions = null
+                                    viewModel.startSelectionMode(targetId)
                                 },
                                 onDismiss = { songForOptions = null }
                             )
@@ -238,15 +251,27 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        DeleteSongDialog(
-                            song = songToDelete,
-                            onDismiss = { songToDelete = null },
-                            onSongDeleted = { deletedSong ->
-                                if (uiState.playbackState.currentSong?.id == deletedSong.id) {
-                                    viewModel.skipToNext()
+                        val activeDeleteList = songsToDelete ?: listOfNotNull(songToDelete)
+                        if (activeDeleteList.isNotEmpty()) {
+                            DeleteSongsDialog(
+                                songs = activeDeleteList,
+                                onDismiss = {
+                                    songToDelete = null
+                                    songsToDelete = null
+                                },
+                                onSongsDeleted = { deletedList ->
+                                    val currentPlayingId = uiState.playbackState.currentSong?.id
+                                    if (deletedList.any { it.id == currentPlayingId }) {
+                                        viewModel.skipToNext()
+                                    }
+                                    if (uiState.isSelectionMode) {
+                                        viewModel.clearSongSelection()
+                                    }
+                                    songToDelete = null
+                                    songsToDelete = null
                                 }
-                            }
-                        )
+                            )
+                        }
 
                         if (showHomeEqualizer) {
                             EqualizerSheet(
@@ -263,6 +288,10 @@ class MainActivity : ComponentActivity() {
                                 onClarityChange = equalizerActions.onClarityChange,
                                 onDismiss = { showHomeEqualizer = false }
                             )
+                        }
+
+                        BackHandler(enabled = uiState.isSelectionMode && !uiState.isNowPlayingExpanded) {
+                            viewModel.clearSongSelection()
                         }
 
                         BackHandler(enabled = uiState.selectedFolder != null && !uiState.isNowPlayingExpanded) {
@@ -330,10 +359,16 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        VisualizerBridge.isUiVisible = true
         enableHighRefreshRate()
         // The user may have granted the permission from system settings while the
         // app was backgrounded; without this the library stays empty forever.
         if (hasRequiredAudioPermission(this)) viewModel.onPermissionGranted()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        VisualizerBridge.isUiVisible = false
     }
 
     private fun enableHighRefreshRate() {

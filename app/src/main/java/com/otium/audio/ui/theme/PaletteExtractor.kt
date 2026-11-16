@@ -44,7 +44,7 @@ object PaletteManager {
             val loader = getImageLoader(context)
             val request = ImageRequest.Builder(context)
                 .data(albumArtUri)
-                .size(64, 64) // Fast 64x64 decode, 75% less RAM and 4x faster CPU processing for Palette
+                .size(36, 36) // Fast 36x36 decode, minimal RAM and instantaneous CPU processing for Palette
                 .allowHardware(false) // Required for Palette Bitmap access
                 .build()
 
@@ -52,7 +52,7 @@ object PaletteManager {
             if (result is SuccessResult) {
                 val bitmap = (result.drawable as? BitmapDrawable)?.bitmap
                 if (bitmap != null) {
-                    val palette = Palette.from(bitmap).generate()
+                    val palette = Palette.from(bitmap).maximumColorCount(12).generate()
                     val dominant = palette.getDominantColor(0xFF000000.toInt())
                     val rawVibrant = palette.getVibrantColor(0xFFFFFFFF.toInt())
                     val safeVibrant = Color(rawVibrant).asReadableAccent().toArgb()

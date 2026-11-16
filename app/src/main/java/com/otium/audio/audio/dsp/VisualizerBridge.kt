@@ -33,6 +33,9 @@ object VisualizerBridge {
     var rmsLeft: Float = 0f; private set
     var rmsRight: Float = 0f; private set
 
+    /** Controls whether audio samples and FFT analysis run; false when screen is off or app backgrounded */
+    @Volatile var isUiVisible: Boolean = false
+
     // Lock-free double-buffered audio snapshot for visualizer worker
     private val snapshotBufferA = FloatArray(512)
     private val snapshotBufferB = FloatArray(512)
@@ -47,8 +50,10 @@ object VisualizerBridge {
     /**
      * Called strictly from real-time audio thread.
      * Takes ~0.001ms. Never blocks, never calls JNI FFT, never allocates objects.
+     * Bypassed immediately with zero copy when screen is off or app is in background.
      */
     fun postSamples(buffer: ByteBuffer, isFloat: Boolean, byteLength: Int, enginePtr: Long) {
+        if (!isUiVisible) return
         val count = if (isFloat) (byteLength / 4).coerceAtMost(512) else (byteLength / 2).coerceAtMost(512)
         if (count < 64) return
 
@@ -75,17 +80,18 @@ object VisualizerBridge {
     /**
      * Dedicated background worker running at 60Hz on Dispatchers.Default.
      * Keeps all FFT and JNI metering strictly off the audio thread.
+     * Enters deep sleep when UI is not visible (screen off / app in background) to save battery.
      */
     fun startWorker(scope: CoroutineScope) {
         if (workerJob?.isActive == true) return
         workerJob = scope.launch(Dispatchers.Default) {
             while (isActive) {
-                if (!hasPendingSamples) {
-                    delay(60L) // Sleep deeper when playback is paused or idle
+                if (!isUiVisible || !hasPendingSamples) {
+                    delay(120L) // Sleep deeply when playback is paused or UI is hidden
                     continue
                 }
-                delay(16L) // 60 FPS sub-frame sync during active playback
-                if (hasPendingSamples) {
+                delay(16L) // 60 FPS sub-frame sync during active playback & visible UI
+                if (hasPendingSamples && isUiVisible) {
                     hasPendingSamples = false
                     val samples = activeBuffer
                     val bands = NativeAudioDsp.analyzeSpectrum(samples, 16)

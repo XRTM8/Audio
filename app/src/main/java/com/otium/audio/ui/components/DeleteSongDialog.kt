@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Confirms, then deletes through the platform.
+ * Confirms, then deletes through the platform (single or batch).
  *
  * On Android 11 and newer the system owns the decision: `createDeleteRequest` shows its own
  * consent sheet and does the deletion, so the app needs no broad storage permission. On
@@ -30,12 +30,12 @@ import kotlinx.coroutines.withContext
  * change up and the library refreshes itself.
  */
 @Composable
-fun DeleteSongDialog(
-    song: Song?,
+fun DeleteSongsDialog(
+    songs: List<Song>,
     onDismiss: () -> Unit,
-    onSongDeleted: ((Song) -> Unit)? = null
+    onSongsDeleted: ((List<Song>) -> Unit)? = null
 ) {
-    if (song == null) return
+    if (songs.isEmpty()) return
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -44,35 +44,43 @@ fun DeleteSongDialog(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
-            onSongDeleted?.invoke(song)
+            onSongsDeleted?.invoke(songs)
         }
+    }
+
+    val isSingle = songs.size == 1
+    val titleText = if (isSingle) "حذف المقطع الصوتي" else "حذف المقاطع المحددة"
+    val messageText = if (isSingle) {
+        "«${songs.first().title}» ستُحذف من الجهاز نهائياً. لا يمكن التراجع."
+    } else {
+        "سيتم حذف ${songs.size} مقاطع صوتية من الجهاز نهائياً. لا يمكن التراجع."
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = DarkSurfaceContainer,
-        title = { Text("حذف المقطع الصوتي", color = TextPrimary) },
+        title = { Text(titleText, color = TextPrimary) },
         text = {
-            Text(
-                "«${song.title}» ستُحذف من الجهاز نهائياً. لا يمكن التراجع.",
-                color = TextSecondary
-            )
+            Text(messageText, color = TextSecondary)
         },
         confirmButton = {
             TextButton(onClick = {
+                val uris = songs.map { it.contentUri }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     runCatching {
                         val pending: IntentSender =
-                            MediaStore.createDeleteRequest(context.contentResolver, listOf(song.contentUri)).intentSender
+                            MediaStore.createDeleteRequest(context.contentResolver, uris).intentSender
                         launcher.launch(IntentSenderRequest.Builder(pending).build())
                     }
                 } else {
                     scope.launch {
                         withContext(Dispatchers.IO) {
-                            runCatching { context.contentResolver.delete(song.contentUri, null, null) }
+                            uris.forEach { uri ->
+                                runCatching { context.contentResolver.delete(uri, null, null) }
+                            }
                         }
                     }
-                    onSongDeleted?.invoke(song)
+                    onSongsDeleted?.invoke(songs)
                 }
                 onDismiss()
             }) {
@@ -82,5 +90,19 @@ fun DeleteSongDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("إلغاء", color = TextSecondary) }
         }
+    )
+}
+
+@Composable
+fun DeleteSongDialog(
+    song: Song?,
+    onDismiss: () -> Unit,
+    onSongDeleted: ((Song) -> Unit)? = null
+) {
+    if (song == null) return
+    DeleteSongsDialog(
+        songs = listOf(song),
+        onDismiss = onDismiss,
+        onSongsDeleted = { if (it.isNotEmpty()) onSongDeleted?.invoke(it.first()) }
     )
 }

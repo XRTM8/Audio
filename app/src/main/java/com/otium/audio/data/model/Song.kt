@@ -24,7 +24,9 @@ data class Song(
     val displayTitle: String = cleanDisplayTitleFast(title)
     val indexLetter: String = extractIndexLetterFast(title)
     val subtitle: String = "$artist  ·  $formattedDuration"
-    val normalizedSearchTarget: String = normalizeForSearchFast("$title $artist $album")
+    val normalizedSearchTarget: String by lazy(LazyThreadSafetyMode.NONE) {
+        normalizeForSearchFast("$title $artist $album")
+    }
     companion object {
         fun normalizeForSearchFast(input: String): String {
             if (input.isEmpty()) return ""

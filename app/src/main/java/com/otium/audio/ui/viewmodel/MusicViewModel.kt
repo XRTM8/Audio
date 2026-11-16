@@ -353,6 +353,47 @@ class MusicViewModel(
 
     fun rescanLibrary() = repository.refresh()
 
+    // --- Multi-Select & Batch Actions --------------------------------------
+
+    fun startSelectionMode(initialSongId: Long? = null) {
+        _uiState.update {
+            it.copy(
+                isSelectionMode = true,
+                selectedSongIds = if (initialSongId != null) setOf(initialSongId) else emptySet()
+            )
+        }
+    }
+
+    fun toggleSongSelection(songId: Long) {
+        _uiState.update { state ->
+            val newSelected = state.selectedSongIds.toMutableSet()
+            if (newSelected.contains(songId)) {
+                newSelected.remove(songId)
+            } else {
+                newSelected.add(songId)
+            }
+            state.copy(
+                isSelectionMode = newSelected.isNotEmpty(),
+                selectedSongIds = newSelected
+            )
+        }
+    }
+
+    fun selectAllSongs(songs: List<Song>) {
+        _uiState.update { state ->
+            val allIds = songs.map { it.id }.toSet()
+            if (state.selectedSongIds.size == allIds.size && state.selectedSongIds.containsAll(allIds)) {
+                state.copy(isSelectionMode = false, selectedSongIds = emptySet())
+            } else {
+                state.copy(isSelectionMode = true, selectedSongIds = allIds)
+            }
+        }
+    }
+
+    fun clearSongSelection() {
+        _uiState.update { it.copy(isSelectionMode = false, selectedSongIds = emptySet()) }
+    }
+
     // --- Equalizer ---------------------------------------------------------
 
     fun toggleEqualizer(enabled: Boolean) = equalizerController.setEnabled(enabled)

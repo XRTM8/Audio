@@ -109,6 +109,7 @@ import com.otium.audio.ui.actions.LibraryActions
 import com.otium.audio.ui.components.home.HomeTopBar
 import com.otium.audio.ui.components.home.HomeSearchBar
 import com.otium.audio.ui.components.home.HomeFilterPills
+import com.otium.audio.ui.components.home.SelectionTopBar
 import kotlinx.coroutines.launch
 
 @Composable
@@ -120,6 +121,7 @@ fun HomeScreen(
     equalizerActions: EqualizerActions = EqualizerActions(),
     onOpenNowPlaying: () -> Unit,
     onOpenEqualizer: () -> Unit,
+    onBatchDeleteClick: (List<Song>) -> Unit = {},
     modifier: Modifier = Modifier
 ) = HomeScreen(
     uiState = uiState,
@@ -153,6 +155,11 @@ fun HomeScreen(
     onToggleAutoPreAmp = equalizerActions.onToggleAutoPreAmp,
     onRescanLibrary = libraryActions.onRescanLibrary,
     onSortOrderChanged = libraryActions.onSortOrderChanged,
+    onStartSelection = libraryActions.onStartSelection,
+    onToggleSelection = libraryActions.onToggleSelection,
+    onSelectAll = libraryActions.onSelectAll,
+    onClearSelection = libraryActions.onClearSelection,
+    onBatchDeleteClick = onBatchDeleteClick,
     modifier = modifier
 )
 
@@ -190,6 +197,11 @@ fun HomeScreen(
     onToggleAutoPreAmp: (Boolean) -> Unit = {},
     onRescanLibrary: () -> Unit = {},
     onSortOrderChanged: (SortOrder) -> Unit = {},
+    onStartSelection: (Song?) -> Unit = {},
+    onToggleSelection: (Long) -> Unit = {},
+    onSelectAll: (List<Song>) -> Unit = {},
+    onClearSelection: () -> Unit = {},
+    onBatchDeleteClick: (List<Song>) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -229,23 +241,39 @@ fun HomeScreen(
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
 
-                HomeTopBar(
-                    songCount = uiState.songs.size,
-                    isEqualizerEnabled = uiState.equalizerState.isEnabled,
-                    availableUpdate = uiState.availableUpdate,
-                    onOpenEqualizer = onOpenEqualizer,
-                    onOpenSettings = { showSettings = true },
-                    onOpenSort = { showSortSheet = true }
-                )
+                if (uiState.isSelectionMode) {
+                    SelectionTopBar(
+                        selectedCount = uiState.selectedSongIds.size,
+                        totalCount = displayedSongs.size,
+                        onClearSelection = onClearSelection,
+                        onSelectAll = { onSelectAll(displayedSongs) },
+                        onDeleteSelected = {
+                            val toDelete = displayedSongs.filter { it.id in uiState.selectedSongIds }
+                            if (toDelete.isNotEmpty()) {
+                                onBatchDeleteClick(toDelete)
+                            }
+                        }
+                    )
+                } else {
+                    HomeTopBar(
+                        songCount = uiState.songs.size,
+                        isEqualizerEnabled = uiState.equalizerState.isEnabled,
+                        availableUpdate = uiState.availableUpdate,
+                        onOpenEqualizer = onOpenEqualizer,
+                        onOpenSettings = { showSettings = true },
+                        onOpenSort = { showSortSheet = true },
+                        onStartSelection = { onStartSelection(null) }
+                    )
 
-                HomeSearchBar(
-                    query = uiState.searchQuery,
-                    songCount = uiState.songs.size,
-                    onQueryChanged = onSearchQueryChanged,
-                    focusManager = focusManager
-                )
+                    HomeSearchBar(
+                        query = uiState.searchQuery,
+                        songCount = uiState.songs.size,
+                        onQueryChanged = onSearchQueryChanged,
+                        focusManager = focusManager
+                    )
+                }
 
-                if (!uiState.isSearching && uiState.selectedPlaylist == null && uiState.selectedFolder == null && uiState.selectedArtist == null && uiState.selectedAlbum == null) {
+                if (!uiState.isSelectionMode && !uiState.isSearching && uiState.selectedPlaylist == null && uiState.selectedFolder == null && uiState.selectedArtist == null && uiState.selectedAlbum == null) {
                     HomeFilterPills(
                         selectedTab = uiState.selectedTab,
                         counts = listOf(
@@ -436,9 +464,18 @@ fun HomeScreen(
                             onSongClick = handleSongClick,
                             onFavoriteClick = onFavoriteToggle,
                             onEditTagClick = onEditTagClick,
-                            onSongLongPress = onSongLongPress,
+                            onSongLongPress = {
+                                if (uiState.isSelectionMode) {
+                                    onToggleSelection(it.id)
+                                } else {
+                                    onSongLongPress(it)
+                                }
+                            },
                             searchQuery = uiState.searchQuery,
-                            showAlphabetScroller = !uiState.isSearching && uiState.selectedFolder == null && uiState.selectedPlaylist == null && uiState.selectedArtist == null && uiState.selectedAlbum == null
+                            isSelectionMode = uiState.isSelectionMode,
+                            selectedSongIds = uiState.selectedSongIds,
+                            onToggleSelect = { onToggleSelection(it.id) },
+                            showAlphabetScroller = !uiState.isSelectionMode && !uiState.isSearching && uiState.selectedFolder == null && uiState.selectedPlaylist == null && uiState.selectedArtist == null && uiState.selectedAlbum == null
                         )
                     }
                 }
@@ -520,6 +557,9 @@ private fun MasterSongListView(
     onEditTagClick: ((Song) -> Unit)? = null,
     onSongLongPress: (Song) -> Unit,
     searchQuery: String = "",
+    isSelectionMode: Boolean = false,
+    selectedSongIds: Set<Long> = emptySet(),
+    onToggleSelect: ((Song) -> Unit)? = null,
     showAlphabetScroller: Boolean = true,
     modifier: Modifier = Modifier
 ) {
@@ -558,7 +598,10 @@ private fun MasterSongListView(
                     onFavoriteClick = onFavoriteClick,
                     onEditTagClick = onEditTagClick,
                     onLongClick = onSongLongPress,
-                    searchQuery = searchQuery
+                    searchQuery = searchQuery,
+                    isSelectionMode = isSelectionMode,
+                    isSelected = selectedSongIds.contains(song.id),
+                    onToggleSelect = onToggleSelect
                 )
             }
             item { Spacer(modifier = Modifier.height(10.dp)) }

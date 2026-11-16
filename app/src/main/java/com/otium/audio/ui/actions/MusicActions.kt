@@ -82,5 +82,9 @@ data class LibraryActions(
     val onDismissTagEditor: () -> Unit = {},
     val onDismissUpdate: () -> Unit = {},
     val onRescanLibrary: () -> Unit = {},
-    val onSortOrderChanged: (SortOrder) -> Unit = {}
+    val onSortOrderChanged: (SortOrder) -> Unit = {},
+    val onStartSelection: (Song?) -> Unit = {},
+    val onToggleSelection: (Long) -> Unit = {},
+    val onSelectAll: (List<Song>) -> Unit = {},
+    val onClearSelection: () -> Unit = {}
 )

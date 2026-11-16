@@ -51,5 +51,7 @@ data class MusicUiState(
     val playbackState: MusicPlaybackState = MusicPlaybackState(),
     val equalizerState: EqualizerState = EqualizerState(),
     val sleepTimerState: SleepTimerState = SleepTimerState(),
+    val isSelectionMode: Boolean = false,
+    val selectedSongIds: Set<Long> = emptySet(),
     val availableUpdate: com.otium.audio.data.update.UpdateInfo? = null
 )

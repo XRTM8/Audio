@@ -20,7 +20,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -61,6 +63,7 @@ fun HomeTopBar(
     onOpenEqualizer: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenSort: () -> Unit = {},
+    onStartSelection: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -85,6 +88,15 @@ fun HomeTopBar(
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onStartSelection) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Selection Mode",
+                    tint = TextSecondary,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
             IconButton(onClick = onOpenSort) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Sort,
@@ -119,6 +131,73 @@ fun HomeTopBar(
                     imageVector = Icons.Default.Settings,
                     contentDescription = "Settings",
                     tint = TextSecondary,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SelectionTopBar(
+    selectedCount: Int,
+    totalCount: Int,
+    onClearSelection: () -> Unit,
+    onSelectAll: () -> Unit,
+    onDeleteSelected: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onClearSelection) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Close Selection",
+                    tint = TextPrimary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(6.dp))
+            Column {
+                Text(
+                    text = if (selectedCount == 0) "اختر مقاطع صوتية" else "تم تحديد $selectedCount مقطع",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = TextPrimary
+                )
+                if (totalCount > 0) {
+                    Text(
+                        text = "من إجمالي $totalCount مقطع",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextSecondary
+                    )
+                }
+            }
+        }
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onSelectAll) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Select All",
+                    tint = if (selectedCount == totalCount && totalCount > 0) AccentGold else TextSecondary,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
+            IconButton(
+                onClick = onDeleteSelected,
+                enabled = selectedCount > 0
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete Selected",
+                    tint = if (selectedCount > 0) ErrorRed else TextTertiary.copy(alpha = 0.4f),
                     modifier = Modifier.size(22.dp)
                 )
             }

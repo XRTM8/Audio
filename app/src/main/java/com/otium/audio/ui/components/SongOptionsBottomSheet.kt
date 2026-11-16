@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.MusicNote
@@ -66,6 +67,7 @@ fun SongOptionsBottomSheet(
     onEditTagClick: () -> Unit,
     onDeleteClick: () -> Unit,
     onDismiss: () -> Unit,
+    onSelectMultipleClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -195,6 +197,17 @@ fun SongOptionsBottomSheet(
                     onDismiss()
                 }
             )
+
+            if (onSelectMultipleClick != null) {
+                OptionItem(
+                    icon = Icons.Default.Check,
+                    label = "تحديد متعدد للأغاني",
+                    onClick = {
+                        onSelectMultipleClick()
+                        onDismiss()
+                    }
+                )
+            }
 
             OptionItem(
                 icon = Icons.Default.Delete,

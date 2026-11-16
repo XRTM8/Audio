@@ -26,6 +26,19 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk
+
+      - name: Build Rust Native DSP Engine (libotium_dsp.so)
+        working-directory: rust/otium_dsp
+        run: |
+          cargo ndk -t aarch64-linux-android -t armv7-linux-androideabi -t x86_64 -o ../../app/src/main/jniLibs build --release
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 

@@ -92,27 +92,46 @@ class AudioRepositoryImpl(
     }
 
     private var artExtractionJob: Job? = null
+    private var searchIndexJob: Job? = null
+    @Volatile private var isSearchIndexInitialized = false
+    @Volatile private var lastScanTimeMs: Long = 0L
+
+    private fun ensureSearchIndexReady(currentSongs: List<Song>) {
+        if (isSearchIndexInitialized || !NativeAudioDsp.isAvailable || currentSongs.isEmpty()) return
+        synchronized(this) {
+            if (isSearchIndexInitialized || currentSongs.isEmpty()) return
+            try {
+                val count = currentSongs.size
+                val ids = LongArray(count) { currentSongs[it].id }
+                val titles = Array(count) { currentSongs[it].title }
+                val artists = Array(count) { currentSongs[it].artist }
+                val albums = Array(count) { currentSongs[it].album }
+                NativeAudioDsp.searchIndexInit(ids, titles, artists, albums)
+                isSearchIndexInitialized = true
+            } catch (_: Throwable) {}
+        }
+    }
 
     private fun updateLibrary(newSongs: List<Song>) {
         songs.value = newSongs
+        isSearchIndexInitialized = false
+
+        // Defer search index building to 4s after launch to prevent CPU & JNI contention during first fling
+        searchIndexJob?.cancel()
         if (NativeAudioDsp.isAvailable && newSongs.isNotEmpty()) {
-            try {
-                val ids = LongArray(newSongs.size) { newSongs[it].id }
-                val titles = Array(newSongs.size) { newSongs[it].title }
-                val artists = Array(newSongs.size) { newSongs[it].artist }
-                val albums = Array(newSongs.size) { newSongs[it].album }
-                NativeAudioDsp.searchIndexInit(ids, titles, artists, albums)
-            } catch (_: Throwable) {}
+            searchIndexJob = scope.launch(Dispatchers.Default) {
+                delay(4000L)
+                ensureSearchIndexReady(newSongs)
+            }
         }
 
-        // Defer embedded artwork extraction until 2.5s after launch/update,
-        // ensuring the UI completes initial composition, layout, and first fling-scroll
-        // at 120 FPS with zero storage I/O or CPU contention.
+        // Defer embedded artwork extraction until 5.0s after launch/update,
+        // and throttle file I/O so 120 FPS fling-scrolling remains 100% fluid.
         artExtractionJob?.cancel()
         if (newSongs.isNotEmpty() && NativeAudioDsp.isAvailable) {
             val ctx = context
             artExtractionJob = scope.launch(Dispatchers.IO) {
-                delay(2500L)
+                delay(5000L)
                 val embeddedCacheDir = java.io.File(ctx.cacheDir, "embedded_art")
 
                 // Prune orphaned cached artwork files for tracks deleted from device
@@ -142,6 +161,7 @@ class AudioRepositoryImpl(
                         if (extracted != null) {
                             newArtworkMap[song.id] = extracted
                         }
+                        delay(12L) // Gentle yield between tracks to protect disk I/O & UI frame budget
                     }
                 }
 
@@ -165,6 +185,7 @@ class AudioRepositoryImpl(
                 isScanning.value = true
                 try {
                     updateLibrary(readLibrary(songs.value))
+                    lastScanTimeMs = System.currentTimeMillis()
                 } finally {
                     isScanning.value = false
                 }
@@ -177,6 +198,7 @@ class AudioRepositoryImpl(
                         isScanning.value = true
                         try {
                             updateLibrary(readLibrary(songs.value))
+                            lastScanTimeMs = System.currentTimeMillis()
                         } finally {
                             isScanning.value = false
                         }
@@ -195,9 +217,13 @@ class AudioRepositoryImpl(
     override fun refresh() {
         scope.launch {
             if (isScanning.value) return@launch
+            val now = System.currentTimeMillis()
+            // Throttle duplicate refresh if a scan ran within the last 2.5s and songs are already loaded
+            if (now - lastScanTimeMs < 2500L && songs.value.isNotEmpty()) return@launch
             isScanning.value = true
             try {
                 updateLibrary(readLibrary(songs.value))
+                lastScanTimeMs = System.currentTimeMillis()
             } finally {
                 isScanning.value = false
             }
@@ -233,6 +259,7 @@ class AudioRepositoryImpl(
             if (trimmed.isBlank()) {
                 list
             } else if (NativeAudioDsp.isAvailable) {
+                ensureSearchIndexReady(list)
                 try {
                     val matchedIds = NativeAudioDsp.searchIndexQuery(trimmed, 100)
                     if (matchedIds != null && matchedIds.isNotEmpty()) {
@@ -425,12 +452,19 @@ class AudioRepositoryImpl(
                 val addedCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
 
                 while (c.moveToNext()) {
-                    val id = c.getLong(idCol)
+                    val path = c.getString(pathCol) ?: ""
+                    val duration = c.getLong(durationCol)
                     val title = c.getString(titleCol) ?: UNKNOWN_TITLE
+
+                    // Strictly filter out WhatsApp voice notes, PTT clips, and audio blips
+                    if (isVoiceNoteOrJunkAudio(path, title, duration)) {
+                        continue
+                    }
+
+                    val id = c.getLong(idCol)
                     val artist = c.getString(artistCol)
                         ?.takeUnless { it == UNKNOWN_ARTIST_TAG } ?: UNKNOWN_ARTIST
                     val album = c.getString(albumCol) ?: UNKNOWN_ALBUM
-                    val duration = c.getLong(durationCol)
                     val added = c.getLong(addedCol)
                     val albumId = c.getLong(albumIdCol)
 
@@ -494,5 +528,61 @@ class AudioRepositoryImpl(
 
         fun normalizeArabicForSearch(input: String): String =
             Song.normalizeForSearchFast(input)
+
+        fun isVoiceNoteOrJunkAudio(path: String, title: String, durationMs: Long): Boolean {
+            if (path.isEmpty()) return false
+            val p = path.lowercase()
+            val t = title.lowercase()
+
+            // 1. WhatsApp Voice Notes & PTT folders
+            if (p.contains("whatsapp voice notes") ||
+                p.contains("whatsapp business voice notes") ||
+                p.contains(".whatsapp voice notes") ||
+                p.contains("whatsapp/media/whatsapp voice notes") ||
+                p.contains("whatsapp business/media/whatsapp business voice notes") ||
+                (p.contains("com.whatsapp") && (p.contains("voice notes") || p.contains("/ptt/") || p.contains("opus")))
+            ) {
+                return true
+            }
+
+            // 2. WhatsApp PTT / AUD Push-To-Talk voice notes by filename & folder
+            val fileName = if (p.contains('/')) p.substringAfterLast('/') else p
+            if (fileName.startsWith("ptt-") || t.startsWith("ptt-")) {
+                return true
+            }
+
+            // WhatsApp audio opus/m4a voice notes in WhatsApp folders
+            if ((p.contains("whatsapp") || p.contains("com.whatsapp")) &&
+                (fileName.startsWith("aud-") || fileName.startsWith("ptt-")) &&
+                (fileName.endsWith(".opus") || fileName.endsWith(".ogg") || fileName.endsWith(".m4a") || p.contains("voice") || durationMs < 60_000L)
+            ) {
+                return true
+            }
+
+            // 3. Telegram Voice Notes (Telegram Audio / Telegram voice memos)
+            if (p.contains("telegram") && (p.contains("voice") || fileName.endsWith(".opus") || fileName.endsWith(".oga"))) {
+                return true
+            }
+
+            // 4. Voice recorder memos / call recordings / junk system sound recordings
+            if (p.contains("/sound_recorder/") ||
+                p.contains("/voicerecorder/") ||
+                p.contains("/call_recordings/") ||
+                p.contains("/callrecordings/") ||
+                p.contains("/call recording/") ||
+                p.contains("/notifications/") ||
+                p.contains("/ringtones/") ||
+                p.contains("/alarms/")
+            ) {
+                return true
+            }
+
+            // 5. Extremely short notification/UI blips under 3 seconds
+            if (durationMs < 3_000L) {
+                return true
+            }
+
+            return false
+        }
     }
 }

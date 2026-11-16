@@ -6,6 +6,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.Icons
@@ -78,6 +80,7 @@ private val SubtitleStyle = TextStyle(
     fontSize = 11.5.sp
 )
 private val EmptyRowInteractionSource = MutableInteractionSource()
+private val failedArtUris: MutableSet<android.net.Uri> = java.util.Collections.synchronizedSet(HashSet<android.net.Uri>())
 
 /**
  * Ultra-optimized 120 FPS Audiophile Track Row.
@@ -94,14 +97,17 @@ fun SongListItem(
     onEditTagClick: ((Song) -> Unit)? = null,
     onLongClick: ((Song) -> Unit)? = null,
     searchQuery: String = "",
+    isSelectionMode: Boolean = false,
+    isSelected: Boolean = false,
+    onToggleSelect: ((Song) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
 
-    val hasAlbumArt = song.albumArtUri != android.net.Uri.EMPTY
+    val hasAlbumArt = song.albumArtUri != android.net.Uri.EMPTY && !failedArtUris.contains(song.albumArtUri)
 
     // Memory-pooled direct GPU hardware thumbnail for zero-jank 120Hz fling scrolling.
-    // Skips Coil entirely if the track has no artwork (zero IPC, zero FileNotFoundException).
+    // Skips Coil entirely if the track has no artwork or failed (zero IPC, zero FileNotFoundException).
     val thumbnailRequest = if (hasAlbumArt) {
         remember(song.albumArtUri) {
             ImageRequest.Builder(context)
@@ -112,15 +118,24 @@ fun SongListItem(
                 .crossfade(false)
                 .memoryCachePolicy(CachePolicy.ENABLED)
                 .diskCachePolicy(CachePolicy.ENABLED)
+                .listener(
+                    onError = { _, _ ->
+                        failedArtUris.add(song.albumArtUri)
+                    }
+                )
                 .build()
         }
     } else null
 
     val haptic = LocalHapticFeedback.current
-    val onRowClick = remember(song, onSongClick) {
+    val onRowClick = remember(song, isSelectionMode, onSongClick, onToggleSelect) {
         {
             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            onSongClick(song)
+            if (isSelectionMode) {
+                onToggleSelect?.invoke(song)
+            } else {
+                onSongClick(song)
+            }
         }
     }
     val onFavClick = remember(song, onFavoriteClick) {
@@ -129,13 +144,15 @@ fun SongListItem(
             onFavoriteClick(song)
         }
     }
-    val onRowLongClick = remember(song, onLongClick) {
-        if (onLongClick != null) {
-            {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onLongClick(song)
+    val onRowLongClick = remember(song, isSelectionMode, onLongClick, onToggleSelect) {
+        {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            if (isSelectionMode) {
+                onToggleSelect?.invoke(song)
+            } else {
+                onLongClick?.invoke(song)
             }
-        } else null
+        }
     }
 
     Row(
@@ -143,7 +160,14 @@ fun SongListItem(
             .fillMaxWidth()
             .height(66.dp)
             .drawBehind {
-                if (isCurrentSong) {
+                if (isSelectionMode && isSelected) {
+                    drawRect(Color(0x33FFB300))
+                    drawRect(
+                        color = AccentGold,
+                        topLeft = Offset.Zero,
+                        size = Size(3.5.dp.toPx(), size.height)
+                    )
+                } else if (isCurrentSong) {
                     drawRect(Color(0x66181822))
                     drawRect(
                         color = AccentTitaniumWhite,
@@ -257,23 +281,57 @@ fun SongListItem(
             }
         }
 
-        // Quick Favorite Icon
-        Box(
-            modifier = Modifier
-                .size(38.dp)
-                .clickable(
-                    interactionSource = EmptyRowInteractionSource,
-                    indication = null,
-                    onClick = onFavClick
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = if (song.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                contentDescription = "Favorite",
-                tint = if (song.isFavorite) ErrorRed else TextTertiary.copy(alpha = 0.6f),
-                modifier = Modifier.size(18.dp)
-            )
+        if (isSelectionMode) {
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clickable(
+                        interactionSource = EmptyRowInteractionSource,
+                        indication = null,
+                        onClick = { onToggleSelect?.invoke(song) }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(22.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(if (isSelected) AccentGold else DarkSurfaceContainer)
+                        .then(
+                            if (!isSelected) Modifier.border(1.5.dp, DarkCardBorder, RoundedCornerShape(6.dp))
+                            else Modifier
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isSelected) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Selected",
+                            tint = Color.Black,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
+        } else {
+            // Quick Favorite Icon
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clickable(
+                        interactionSource = EmptyRowInteractionSource,
+                        indication = null,
+                        onClick = onFavClick
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (song.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                    contentDescription = "Favorite",
+                    tint = if (song.isFavorite) ErrorRed else TextTertiary.copy(alpha = 0.6f),
+                    modifier = Modifier.size(18.dp)
+                )
+            }
         }
     }
 }

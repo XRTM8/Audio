@@ -306,12 +306,19 @@ fun NowPlayingScreen(
     var showAudioInspector by remember { mutableStateOf(false) }
 
     var lyrics by remember { mutableStateOf(TrackLyrics()) }
-    LaunchedEffect(song.relativePath, song.id) {
-        lyrics = withContext(Dispatchers.IO) {
-            val local = LrcParser.findLrcForAudio(song.relativePath)
-            if (local != null && local.lines.isNotEmpty()) {
-                local
-            } else {
+    LaunchedEffect(song.relativePath, song.id, showLyrics) {
+        // Fast offline check: parse local LRC file if exists
+        val local = withContext(Dispatchers.IO) {
+            LrcParser.findLrcForAudio(song.relativePath)
+        }
+        if (local != null && local.lines.isNotEmpty()) {
+            lyrics = local
+            return@LaunchedEffect
+        }
+
+        // Lazy network fetch: only query LRCLIB over internet when user actually opens lyrics view
+        if (showLyrics) {
+            lyrics = withContext(Dispatchers.IO) {
                 LrclibClient.fetchLyrics(
                     context = context,
                     songId = song.id,
@@ -321,6 +328,8 @@ fun NowPlayingScreen(
                     durationMs = song.durationMs
                 ) ?: TrackLyrics()
             }
+        } else {
+            lyrics = TrackLyrics()
         }
     }
 
