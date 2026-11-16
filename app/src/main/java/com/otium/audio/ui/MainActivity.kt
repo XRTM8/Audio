@@ -372,13 +372,6 @@ class MainActivity : ComponentActivity() {
         VisualizerBridge.isUiVisible = false
     }
 
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) {
-            enableHighRefreshRate()
-        }
-    }
-
     private fun enableHighRefreshRate() {
         try {
             val targetDisplay = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
