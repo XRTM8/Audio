@@ -181,7 +181,7 @@ fun MiniPlayer(
                     style = MaterialTheme.typography.bodyLarge.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
-                        textDirection = TextDirection.ContentOrLtr
+                        textDirection = TextDirection.Content
                     ),
                     color = TextPrimary,
                     maxLines = 1,
@@ -191,7 +191,7 @@ fun MiniPlayer(
                 Text(
                     text = "${currentSong.artist}  ·  ${currentSong.audioFormatBadge}",
                     style = MaterialTheme.typography.bodySmall.copy(
-                        textDirection = TextDirection.ContentOrLtr,
+                        textDirection = TextDirection.Content,
                         fontSize = 12.sp
                     ),
                     color = TextSecondary,
