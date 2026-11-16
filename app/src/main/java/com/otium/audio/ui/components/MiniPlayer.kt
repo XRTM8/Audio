@@ -1,8 +1,10 @@
 package com.otium.audio.ui.components
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
@@ -45,6 +47,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -289,11 +294,16 @@ private fun MiniPlayerTactileSeekStrip(
 
     val activeProgress = if (isScrubbing) scrubProgress else rawProgress
 
+    val barHeight by animateDpAsState(
+        targetValue = if (isScrubbing) 5.dp else 2.5.dp,
+        label = "mini_bar_height"
+    )
+
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(26.dp)
+                .height(20.dp)
                 .pointerInput(durationMs) {
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
@@ -313,7 +323,7 @@ private fun MiniPlayerTactileSeekStrip(
                             change.consume()
                             if (size.width > 0) {
                                 val newProgress = (change.position.x / size.width).coerceIn(0f, 1f)
-                                if (kotlin.math.abs(newProgress - scrubProgress) > 0.005f) {
+                                if (kotlin.math.abs(newProgress - scrubProgress) > 0.003f) {
                                     scrubProgress = newProgress
                                 }
                             }
@@ -326,44 +336,64 @@ private fun MiniPlayerTactileSeekStrip(
                     }
                 }
         ) {
-            // Tactile Waveform
-            ReactiveWaveform(
-                progressProvider = { activeProgress },
-                accent = Color.White,
-                trackColor = DarkCardBorder.copy(alpha = 0.5f),
-                isPlaying = isPlaying,
-                waveformSeed = waveformSeed,
+            // Precision Straight Line Track (Minimalist, Architectural, No Blobs)
+            Canvas(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(if (isScrubbing) 15.dp else 12.dp)
-                    .align(Alignment.Center)
-            )
-
-            // Scrubber Head / Glowing Thumb Indicator
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(26.dp)
+                    .height(barHeight)
                     .align(Alignment.Center)
             ) {
-                val thumbSize = if (isScrubbing) 12.dp else 7.dp
+                val totalWidth = size.width
+                val trackHeight = size.height
+                val radius = CornerRadius(trackHeight / 2f, trackHeight / 2f)
+
+                // 1. Inactive Background Track (subtle obsidian/titanium line)
+                drawRoundRect(
+                    color = Color(0x2EFFFFFF),
+                    topLeft = Offset.Zero,
+                    size = Size(totalWidth, trackHeight),
+                    cornerRadius = radius
+                )
+
+                // 2. Active Played Track (Pure Titanium White)
+                val activeWidth = (activeProgress * totalWidth).coerceIn(0f, totalWidth)
+                if (activeWidth > 0f) {
+                    drawRoundRect(
+                        color = Color.White,
+                        topLeft = Offset.Zero,
+                        size = Size(activeWidth, trackHeight),
+                        cornerRadius = radius
+                    )
+                }
+            }
+
+            // Scrubber Thumb: ONLY visible while scrubbing (clean flat line otherwise)
+            if (isScrubbing) {
+                val thumbSize = 10.dp
                 Box(
                     modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .graphicsLayer {
-                            val halfPx = thumbSize.toPx() / 2f
-                            translationX = (activeProgress * size.width - halfPx)
-                                .coerceIn(0f, (size.width - thumbSize.toPx()).coerceAtLeast(0f))
-                        }
-                        .size(thumbSize)
-                        .shadow(
-                            elevation = if (isScrubbing) 6.dp else 2.dp,
-                            shape = CircleShape,
-                            spotColor = Color.White
-                        )
-                        .clip(CircleShape)
-                        .background(Color.White)
-                )
+                        .fillMaxWidth()
+                        .height(20.dp)
+                        .align(Alignment.Center)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .graphicsLayer {
+                                val halfPx = thumbSize.toPx() / 2f
+                                translationX = (activeProgress * size.width - halfPx)
+                                    .coerceIn(0f, (size.width - thumbSize.toPx()).coerceAtLeast(0f))
+                            }
+                            .size(thumbSize)
+                            .shadow(
+                                elevation = 6.dp,
+                                shape = CircleShape,
+                                spotColor = Color.White
+                            )
+                            .clip(CircleShape)
+                            .background(Color.White)
+                    )
+                }
             }
 
             // Floating Live Scrub Time Indicator Pill
