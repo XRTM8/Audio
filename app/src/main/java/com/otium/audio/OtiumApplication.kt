@@ -82,7 +82,7 @@ class OtiumApplication : Application(), ImageLoaderFactory {
         // repository registers a content observer, and the base context does not exist
         // until attachBaseContext has run. Touching either in the constructor crashes.
         musicController.onTrackEnded = { sleepTimerController.onTrackEnded() }
-        applicationScope.launch { repository.pruneHistory(HISTORY_RETENTION_DAYS) }
+        applicationScope.launch(Dispatchers.IO) { repository.pruneHistory(HISTORY_RETENTION_DAYS) }
     }
 
     private companion object {

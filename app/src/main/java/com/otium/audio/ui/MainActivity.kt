@@ -63,6 +63,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableHighRefreshRate()
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         window.decorView.post { enableHighRefreshRate() }
@@ -369,6 +370,13 @@ class MainActivity : ComponentActivity() {
     override fun onPause() {
         super.onPause()
         VisualizerBridge.isUiVisible = false
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            enableHighRefreshRate()
+        }
     }
 
     private fun enableHighRefreshRate() {

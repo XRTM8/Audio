@@ -18,10 +18,12 @@ import com.otium.audio.data.update.UpdateChecker
 import com.otium.audio.playback.EqualizerController
 import com.otium.audio.playback.MusicController
 import com.otium.audio.playback.SleepTimerController
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -109,7 +111,7 @@ class MusicViewModel(
     // Seven independent collectors used to drive seven separate state writes, and every
     // derived flow re-opened its own MediaStore observer upstream. One combine, one write.
     private fun loadLibrary() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.Default) {
             combine(
                 repository.getAllSongsFlow(),
                 repository.getFavoritesFlow(),
@@ -127,6 +129,7 @@ class MusicViewModel(
                 .combine(repository.getRecentlyAddedFlow()) { lib, added ->
                     lib.copy(recentlyAdded = added)
                 }
+                .conflate()
                 .collect { lib ->
                     val extractedArtists = AudioArtist.extractArtistsFromSongs(lib.songs)
                     val extractedAlbums = AudioAlbum.extractAlbumsFromSongs(lib.songs)
