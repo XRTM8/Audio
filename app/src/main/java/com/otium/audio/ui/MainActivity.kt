@@ -63,9 +63,9 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableHighRefreshRate()
-        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        enableHighRefreshRate()
         window.decorView.post { enableHighRefreshRate() }
 
         setContent {

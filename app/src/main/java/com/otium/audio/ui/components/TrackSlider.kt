@@ -1,28 +1,26 @@
 package com.otium.audio.ui.components
 
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -33,27 +31,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.changedToUp
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.LayoutDirection
 import com.otium.audio.ui.theme.DarkCardBorder
 import com.otium.audio.ui.theme.DarkSurfaceVariant
 import com.otium.audio.ui.theme.TextSecondary
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Precision Main Player Seekbar with Permanent Tactile Handle (المشغل الرئيسي - شريط بمقبض تحكم).
- * - Straight, clean track (4dp) with pure white progress.
- * - Always-visible solid white handle (مقبض تحكم دائم 14dp يتوسع لـ 18dp عند اللمس).
- * - Instant 120 FPS unified touch gesture loop with zero lag.
+ * Precision Main Player Seekbar (الشريط الرئيسي - مزود بمقبض تحكم دائم وسلس).
+ * - Straight 4dp track with pure titanium white progress.
+ * - Permanent circular white handle (thumb) that scales gracefully on touch.
+ * - [-10 ث] and [+10 ث] quick jump buttons with tactile haptics.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TrackSlider(
     positionFlow: StateFlow<Long>,
@@ -80,104 +76,54 @@ fun TrackSlider(
         position
     }
 
-    val thumbSize by animateDpAsState(
-        targetValue = if (isDragging) 18.dp else 14.dp,
-        animationSpec = tween(120),
-        label = "slider_thumb_size"
-    )
-
-    val trackHeight = 4.dp
-
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Column(modifier = modifier.fillMaxWidth()) {
-            // Interactive Touch Target Band (38dp comfortable touch height)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(38.dp)
-                    .pointerInput(safeDuration) {
-                        awaitEachGesture {
-                            val down = awaitFirstDown(requireUnconsumed = false)
-                            val width = size.width.toFloat()
-                            if (width <= 0f) return@awaitEachGesture
-
-                            isDragging = true
-                            dragProgress = (down.position.x / width).coerceIn(0f, 1f)
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-
-                            while (true) {
-                                val event = awaitPointerEvent()
-                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                                if (change.changedToUp()) {
-                                    val targetPosition = (dragProgress * safeDuration).toLong()
-                                    onSeekTo(targetPosition)
-                                    isDragging = false
-                                    change.consume()
-                                    break
-                                } else if (!change.pressed) {
-                                    isDragging = false
-                                    break
-                                } else {
-                                    dragProgress = (change.position.x / width).coerceIn(0f, 1f)
-                                    change.consume()
-                                }
-                            }
-                        }
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                // 1. Inactive Track (Subtle translucent white background)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(trackHeight)
-                        .clip(RoundedCornerShape(trackHeight / 2f))
-                        .background(Color(0x2EFFFFFF))
-                ) {
-                    // 2. Active Played Track (Pure Titanium White)
-                    if (currentFraction > 0f) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .fillMaxWidth(currentFraction)
-                                .clip(RoundedCornerShape(trackHeight / 2f))
-                                .background(Color.White)
-                        )
-                    }
-                }
-
-                // 3. Permanent Tactile Handle (المقبض الدائم - دائماً مرئي، يتفاعل بنعومة مع السحب)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(24.dp)
-                ) {
+            Slider(
+                value = currentFraction,
+                onValueChange = { fraction ->
+                    isDragging = true
+                    dragProgress = fraction
+                },
+                onValueChangeFinished = {
+                    val targetPosition = (dragProgress * safeDuration).toLong()
+                    onSeekTo(targetPosition)
+                    isDragging = false
+                },
+                thumb = {
                     Box(
                         modifier = Modifier
-                            .align(Alignment.CenterStart)
-                            .graphicsLayer {
-                                val currentThumbPx = thumbSize.toPx()
-                                val halfPx = currentThumbPx / 2f
-                                translationX = (currentFraction * size.width - halfPx)
-                                    .coerceIn(0f, (size.width - currentThumbPx).coerceAtLeast(0f))
-                            }
-                            .size(thumbSize)
+                            .size(if (isDragging) 20.dp else 16.dp)
                             .shadow(
-                                elevation = if (isDragging) 6.dp else 3.dp,
+                                elevation = if (isDragging) 6.dp else 2.dp,
                                 shape = CircleShape,
-                                spotColor = Color.White.copy(alpha = 0.6f)
+                                spotColor = Color.White
                             )
                             .clip(CircleShape)
                             .background(Color.White)
                     )
-                }
-            }
+                },
+                track = { sliderState ->
+                    SliderDefaults.Track(
+                        sliderState = sliderState,
+                        colors = SliderDefaults.colors(
+                            activeTrackColor = Color.White,
+                            inactiveTrackColor = Color(0x33FFFFFF)
+                        ),
+                        modifier = Modifier.height(4.dp)
+                    )
+                },
+                colors = SliderDefaults.colors(
+                    thumbColor = Color.White,
+                    activeTrackColor = Color.White,
+                    inactiveTrackColor = Color(0x33FFFFFF)
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
 
-            // Time & Quick Jump Controls
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 2.dp, vertical = 2.dp),
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
