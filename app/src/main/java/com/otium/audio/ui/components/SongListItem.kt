@@ -128,7 +128,7 @@ fun SongListItem(
     } else null
 
     val haptic = LocalHapticFeedback.current
-    val onRowClick = remember(song, isSelectionMode, onSongClick, onToggleSelect) {
+    val onRowClick: () -> Unit = remember(song, isSelectionMode, onSongClick, onToggleSelect) {
         {
             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
             if (isSelectionMode) {
@@ -136,6 +136,7 @@ fun SongListItem(
             } else {
                 onSongClick(song)
             }
+            Unit
         }
     }
     val onFavClick = remember(song, onFavoriteClick) {
@@ -144,15 +145,18 @@ fun SongListItem(
             onFavoriteClick(song)
         }
     }
-    val onRowLongClick = remember(song, isSelectionMode, onLongClick, onToggleSelect) {
-        {
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            if (isSelectionMode) {
-                onToggleSelect?.invoke(song)
-            } else {
-                onLongClick?.invoke(song)
+    val onRowLongClick: (() -> Unit)? = remember(song, isSelectionMode, onLongClick, onToggleSelect) {
+        if (onLongClick != null || isSelectionMode) {
+            {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                if (isSelectionMode) {
+                    onToggleSelect?.invoke(song)
+                } else {
+                    onLongClick?.invoke(song)
+                }
+                Unit
             }
-        }
+        } else null
     }
 
     Row(
