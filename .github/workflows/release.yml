@@ -49,8 +49,8 @@ jobs:
           fi
           chmod +x gradlew
 
-      - name: Build Release and Debug APKs
-        run: ./gradlew assembleRelease assembleDebug --stacktrace
+      - name: Build Release APKs
+        run: ./gradlew assembleRelease --stacktrace
 
       - name: Upload APKs to Release Assets
         uses: softprops/action-gh-release@v2
@@ -59,4 +59,3 @@ jobs:
           tag_name: ${{ github.event.release.tag_name || github.ref_name }}
           files: |
             app/build/outputs/apk/release/*.apk
-            app/build/outputs/apk/debug/*.apk
