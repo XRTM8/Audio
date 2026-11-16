@@ -1,7 +1,6 @@
 package com.otium.audio.ui.components
 
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -50,10 +49,10 @@ import com.otium.audio.ui.theme.TextSecondary
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Precision Studio Straight Progress Bar (Identical design language as the MiniPlayer).
- * At rest: A sleek, straight hairline (3.5dp) with pure white progress and zero round bulb/thumb.
- * On touch / scrub: Smoothly expands to 6dp with a soft white tactile indicator following the finger.
- * Implemented with a unified gesture loop for instantaneous 120 FPS scrubbing response.
+ * Precision Main Player Seekbar with Permanent Tactile Handle (المشغل الرئيسي - شريط بمقبض تحكم).
+ * - Straight, clean track (4dp) with pure white progress.
+ * - Always-visible solid white handle (مقبض تحكم دائم 14dp يتوسع لـ 18dp عند اللمس).
+ * - Instant 120 FPS unified touch gesture loop with zero lag.
  */
 @Composable
 fun TrackSlider(
@@ -81,24 +80,21 @@ fun TrackSlider(
         position
     }
 
-    val barHeight by animateDpAsState(
-        targetValue = if (isDragging) 6.dp else 3.5.dp,
-        animationSpec = tween(140),
-        label = "slider_bar_height"
+    val thumbSize by animateDpAsState(
+        targetValue = if (isDragging) 18.dp else 14.dp,
+        animationSpec = tween(120),
+        label = "slider_thumb_size"
     )
-    val thumbAlpha by animateFloatAsState(
-        targetValue = if (isDragging) 1f else 0f,
-        animationSpec = tween(140),
-        label = "slider_thumb_alpha"
-    )
+
+    val trackHeight = 4.dp
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Column(modifier = modifier.fillMaxWidth()) {
-            // Interactive Touch Target Band (36dp comfortable touch height)
+            // Interactive Touch Target Band (38dp comfortable touch height)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(36.dp)
+                    .height(38.dp)
                     .pointerInput(safeDuration) {
                         awaitEachGesture {
                             val down = awaitFirstDown(requireUnconsumed = false)
@@ -130,13 +126,13 @@ fun TrackSlider(
                     },
                 contentAlignment = Alignment.Center
             ) {
-                // 1. Inactive Track (Identical translucent background as MiniPlayer)
+                // 1. Inactive Track (Subtle translucent white background)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(barHeight)
-                        .clip(RoundedCornerShape(barHeight / 2f))
-                        .background(Color(0x26FFFFFF))
+                        .height(trackHeight)
+                        .clip(RoundedCornerShape(trackHeight / 2f))
+                        .background(Color(0x2EFFFFFF))
                 ) {
                     // 2. Active Played Track (Pure Titanium White)
                     if (currentFraction > 0f) {
@@ -144,35 +140,36 @@ fun TrackSlider(
                             modifier = Modifier
                                 .fillMaxHeight()
                                 .fillMaxWidth(currentFraction)
-                                .clip(RoundedCornerShape(barHeight / 2f))
+                                .clip(RoundedCornerShape(trackHeight / 2f))
                                 .background(Color.White)
                         )
                     }
                 }
 
-                // 3. Tactile Indicator (Visible ONLY during active finger dragging)
-                if (thumbAlpha > 0.01f) {
-                    val thumbSize = 12.dp
+                // 3. Permanent Tactile Handle (المقبض الدائم - دائماً مرئي، يتفاعل بنعومة مع السحب)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(24.dp)
+                ) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(thumbSize)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.CenterStart)
-                                .graphicsLayer {
-                                    val halfPx = thumbSize.toPx() / 2f
-                                    translationX = (currentFraction * size.width - halfPx)
-                                        .coerceIn(0f, (size.width - thumbSize.toPx()).coerceAtLeast(0f))
-                                    alpha = thumbAlpha
-                                }
-                                .size(thumbSize)
-                                .shadow(elevation = 4.dp, shape = CircleShape, spotColor = Color.White)
-                                .clip(CircleShape)
-                                .background(Color.White)
-                        )
-                    }
+                            .align(Alignment.CenterStart)
+                            .graphicsLayer {
+                                val currentThumbPx = thumbSize.toPx()
+                                val halfPx = currentThumbPx / 2f
+                                translationX = (currentFraction * size.width - halfPx)
+                                    .coerceIn(0f, (size.width - currentThumbPx).coerceAtLeast(0f))
+                            }
+                            .size(thumbSize)
+                            .shadow(
+                                elevation = if (isDragging) 6.dp else 3.dp,
+                                shape = CircleShape,
+                                spotColor = Color.White.copy(alpha = 0.6f)
+                            )
+                            .clip(CircleShape)
+                            .background(Color.White)
+                    )
                 }
             }
 
