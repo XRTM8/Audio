@@ -25,7 +25,8 @@ data class PlaybackActions(
     val onToggleShuffle: () -> Unit = {},
     val onToggleFavorite: (Song) -> Unit = {},
     val onSetPlaybackSpeed: (Float) -> Unit = {},
-    val onToggleSkipSilence: (Boolean) -> Unit = {}
+    val onToggleSkipSilence: (Boolean) -> Unit = {},
+    val onToggleHiResFloat: (Boolean) -> Unit = {}
 )
 
 @Immutable
@@ -86,5 +87,8 @@ data class LibraryActions(
     val onStartSelection: (Song?) -> Unit = {},
     val onToggleSelection: (Long) -> Unit = {},
     val onSelectAll: (List<Song>) -> Unit = {},
-    val onClearSelection: () -> Unit = {}
+    val onClearSelection: () -> Unit = {},
+    val onAddBatchToPlaylist: (Long, Collection<Long>) -> Unit = { _, _ -> },
+    val onAddBatchToQueue: (List<Song>) -> Unit = {},
+    val onPlayBatchNext: (List<Song>) -> Unit = {}
 )

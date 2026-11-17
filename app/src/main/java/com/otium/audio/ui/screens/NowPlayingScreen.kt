@@ -324,7 +324,9 @@ fun NowPlayingScreen(
                     title = song.title,
                     artist = song.artist,
                     album = song.album,
-                    durationMs = song.durationMs
+                    durationMs = song.durationMs,
+                    relativePath = song.relativePath,
+                    contentUri = song.contentUri
                 ) ?: TrackLyrics()
             }
         } else {

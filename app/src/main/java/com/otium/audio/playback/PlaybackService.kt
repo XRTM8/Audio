@@ -81,10 +81,10 @@ class PlaybackService : MediaSessionService() {
                     .setMaxPcmBufferDurationUs(2_000_000)
                     .build()
 
+                val isFloatEnabled = PlaybackPersistence(context).isHiResFloatOutputEnabled()
+
                 return DefaultAudioSink.Builder(context)
-                    // Direct 16-bit PCM output uses the low-latency direct HAL audio path,
-                    // avoiding the 50-150ms mixer initialization latency of 32-bit float output
-                    .setEnableFloatOutput(false)
+                    .setEnableFloatOutput(isFloatEnabled)
                     .setAudioTrackBufferSizeProvider(bufferSizeProvider)
                     .setAudioProcessorChain(
                         DefaultAudioSink.DefaultAudioProcessorChain(OtiumAudioProcessor(controller))

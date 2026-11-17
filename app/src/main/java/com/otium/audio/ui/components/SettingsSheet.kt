@@ -88,6 +88,8 @@ fun SettingsSheet(
     availableUpdate: UpdateInfo?,
     isSkipSilenceEnabled: Boolean = false,
     onToggleSkipSilence: (Boolean) -> Unit = {},
+    isHiResFloatEnabled: Boolean = false,
+    onToggleHiResFloat: (Boolean) -> Unit = {},
     isAutoPreAmpEnabled: Boolean = true,
     onToggleAutoPreAmp: (Boolean) -> Unit = {},
     isScanning: Boolean = false,
@@ -541,6 +543,43 @@ fun SettingsSheet(
                         Switch(
                             checked = isSkipSilenceEnabled,
                             onCheckedChange = onToggleSkipSilence,
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = AccentGold,
+                                checkedTrackColor = DarkSurface,
+                                uncheckedThumbColor = TextSecondary,
+                                uncheckedTrackColor = DarkSurfaceVariant
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    HorizontalDivider(color = DarkCardBorder.copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Hi-Res 32-Bit Float Audio Output Switch
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                            Text(
+                                text = "إخراج صوت عالي الدقة (32-Bit Float)",
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "إرسال تيار الصوت بصيغة Float نقية لمنع تشويه التكميم وتفادي تقليص عينات 24-bit إلى 16-bit",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary
+                            )
+                        }
+                        Switch(
+                            checked = isHiResFloatEnabled,
+                            onCheckedChange = onToggleHiResFloat,
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = AccentGold,
                                 checkedTrackColor = DarkSurface,

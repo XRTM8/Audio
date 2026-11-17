@@ -90,6 +90,7 @@ import com.otium.audio.data.model.Song
 import com.otium.audio.data.model.SortOrder
 import com.otium.audio.ui.components.FastAlphabetScroller
 import com.otium.audio.ui.components.MiniPlayer
+import com.otium.audio.ui.components.PlaylistPickerBottomSheet
 import com.otium.audio.ui.components.SettingsSheet
 import com.otium.audio.ui.components.SongListItem
 import com.otium.audio.ui.components.SortBottomSheet
@@ -160,6 +161,10 @@ fun HomeScreen(
     onSelectAll = libraryActions.onSelectAll,
     onClearSelection = libraryActions.onClearSelection,
     onBatchDeleteClick = onBatchDeleteClick,
+    onToggleHiResFloat = playbackActions.onToggleHiResFloat,
+    onAddBatchToPlaylist = libraryActions.onAddBatchToPlaylist,
+    onAddBatchToQueue = libraryActions.onAddBatchToQueue,
+    onPlayBatchNext = libraryActions.onPlayBatchNext,
     modifier = modifier
 )
 
@@ -194,6 +199,7 @@ fun HomeScreen(
     onDismissTagEditor: () -> Unit = {},
     onDismissUpdate: () -> Unit = {},
     onToggleSkipSilence: (Boolean) -> Unit = {},
+    onToggleHiResFloat: (Boolean) -> Unit = {},
     onToggleAutoPreAmp: (Boolean) -> Unit = {},
     onRescanLibrary: () -> Unit = {},
     onSortOrderChanged: (SortOrder) -> Unit = {},
@@ -202,12 +208,16 @@ fun HomeScreen(
     onSelectAll: (List<Song>) -> Unit = {},
     onClearSelection: () -> Unit = {},
     onBatchDeleteClick: (List<Song>) -> Unit = {},
+    onAddBatchToPlaylist: (Long, Collection<Long>) -> Unit = { _, _ -> },
+    onAddBatchToQueue: (List<Song>) -> Unit = {},
+    onPlayBatchNext: (List<Song>) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val focusManager = LocalFocusManager.current
     var showCreatePlaylistDialog by remember { mutableStateOf(false) }
+    var showBatchPlaylistPicker by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var showSortSheet by remember { mutableStateOf(false) }
 
@@ -247,6 +257,31 @@ fun HomeScreen(
                         totalCount = displayedSongs.size,
                         onClearSelection = onClearSelection,
                         onSelectAll = { onSelectAll(displayedSongs) },
+                        onAddToPlaylist = { showBatchPlaylistPicker = true },
+                        onAddToQueue = {
+                            val selected = displayedSongs.filter { it.id in uiState.selectedSongIds }
+                            if (selected.isNotEmpty()) {
+                                onAddBatchToQueue(selected)
+                            }
+                        },
+                        onPlayNext = {
+                            val selected = displayedSongs.filter { it.id in uiState.selectedSongIds }
+                            if (selected.isNotEmpty()) {
+                                onPlayBatchNext(selected)
+                            }
+                        },
+                        onShareSelected = {
+                            val selected = displayedSongs.filter { it.id in uiState.selectedSongIds }
+                            if (selected.isNotEmpty()) {
+                                val uris = ArrayList(selected.map { it.contentUri })
+                                val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND_MULTIPLE).apply {
+                                    type = "audio/*"
+                                    putParcelableArrayListExtra(android.content.Intent.EXTRA_STREAM, uris)
+                                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                context.startActivity(android.content.Intent.createChooser(shareIntent, "مشاركة المقاطع الصوتية"))
+                            }
+                        },
                         onDeleteSelected = {
                             val toDelete = displayedSongs.filter { it.id in uiState.selectedSongIds }
                             if (toDelete.isNotEmpty()) {
@@ -475,7 +510,14 @@ fun HomeScreen(
                             isSelectionMode = uiState.isSelectionMode,
                             selectedSongIds = uiState.selectedSongIds,
                             onToggleSelect = { onToggleSelection(it.id) },
-                            showAlphabetScroller = !uiState.isSelectionMode && !uiState.isSearching && uiState.selectedFolder == null && uiState.selectedPlaylist == null && uiState.selectedArtist == null && uiState.selectedAlbum == null
+                            showAlphabetScroller = !uiState.isSelectionMode &&
+                                !uiState.isSearching &&
+                                uiState.selectedFolder == null &&
+                                uiState.selectedPlaylist == null &&
+                                uiState.selectedArtist == null &&
+                                uiState.selectedAlbum == null &&
+                                (uiState.selectedTab == LibraryTab.TRACKS || uiState.selectedTab == LibraryTab.FAVORITES) &&
+                                (uiState.sortOrder == SortOrder.TITLE_ASC || uiState.sortOrder == SortOrder.ARTIST_ASC)
                         )
                     }
                 }
@@ -521,12 +563,30 @@ fun HomeScreen(
                 )
             }
 
+            if (showBatchPlaylistPicker) {
+                PlaylistPickerBottomSheet(
+                    playlists = uiState.playlists,
+                    songTitle = "${uiState.selectedSongIds.size} مقاطع محددة",
+                    onSelectPlaylist = { playlist ->
+                        onAddBatchToPlaylist(playlist.playlistId, uiState.selectedSongIds)
+                        showBatchPlaylistPicker = false
+                    },
+                    onCreateNewPlaylistClick = {
+                        showBatchPlaylistPicker = false
+                        showCreatePlaylistDialog = true
+                    },
+                    onDismiss = { showBatchPlaylistPicker = false }
+                )
+            }
+
             if (showSettings) {
                 SettingsSheet(
                     trackCount = uiState.songs.size,
                     availableUpdate = uiState.availableUpdate,
                     isSkipSilenceEnabled = uiState.playbackState.isSkipSilenceEnabled,
                     onToggleSkipSilence = onToggleSkipSilence,
+                    isHiResFloatEnabled = uiState.playbackState.isHiResFloatEnabled,
+                    onToggleHiResFloat = onToggleHiResFloat,
                     isAutoPreAmpEnabled = uiState.equalizerState.isAutoPreAmpEnabled,
                     onToggleAutoPreAmp = onToggleAutoPreAmp,
                     isScanning = uiState.isScanning,

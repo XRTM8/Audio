@@ -20,6 +20,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -27,6 +29,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -146,17 +149,21 @@ fun SelectionTopBar(
     totalCount: Int,
     onClearSelection: () -> Unit,
     onSelectAll: () -> Unit,
+    onAddToPlaylist: () -> Unit,
+    onAddToQueue: () -> Unit,
+    onPlayNext: () -> Unit,
+    onShareSelected: () -> Unit,
     onDeleteSelected: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
+            .padding(start = 12.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f, fill = false)) {
             IconButton(onClick = onClearSelection) {
                 Icon(
                     imageVector = Icons.Default.Close,
@@ -165,42 +172,89 @@ fun SelectionTopBar(
                     modifier = Modifier.size(24.dp)
                 )
             }
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(4.dp))
             Column {
                 Text(
-                    text = if (selectedCount == 0) "اختر مقاطع صوتية" else "تم تحديد $selectedCount مقطع",
+                    text = if (selectedCount == 0) "اختر مقاطع" else "تم تحديد $selectedCount",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = TextPrimary
+                    color = TextPrimary,
+                    maxLines = 1
                 )
                 if (totalCount > 0) {
                     Text(
-                        text = "من إجمالي $totalCount مقطع",
+                        text = "من إجمالي $totalCount",
                         style = MaterialTheme.typography.labelSmall,
-                        color = TextSecondary
+                        color = TextSecondary,
+                        maxLines = 1
                     )
                 }
             }
         }
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onSelectAll) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+            // Select All
+            IconButton(onClick = onSelectAll, modifier = Modifier.size(36.dp)) {
                 Icon(
                     imageVector = Icons.Default.Check,
                     contentDescription = "Select All",
                     tint = if (selectedCount == totalCount && totalCount > 0) AccentGold else TextSecondary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            // Add to Playlist
+            IconButton(
+                onClick = onAddToPlaylist,
+                enabled = selectedCount > 0,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
+                    contentDescription = "Add to Playlist",
+                    tint = if (selectedCount > 0) AccentGold else TextTertiary.copy(alpha = 0.4f),
                     modifier = Modifier.size(22.dp)
                 )
             }
 
+            // Play Next
+            IconButton(
+                onClick = onPlayNext,
+                enabled = selectedCount > 0,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.QueueMusic,
+                    contentDescription = "Play Next",
+                    tint = if (selectedCount > 0) AccentGold else TextTertiary.copy(alpha = 0.4f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            // Share
+            IconButton(
+                onClick = onShareSelected,
+                enabled = selectedCount > 0,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Share,
+                    contentDescription = "Share",
+                    tint = if (selectedCount > 0) AccentGold else TextTertiary.copy(alpha = 0.4f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            // Delete
             IconButton(
                 onClick = onDeleteSelected,
-                enabled = selectedCount > 0
+                enabled = selectedCount > 0,
+                modifier = Modifier.size(36.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = "Delete Selected",
                     tint = if (selectedCount > 0) ErrorRed else TextTertiary.copy(alpha = 0.4f),
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }

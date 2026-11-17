@@ -124,7 +124,13 @@ data class Song(
                 ext.equals("wav", ignoreCase = true) -> "WAV"
                 ext.equals("opus", ignoreCase = true) -> "OPUS"
                 ext.equals("ogg", ignoreCase = true) -> "OGG"
-                ext.equals("m4a", ignoreCase = true) -> "ALAC"
+                ext.equals("m4a", ignoreCase = true) -> {
+                    if (target.contains("alac", ignoreCase = true) || target.contains("lossless", ignoreCase = true)) {
+                        "ALAC"
+                    } else {
+                        "AAC"
+                    }
+                }
                 ext.equals("aac", ignoreCase = true) -> "AAC"
                 ext.equals("mp3", ignoreCase = true) -> "MP3"
                 else -> "HI-RES"

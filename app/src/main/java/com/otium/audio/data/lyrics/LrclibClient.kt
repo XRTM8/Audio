@@ -1,6 +1,7 @@
 package com.otium.audio.data.lyrics
 
 import android.content.Context
+import android.net.Uri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -25,15 +26,37 @@ object LrclibClient {
         title: String,
         artist: String,
         album: String,
-        durationMs: Long
+        durationMs: Long,
+        relativePath: String = "",
+        contentUri: Uri? = null
     ): TrackLyrics? = withContext(Dispatchers.IO) {
         if (songId <= 0L || title.isBlank()) return@withContext null
-        if (negativeCache.get(songId) == true) return@withContext null
 
+        // 1. Check local .lrc file in the same directory as the audio file (Offline)
+        if (relativePath.isNotBlank()) {
+            try {
+                val audioFile = File(relativePath)
+                if (audioFile.exists()) {
+                    val parentDir = audioFile.parentFile
+                    val baseName = audioFile.nameWithoutExtension
+                    val candidateLrc1 = File(parentDir, "$baseName.lrc")
+                    val candidateLrc2 = File(parentDir, "${audioFile.name}.lrc")
+                    val lrcFile = when {
+                        candidateLrc1.exists() && candidateLrc1.length() > 0 -> candidateLrc1
+                        candidateLrc2.exists() && candidateLrc2.length() > 0 -> candidateLrc2
+                        else -> null
+                    }
+                    if (lrcFile != null) {
+                        val parsed = LrcParser.parse(lrcFile.readText())
+                        if (parsed.lines.isNotEmpty()) return@withContext parsed
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+
+        // 2. Check local cached .lrc from previous downloads
         val cacheDir = File(context.cacheDir, "lyrics").apply { if (!exists()) mkdirs() }
         val cacheFile = File(cacheDir, "$songId.lrc")
-
-        // 1. Check local cached .lrc
         if (cacheFile.exists() && cacheFile.length() > 0) {
             try {
                 val cachedText = cacheFile.readText()
@@ -42,7 +65,9 @@ object LrclibClient {
             } catch (_: Exception) {}
         }
 
-        // 2. Fetch from LRCLIB
+        if (negativeCache.get(songId) == true) return@withContext null
+
+        // 4. Online Fetch from LRCLIB
         try {
             val cleanTitle = cleanTrackName(title)
             val cleanArtist = cleanArtistName(artist)
@@ -61,7 +86,7 @@ object LrclibClient {
                 requestMethod = "GET"
                 connectTimeout = CONNECT_TIMEOUT_MS
                 readTimeout = READ_TIMEOUT_MS
-                setRequestProperty("User-Agent", "OtiumAudio/5.2 (Android; Audiophile Player)")
+                setRequestProperty("User-Agent", "OtiumAudio/5.3 (Android; Audiophile Player)")
                 setRequestProperty("Accept", "application/json")
             }
 

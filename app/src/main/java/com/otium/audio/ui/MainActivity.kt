@@ -108,7 +108,8 @@ class MainActivity : ComponentActivity() {
                             onToggleShuffle = viewModel::toggleShuffle,
                             onToggleFavorite = viewModel::toggleFavorite,
                             onSetPlaybackSpeed = viewModel::setPlaybackSpeed,
-                            onToggleSkipSilence = viewModel::setSkipSilence
+                            onToggleSkipSilence = viewModel::setSkipSilence,
+                            onToggleHiResFloat = viewModel::toggleHiResFloat
                         )
                     }
 
@@ -173,7 +174,10 @@ class MainActivity : ComponentActivity() {
                             onStartSelection = { song -> viewModel.startSelectionMode(song?.id) },
                             onToggleSelection = viewModel::toggleSongSelection,
                             onSelectAll = viewModel::selectAllSongs,
-                            onClearSelection = viewModel::clearSongSelection
+                            onClearSelection = viewModel::clearSongSelection,
+                            onAddBatchToPlaylist = viewModel::addSongsToPlaylist,
+                            onAddBatchToQueue = viewModel::addSelectedToQueue,
+                            onPlayBatchNext = viewModel::playSelectedNext
                         )
                     }
 

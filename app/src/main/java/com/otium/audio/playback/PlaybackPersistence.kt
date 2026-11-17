@@ -33,6 +33,12 @@ class PlaybackPersistence(private val context: Context) {
 
     fun isSkipSilenceEnabled(): Boolean = prefs.getBoolean(KEY_SKIP_SILENCE, false)
 
+    fun saveHiResFloatOutput(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_HI_RES_FLOAT, enabled).apply()
+    }
+
+    fun isHiResFloatOutputEnabled(): Boolean = prefs.getBoolean(KEY_HI_RES_FLOAT, false)
+
     fun saveSortOrder(order: com.otium.audio.data.model.SortOrder) {
         prefs.edit().putString(KEY_SORT_ORDER, order.name).apply()
     }
@@ -64,6 +70,7 @@ class PlaybackPersistence(private val context: Context) {
         const val KEY_INDEX = "queue_index"
         const val KEY_POSITION = "queue_position"
         const val KEY_SKIP_SILENCE = "skip_silence"
+        const val KEY_HI_RES_FLOAT = "hi_res_float_output"
         const val KEY_SORT_ORDER = "sort_order"
     }
 }

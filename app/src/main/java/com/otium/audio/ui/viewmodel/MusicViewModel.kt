@@ -312,9 +312,18 @@ class MusicViewModel(
     fun toggleShuffle() = musicController.toggleShuffle()
     fun setPlaybackSpeed(speed: Float) = musicController.setPlaybackSpeed(speed)
     fun setSkipSilence(enabled: Boolean) = musicController.setSkipSilence(enabled)
+    fun toggleHiResFloat(enabled: Boolean) = musicController.setHiResFloatEnabled(enabled)
 
     fun playNext(song: Song) = musicController.playNext(song)
     fun addToQueue(song: Song) = musicController.addToQueue(song)
+    fun addSelectedToQueue(songs: List<Song>) {
+        musicController.addAllToQueue(songs)
+        clearSongSelection()
+    }
+    fun playSelectedNext(songs: List<Song>) {
+        musicController.playNextBatch(songs)
+        clearSongSelection()
+    }
     fun removeQueueItem(index: Int) = musicController.removeQueueItem(index)
     fun moveQueueItem(fromIndex: Int, toIndex: Int) =
         musicController.moveQueueItem(fromIndex, toIndex)
@@ -341,6 +350,15 @@ class MusicViewModel(
 
     fun addSongToPlaylist(playlistId: Long, songId: Long) {
         viewModelScope.launch { repository.addSongToPlaylist(playlistId, songId) }
+    }
+
+    fun addSongsToPlaylist(playlistId: Long, songIds: Collection<Long>) {
+        viewModelScope.launch {
+            songIds.forEach { songId ->
+                repository.addSongToPlaylist(playlistId, songId)
+            }
+            clearSongSelection()
+        }
     }
 
     fun removeSongFromPlaylist(playlistId: Long, songId: Long) {

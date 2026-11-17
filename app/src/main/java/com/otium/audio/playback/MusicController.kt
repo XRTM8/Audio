@@ -44,7 +44,12 @@ class MusicController(
     private val persistence = PlaybackPersistence(context)
 
     init {
-        _playbackState.update { it.copy(isSkipSilenceEnabled = persistence.isSkipSilenceEnabled()) }
+        _playbackState.update {
+            it.copy(
+                isSkipSilenceEnabled = persistence.isSkipSilenceEnabled(),
+                isHiResFloatEnabled = persistence.isHiResFloatOutputEnabled()
+            )
+        }
         initializeController()
     }
 
@@ -384,6 +389,11 @@ class MusicController(
         )
     }
 
+    fun setHiResFloatEnabled(enabled: Boolean) {
+        persistence.saveHiResFloatOutput(enabled)
+        _playbackState.update { it.copy(isHiResFloatEnabled = enabled) }
+    }
+
     fun playNext(song: Song) {
         val controller = mediaController ?: return
         val currentIndex = controller.currentMediaItemIndex
@@ -405,6 +415,32 @@ class MusicController(
 
         controller.addMediaItem(song.toMediaItem())
         _playbackState.update { it.copy(queue = updated) }
+    }
+
+    fun addAllToQueue(songs: List<Song>) {
+        val controller = mediaController ?: return
+        if (songs.isEmpty()) return
+        val updated = currentPlaylistSongs.toMutableList()
+        updated.addAll(songs)
+        currentPlaylistSongs = updated
+
+        controller.addMediaItems(songs.map { it.toMediaItem() })
+        _playbackState.update { it.copy(queue = updated) }
+        persistQueue()
+    }
+
+    fun playNextBatch(songs: List<Song>) {
+        val controller = mediaController ?: return
+        if (songs.isEmpty()) return
+        val currentIndex = controller.currentMediaItemIndex
+        val targetIndex = if (currentIndex >= 0 && currentIndex < currentPlaylistSongs.size) currentIndex + 1 else currentPlaylistSongs.size
+        val updated = currentPlaylistSongs.toMutableList()
+        updated.addAll(targetIndex, songs)
+        currentPlaylistSongs = updated
+
+        controller.addMediaItems(targetIndex, songs.map { it.toMediaItem() })
+        _playbackState.update { it.copy(queue = updated) }
+        persistQueue()
     }
 
     fun removeQueueItem(index: Int) {
