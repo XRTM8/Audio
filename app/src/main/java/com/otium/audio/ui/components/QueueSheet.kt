@@ -62,6 +62,8 @@ import com.otium.audio.ui.theme.AccentGold
 import com.otium.audio.ui.theme.AccentTitaniumWhite
 import com.otium.audio.ui.theme.DarkCardBorder
 import com.otium.audio.ui.theme.DarkSurface
+import com.otium.audio.ui.theme.DarkSheetBackground
+import com.otium.audio.ui.theme.DarkSheetScrim
 import com.otium.audio.ui.theme.DarkSurfaceContainer
 import com.otium.audio.ui.theme.DarkSurfaceVariant
 import com.otium.audio.ui.theme.ErrorRed
@@ -92,7 +94,8 @@ fun QueueSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = DarkSurfaceContainer,
+        containerColor = DarkSheetBackground,
+        scrimColor = DarkSheetScrim,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         modifier = modifier
     ) {

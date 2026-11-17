@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.Icons
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -58,6 +59,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -74,7 +76,11 @@ import com.otium.audio.ui.theme.AccentGold
 import com.otium.audio.ui.theme.DarkCardBorder
 import com.otium.audio.ui.theme.DarkSurface
 import com.otium.audio.ui.theme.DarkSurfaceContainer
-import com.otium.audio.ui.theme.DarkSurfaceElevated
+import com.otium.audio.ui.theme.DarkSheetBackground
+import com.otium.audio.ui.theme.DarkSheetCard
+import com.otium.audio.ui.theme.DarkSheetCardBorder
+import com.otium.audio.ui.theme.DarkSheetScrim
+import com.otium.audio.ui.theme.AccentTitaniumWhite
 import com.otium.audio.ui.theme.DarkSurfaceVariant
 import com.otium.audio.ui.theme.ErrorRed
 import com.otium.audio.ui.theme.TextPrimary
@@ -113,19 +119,29 @@ fun SettingsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = DarkSurfaceElevated,
+        containerColor = DarkSheetBackground,
+        scrimColor = DarkSheetScrim,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        dragHandle = {
+            BottomSheetDefaults.DragHandle(
+                color = TextSecondary.copy(alpha = 0.4f),
+                width = 36.dp,
+                height = 4.dp
+            )
+        },
         modifier = modifier
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 8.dp)
+                .padding(horizontal = 20.dp, vertical = 6.dp)
         ) {
             // Header Row
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -134,37 +150,53 @@ fun SettingsSheet(
                         modifier = Modifier
                             .size(38.dp)
                             .clip(CircleShape)
-                            .background(DarkSurfaceContainer),
+                            .background(DarkSheetCard)
+                            .border(1.dp, DarkSheetCardBorder, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Settings,
                             contentDescription = null,
-                            tint = AccentGold,
-                            modifier = Modifier.size(22.dp)
+                            tint = AccentTitaniumWhite,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
                         text = "الإعدادات ومحرك الصوت",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
+                        ),
                         color = TextPrimary
                     )
                 }
 
-                IconButton(onClick = onDismiss) {
-                    Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = TextSecondary)
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(Color(0x14FFFFFF))
+                        .clickable { onDismiss() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close",
+                        tint = TextPrimary,
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // App Version Badge Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = DarkSurfaceVariant),
-                border = androidx.compose.foundation.BorderStroke(1.dp, DarkCardBorder)
+                colors = CardDefaults.cardColors(containerColor = DarkSheetCard),
+                border = androidx.compose.foundation.BorderStroke(1.dp, DarkSheetCardBorder)
             ) {
                 Row(
                     modifier = Modifier
@@ -232,8 +264,8 @@ fun SettingsSheet(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = DarkSurfaceVariant),
-                border = androidx.compose.foundation.BorderStroke(1.dp, DarkCardBorder)
+                colors = CardDefaults.cardColors(containerColor = DarkSheetCard),
+                border = androidx.compose.foundation.BorderStroke(1.dp, DarkSheetCardBorder)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     // Manual Check Button
@@ -391,8 +423,8 @@ fun SettingsSheet(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = DarkSurfaceVariant),
-                border = androidx.compose.foundation.BorderStroke(1.dp, DarkCardBorder)
+                colors = CardDefaults.cardColors(containerColor = DarkSheetCard),
+                border = androidx.compose.foundation.BorderStroke(1.dp, DarkSheetCardBorder)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
@@ -451,8 +483,8 @@ fun SettingsSheet(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = DarkSurfaceVariant),
-                border = androidx.compose.foundation.BorderStroke(1.dp, DarkCardBorder)
+                colors = CardDefaults.cardColors(containerColor = DarkSheetCard),
+                border = androidx.compose.foundation.BorderStroke(1.dp, DarkSheetCardBorder)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     // Open Equalizer Shortcut
@@ -507,10 +539,10 @@ fun SettingsSheet(
                             checked = isAutoPreAmpEnabled,
                             onCheckedChange = onToggleAutoPreAmp,
                             colors = SwitchDefaults.colors(
-                                checkedThumbColor = AccentGold,
-                                checkedTrackColor = DarkSurface,
+                                checkedThumbColor = AccentTitaniumWhite,
+                                checkedTrackColor = Color(0xFF2E2E3C),
                                 uncheckedThumbColor = TextSecondary,
-                                uncheckedTrackColor = DarkSurfaceVariant
+                                uncheckedTrackColor = Color(0xFF1B1B24)
                             )
                         )
                     }
@@ -544,10 +576,10 @@ fun SettingsSheet(
                             checked = isSkipSilenceEnabled,
                             onCheckedChange = onToggleSkipSilence,
                             colors = SwitchDefaults.colors(
-                                checkedThumbColor = AccentGold,
-                                checkedTrackColor = DarkSurface,
+                                checkedThumbColor = AccentTitaniumWhite,
+                                checkedTrackColor = Color(0xFF2E2E3C),
                                 uncheckedThumbColor = TextSecondary,
-                                uncheckedTrackColor = DarkSurfaceVariant
+                                uncheckedTrackColor = Color(0xFF1B1B24)
                             )
                         )
                     }
@@ -581,10 +613,10 @@ fun SettingsSheet(
                             checked = isHiResFloatEnabled,
                             onCheckedChange = onToggleHiResFloat,
                             colors = SwitchDefaults.colors(
-                                checkedThumbColor = AccentGold,
-                                checkedTrackColor = DarkSurface,
+                                checkedThumbColor = AccentTitaniumWhite,
+                                checkedTrackColor = Color(0xFF2E2E3C),
                                 uncheckedThumbColor = TextSecondary,
-                                uncheckedTrackColor = DarkSurfaceVariant
+                                uncheckedTrackColor = Color(0xFF1B1B24)
                             )
                         )
                     }
@@ -605,8 +637,8 @@ fun SettingsSheet(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = DarkSurfaceVariant),
-                border = androidx.compose.foundation.BorderStroke(1.dp, DarkCardBorder)
+                colors = CardDefaults.cardColors(containerColor = DarkSheetCard),
+                border = androidx.compose.foundation.BorderStroke(1.dp, DarkSheetCardBorder)
             ) {
                 Row(
                     modifier = Modifier
@@ -656,8 +688,8 @@ fun SettingsSheet(
                         context.startActivity(browserIntent)
                     },
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = DarkSurfaceContainer),
-                border = androidx.compose.foundation.BorderStroke(1.dp, DarkCardBorder)
+                colors = CardDefaults.cardColors(containerColor = DarkSheetCard),
+                border = androidx.compose.foundation.BorderStroke(1.dp, DarkSheetCardBorder)
             ) {
                 Row(
                     modifier = Modifier

@@ -40,6 +40,8 @@ import androidx.compose.ui.unit.sp
 import com.otium.audio.data.local.entity.PlaylistEntity
 import com.otium.audio.ui.theme.AccentGold
 import com.otium.audio.ui.theme.DarkCardBorder
+import com.otium.audio.ui.theme.DarkSheetBackground
+import com.otium.audio.ui.theme.DarkSheetScrim
 import com.otium.audio.ui.theme.DarkSurfaceContainer
 import com.otium.audio.ui.theme.DarkSurfaceVariant
 import com.otium.audio.ui.theme.TextPrimary
@@ -60,8 +62,9 @@ fun PlaylistPickerBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = DarkSurfaceContainer,
-        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        containerColor = DarkSheetBackground,
+        scrimColor = DarkSheetScrim,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         modifier = modifier
     ) {
         Column(

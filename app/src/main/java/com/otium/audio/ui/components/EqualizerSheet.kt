@@ -1,6 +1,7 @@
 package com.otium.audio.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.asPaddingValues
@@ -22,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.Icons
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -31,8 +33,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -40,19 +40,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.otium.audio.playback.EqualizerState
 import com.otium.audio.ui.theme.AccentCyan
-import com.otium.audio.ui.theme.AccentGold
-import com.otium.audio.ui.theme.DarkCardBorder
+import com.otium.audio.ui.theme.AccentTitaniumWhite
+import com.otium.audio.ui.theme.DarkSheetBackground
+import com.otium.audio.ui.theme.DarkSheetCard
+import com.otium.audio.ui.theme.DarkSheetCardBorder
+import com.otium.audio.ui.theme.DarkSheetScrim
 import com.otium.audio.ui.theme.DarkSurface
-import com.otium.audio.ui.theme.DarkSurfaceContainer
-import com.otium.audio.ui.theme.DarkSurfaceVariant
 import com.otium.audio.ui.theme.SuccessGreen
 import com.otium.audio.ui.theme.TextPrimary
 import com.otium.audio.ui.theme.TextSecondary
+import com.otium.audio.ui.theme.TextTertiary
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -73,23 +76,28 @@ fun EqualizerSheet(
     modifier: Modifier = Modifier
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    // The sheet is tall enough to reach the status bar, so the grab handle ended up behind the
-    // notch. One inset of padding puts it back under the cutout and below the clock.
     val notchInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = DarkSurfaceContainer,
+        containerColor = DarkSheetBackground,
+        scrimColor = DarkSheetScrim,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        dragHandle = {
+            BottomSheetDefaults.DragHandle(
+                color = TextTertiary.copy(alpha = 0.5f),
+                width = 36.dp,
+                height = 4.dp
+            )
+        },
         modifier = modifier.padding(top = notchInset + 6.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 10.dp)
+                .padding(horizontal = 20.dp, vertical = 6.dp)
         ) {
             // Header Row
             Row(
@@ -100,23 +108,27 @@ fun EqualizerSheet(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(38.dp)
                             .clip(CircleShape)
-                            .background(DarkSurfaceVariant),
+                            .background(DarkSheetCard)
+                            .border(1.dp, DarkSheetCardBorder, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Equalizer,
                             contentDescription = null,
-                            tint = AccentGold,
+                            tint = AccentTitaniumWhite,
                             modifier = Modifier.size(20.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
                             text = "المعادل الصوتي ومحرك الاستوديو",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            ),
                             color = TextPrimary
                         )
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -124,7 +136,7 @@ fun EqualizerSheet(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(3.dp))
                                     .background(if (state.isEnabled) SuccessGreen.copy(alpha = 0.2f) else TextSecondary.copy(alpha = 0.15f))
-                                    .padding(horizontal = 5.dp, vertical = 0.5.dp)
+                                    .padding(horizontal = 5.dp, vertical = 1.dp)
                             ) {
                                 Text(
                                     text = if (state.isEnabled) "ACTIVE" else "BYPASS",
@@ -138,10 +150,9 @@ fun EqualizerSheet(
                                 text = if (state.isBound) {
                                     "معادل ${state.bands.size} نطاقات"
                                 } else {
-                                    // There is no audio session to attach to until something plays.
-                                    "يعمل بعد تشغيل أغنية"
+                                    "يعمل بعد تشغيل مسار صوتي"
                                 },
-                                fontSize = 10.sp,
+                                fontSize = 11.sp,
                                 color = TextSecondary
                             )
                         }
@@ -153,10 +164,10 @@ fun EqualizerSheet(
                         checked = state.isEnabled,
                         onCheckedChange = onToggleEnabled,
                         colors = SwitchDefaults.colors(
-                            checkedThumbColor = AccentGold,
-                            checkedTrackColor = DarkSurface,
+                            checkedThumbColor = AccentTitaniumWhite,
+                            checkedTrackColor = Color(0xFF2E2E3C),
                             uncheckedThumbColor = TextSecondary,
-                            uncheckedTrackColor = DarkSurfaceVariant
+                            uncheckedTrackColor = Color(0xFF1B1B24)
                         )
                     )
                     Spacer(modifier = Modifier.width(4.dp))
@@ -173,220 +184,46 @@ fun EqualizerSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 state.presets.forEach { preset ->
                     val isSelected = state.currentPreset == preset
                     FilterChip(
                         selected = isSelected,
                         onClick = { onPresetSelected(preset) },
-                        label = { Text(preset, fontSize = 11.5.sp) },
+                        label = {
+                            Text(
+                                text = preset,
+                                fontSize = 11.5.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                            )
+                        },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = AccentGold,
+                            selectedContainerColor = AccentTitaniumWhite,
                             selectedLabelColor = DarkSurface,
-                            containerColor = DarkSurfaceVariant,
+                            containerColor = DarkSheetCard,
                             labelColor = TextPrimary
                         ),
                         border = FilterChipDefaults.filterChipBorder(
                             enabled = true,
                             selected = isSelected,
-                            borderColor = if (isSelected) AccentGold else DarkCardBorder
-                        )
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Pre-Amp Gain Slider
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(DarkSurfaceVariant)
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "PRE-AMP",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                    color = AccentGold,
-                    modifier = Modifier.width(64.dp)
-                )
-
-                Slider(
-                    value = state.preAmpDb,
-                    onValueChange = onPreAmpChange,
-                    valueRange = -10f..10f,
-                    colors = SliderDefaults.colors(
-                        thumbColor = AccentGold,
-                        activeTrackColor = AccentGold,
-                        inactiveTrackColor = DarkCardBorder
-                    ),
-                    modifier = Modifier.weight(1f)
-                )
-
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    modifier = Modifier.width(62.dp)
-                ) {
-                    Text(
-                        text = String.format(Locale.getDefault(), "%+.1fdB", state.preAmpDb),
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = TextPrimary
-                    )
-                    if (state.isAutoPreAmpEnabled && state.effectivePreAmpDb != state.preAmpDb) {
-                        Text(
-                            text = String.format(Locale.getDefault(), "فعلي: %+.1f", state.effectivePreAmpDb),
-                            fontSize = 8.5.sp,
-                            color = AccentCyan
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Equalizer Frequency Bands
-            Text(
-                text = "نطاقات التردد المعادل (${state.bands.size} نطاقات)",
-                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
-                color = AccentGold
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            state.bands.forEach { band ->
-                val freqLabel = if (band.centerFreqHz >= 1000) {
-                    String.format(Locale.getDefault(), "%.1fkHz", band.centerFreqHz / 1000f)
-                } else {
-                    "${band.centerFreqHz}Hz"
-                }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 3.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = freqLabel,
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium, fontSize = 12.5.sp),
-                        color = TextPrimary,
-                        modifier = Modifier.width(60.dp)
-                    )
-
-                    val safeMin = if (band.minDb < band.maxDb) band.minDb else -15f
-                    val safeMax = if (band.minDb < band.maxDb) band.maxDb else 15f
-
-                    Slider(
-                        value = band.levelDb.coerceIn(safeMin, safeMax),
-                        onValueChange = { onBandLevelChange(band.bandIndex, it) },
-                        valueRange = safeMin..safeMax,
-                        enabled = true,
-                        colors = SliderDefaults.colors(
-                            thumbColor = if (state.isEnabled) AccentGold else TextSecondary,
-                            activeTrackColor = if (state.isEnabled) AccentGold else TextSecondary.copy(alpha = 0.35f),
-                            inactiveTrackColor = DarkCardBorder
+                            borderColor = if (isSelected) AccentTitaniumWhite else DarkSheetCardBorder
                         ),
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    Text(
-                        text = String.format(Locale.getDefault(), "%+.1fdB", band.levelDb),
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
-                        color = if (state.isEnabled && band.levelDb != 0f) AccentGold else TextSecondary,
-                        modifier = Modifier.width(52.dp)
+                        shape = RoundedCornerShape(12.dp)
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(14.dp))
-            HorizontalDivider(thickness = 0.5.dp, color = DarkCardBorder.copy(alpha = 0.4f))
-            Spacer(modifier = Modifier.height(14.dp))
 
-            // Bass Boost & 3D Virtualizer
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Bass Boost
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "BASS BOOST",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = AccentGold
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "${state.bassBoostStrength / 10}%",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = TextSecondary
-                        )
-                    }
-                    Slider(
-                        value = state.bassBoostStrength.toFloat(),
-                        onValueChange = { onBassBoostChange(it.toInt()) },
-                        valueRange = 0f..1000f,
-                        enabled = true,
-                        colors = SliderDefaults.colors(
-                            thumbColor = if (state.isEnabled) AccentGold else TextSecondary,
-                            activeTrackColor = if (state.isEnabled) AccentGold else TextSecondary.copy(alpha = 0.35f),
-                            inactiveTrackColor = DarkCardBorder
-                        )
-                    )
-                }
-
-                // 3D Virtualizer
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "3D VIRTUALIZER",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = AccentCyan
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "${state.virtualizerStrength / 10}%",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = TextSecondary
-                        )
-                    }
-                    Slider(
-                        value = state.virtualizerStrength.toFloat(),
-                        onValueChange = { onVirtualizerChange(it.toInt()) },
-                        valueRange = 0f..1000f,
-                        enabled = true,
-                        colors = SliderDefaults.colors(
-                            thumbColor = if (state.isEnabled) AccentCyan else TextSecondary,
-                            activeTrackColor = if (state.isEnabled) AccentCyan else TextSecondary.copy(alpha = 0.35f),
-                            inactiveTrackColor = DarkCardBorder
-                        )
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-            HorizontalDivider(thickness = 0.5.dp, color = DarkCardBorder.copy(alpha = 0.4f))
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // DSP Studio Effects & Spatial Acoustics Section
-            Text(
-                text = "المؤثرات الصوتية (DSP)",
-                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
-                color = AccentGold
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // 1. REVERB (تردد فراغي / صدى)
+            // Master Pre-Amp Card
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(DarkSurfaceVariant)
-                    .padding(12.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(DarkSheetCard)
+                    .border(1.dp, DarkSheetCardBorder, RoundedCornerShape(14.dp))
+                    .padding(horizontal = 14.dp, vertical = 10.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -394,20 +231,265 @@ fun EqualizerSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
+                        text = "PRE-AMP GAIN",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+                        color = AccentTitaniumWhite
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = String.format(Locale.getDefault(), "%+.1f dB", state.preAmpDb),
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = if (state.preAmpDb != 0f) AccentTitaniumWhite else TextSecondary
+                        )
+                        if (state.isAutoPreAmpEnabled && state.effectivePreAmpDb != state.preAmpDb) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = String.format(Locale.getDefault(), "(فعلي: %+.1f)", state.effectivePreAmpDb),
+                                fontSize = 9.sp,
+                                color = AccentCyan
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                StudioFaderSlider(
+                    value = state.preAmpDb,
+                    onValueChange = onPreAmpChange,
+                    valueRange = -10f..10f,
+                    enabled = state.isEnabled,
+                    isBipolar = true,
+                    centerDetent = 0f,
+                    activeColor = AccentTitaniumWhite
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Equalizer Frequency Bands Container Card
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(DarkSheetCard)
+                    .border(1.dp, DarkSheetCardBorder, RoundedCornerShape(16.dp))
+                    .padding(horizontal = 14.dp, vertical = 12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "نطاقات التردد المعادل (${state.bands.size} نطاقات)",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp
+                        ),
+                        color = AccentTitaniumWhite
+                    )
+                    Text(
+                        text = "نقطة التعادل 0.0 dB",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextTertiary
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                state.bands.forEachIndexed { index, band ->
+                    val freqLabel = if (band.centerFreqHz >= 1000) {
+                        String.format(Locale.getDefault(), "%.1fkHz", band.centerFreqHz / 1000f)
+                    } else {
+                        "${band.centerFreqHz}Hz"
+                    }
+
+                    val safeMin = if (band.minDb < band.maxDb) band.minDb else -15f
+                    val safeMax = if (band.minDb < band.maxDb) band.maxDb else 15f
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Frequency Badge
+                        Box(
+                            modifier = Modifier
+                                .width(56.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color(0x14FFFFFF))
+                                .padding(vertical = 3.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = freqLabel,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.5.sp
+                                ),
+                                color = TextPrimary
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        // Professional Precision Studio Fader
+                        StudioFaderSlider(
+                            value = band.levelDb.coerceIn(safeMin, safeMax),
+                            onValueChange = { onBandLevelChange(band.bandIndex, it) },
+                            valueRange = safeMin..safeMax,
+                            enabled = state.isEnabled,
+                            isBipolar = true,
+                            centerDetent = 0f,
+                            activeColor = AccentTitaniumWhite,
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        // Gain dB readout
+                        Text(
+                            text = String.format(Locale.getDefault(), "%+.1fdB", band.levelDb),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = if (band.levelDb != 0f) FontWeight.Bold else FontWeight.Normal,
+                                fontSize = 11.sp
+                            ),
+                            color = if (state.isEnabled && band.levelDb != 0f) AccentTitaniumWhite else TextSecondary,
+                            modifier = Modifier.width(52.dp)
+                        )
+                    }
+
+                    if (index < state.bands.size - 1) {
+                        HorizontalDivider(
+                            thickness = 0.5.dp,
+                            color = DarkSheetCardBorder.copy(alpha = 0.25f),
+                            modifier = Modifier.padding(vertical = 3.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Bass Boost & 3D Virtualizer Grouped Cards
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Bass Boost Card
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(DarkSheetCard)
+                        .border(1.dp, DarkSheetCardBorder, RoundedCornerShape(14.dp))
+                        .padding(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "BASS BOOST",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = AccentTitaniumWhite
+                        )
+                        Text(
+                            text = "${state.bassBoostStrength / 10}%",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = if (state.bassBoostStrength > 0) AccentTitaniumWhite else TextSecondary
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    StudioFaderSlider(
+                        value = state.bassBoostStrength.toFloat(),
+                        onValueChange = { onBassBoostChange(it.toInt()) },
+                        valueRange = 0f..1000f,
+                        enabled = state.isEnabled,
+                        isBipolar = false,
+                        activeColor = AccentTitaniumWhite
+                    )
+                }
+
+                // 3D Virtualizer Card
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(DarkSheetCard)
+                        .border(1.dp, DarkSheetCardBorder, RoundedCornerShape(14.dp))
+                        .padding(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "3D SPATIAL",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = AccentCyan
+                        )
+                        Text(
+                            text = "${state.virtualizerStrength / 10}%",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = if (state.virtualizerStrength > 0) AccentCyan else TextSecondary
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    StudioFaderSlider(
+                        value = state.virtualizerStrength.toFloat(),
+                        onValueChange = { onVirtualizerChange(it.toInt()) },
+                        valueRange = 0f..1000f,
+                        enabled = state.isEnabled,
+                        isBipolar = false,
+                        activeColor = AccentCyan
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // DSP Studio Effects Card
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(DarkSheetCard)
+                    .border(1.dp, DarkSheetCardBorder, RoundedCornerShape(16.dp))
+                    .padding(14.dp)
+            ) {
+                Text(
+                    text = "المؤثرات الصوتية الاحترافية (Studio DSP)",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp),
+                    color = AccentTitaniumWhite
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // 1. REVERB
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
                         text = "التردد الفراغي (REVERB)",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = AccentGold
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                        color = TextPrimary
                     )
                     Text(
                         text = "${state.reverbStrength}%",
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = if (state.reverbStrength > 0) AccentGold else TextSecondary
+                        color = if (state.reverbStrength > 0) AccentTitaniumWhite else TextSecondary
                     )
                 }
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                // Reverb Presets
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -419,39 +501,32 @@ fun EqualizerSheet(
                         FilterChip(
                             selected = isSelected,
                             onClick = { onReverbPresetChange(preset) },
-                            label = { Text(preset, fontSize = 11.sp) },
+                            label = { Text(preset, fontSize = 10.5.sp) },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = AccentGold,
+                                selectedContainerColor = AccentTitaniumWhite,
                                 selectedLabelColor = DarkSurface,
-                                containerColor = DarkSurfaceContainer,
+                                containerColor = Color(0x18FFFFFF),
                                 labelColor = TextSecondary
-                            )
+                            ),
+                            shape = RoundedCornerShape(8.dp)
                         )
                     }
                 }
 
-                Slider(
+                StudioFaderSlider(
                     value = state.reverbStrength.toFloat(),
                     onValueChange = { onReverbChange(it.toInt()) },
                     valueRange = 0f..100f,
-                    colors = SliderDefaults.colors(
-                        thumbColor = if (state.isEnabled) AccentGold else TextSecondary,
-                        activeTrackColor = if (state.isEnabled) AccentGold else TextSecondary.copy(alpha = 0.35f),
-                        inactiveTrackColor = DarkCardBorder
-                    )
+                    enabled = state.isEnabled,
+                    isBipolar = false,
+                    activeColor = AccentTitaniumWhite
                 )
-            }
 
-            Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
+                HorizontalDivider(thickness = 0.5.dp, color = DarkSheetCardBorder.copy(alpha = 0.35f))
+                Spacer(modifier = Modifier.height(10.dp))
 
-            // 2. CHORUS (تأثير كورال احترافي متعدد الأصوات)
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(DarkSurfaceVariant)
-                    .padding(12.dp)
-            ) {
+                // 2. CHORUS
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -459,8 +534,8 @@ fun EqualizerSheet(
                 ) {
                     Text(
                         text = "تأثير الكورال (CHORUS)",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = AccentCyan
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                        color = TextPrimary
                     )
                     Text(
                         text = "${state.chorusStrength}%",
@@ -468,66 +543,56 @@ fun EqualizerSheet(
                         color = if (state.chorusStrength > 0) AccentCyan else TextSecondary
                     )
                 }
-
-                Slider(
+                Spacer(modifier = Modifier.height(4.dp))
+                StudioFaderSlider(
                     value = state.chorusStrength.toFloat(),
                     onValueChange = { onChorusChange(it.toInt()) },
                     valueRange = 0f..100f,
-                    colors = SliderDefaults.colors(
-                        thumbColor = if (state.isEnabled) AccentCyan else TextSecondary,
-                        activeTrackColor = if (state.isEnabled) AccentCyan else TextSecondary.copy(alpha = 0.35f),
-                        inactiveTrackColor = DarkCardBorder
-                    )
+                    enabled = state.isEnabled,
+                    isBipolar = false,
+                    activeColor = AccentCyan
                 )
-            }
 
-            Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
+                HorizontalDivider(thickness = 0.5.dp, color = DarkSheetCardBorder.copy(alpha = 0.35f))
+                Spacer(modifier = Modifier.height(10.dp))
 
-            // 3. CLARITY & DE-HARSH (دقة الصوت وتنعيم الحدة)
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(DarkSurfaceVariant)
-                    .padding(12.dp)
-            ) {
+                // 3. CLARITY & DE-HARSH
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "نقاء الصوت وتنعيم الحدة (CLARITY)",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = AccentGold
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                            color = TextPrimary
                         )
                         Text(
-                            text = "إخماد الترددات الحادة والمؤذية للسمع (6.2kHz) مع إبراز التفاصيل الدقيقة",
-                            fontSize = 9.5.sp,
-                            color = TextSecondary
+                            text = "إخماد الترددات الحادة والمؤذية للسمع (6.2kHz)",
+                            fontSize = 10.sp,
+                            color = TextTertiary
                         )
                     }
                     Text(
                         text = "${state.clarityStrength}%",
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = if (state.clarityStrength > 0) AccentGold else TextSecondary
+                        color = if (state.clarityStrength > 0) AccentTitaniumWhite else TextSecondary
                     )
                 }
-
-                Slider(
+                Spacer(modifier = Modifier.height(4.dp))
+                StudioFaderSlider(
                     value = state.clarityStrength.toFloat(),
                     onValueChange = { onClarityChange(it.toInt()) },
                     valueRange = 0f..100f,
-                    colors = SliderDefaults.colors(
-                        thumbColor = if (state.isEnabled) AccentGold else TextSecondary,
-                        activeTrackColor = if (state.isEnabled) AccentGold else TextSecondary.copy(alpha = 0.35f),
-                        inactiveTrackColor = DarkCardBorder
-                    )
+                    enabled = state.isEnabled,
+                    isBipolar = false,
+                    activeColor = AccentTitaniumWhite
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(28.dp))
         }
     }
 }

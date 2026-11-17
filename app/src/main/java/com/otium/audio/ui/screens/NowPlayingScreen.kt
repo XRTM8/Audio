@@ -150,6 +150,8 @@ import com.otium.audio.ui.theme.AccentGoldLight
 import com.otium.audio.ui.theme.DarkCardBorder
 import com.otium.audio.ui.theme.DarkSurface
 import com.otium.audio.ui.theme.DarkSurfaceContainer
+import com.otium.audio.ui.theme.DarkSheetBackground
+import com.otium.audio.ui.theme.DarkSheetScrim
 import com.otium.audio.ui.theme.DarkSurfaceElevated
 import com.otium.audio.ui.theme.DarkSurfaceVariant
 import com.otium.audio.ui.theme.ErrorRed
@@ -774,8 +776,9 @@ fun NowPlayingScreen(
                 ModalBottomSheet(
                     onDismissRequest = { showMoreSheet = false },
                     sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-                    containerColor = DarkSurfaceElevated,
-                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+                    containerColor = DarkSheetBackground,
+                    scrimColor = DarkSheetScrim,
+                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                 ) {
                     Column(
                         modifier = Modifier
@@ -852,8 +855,9 @@ fun NowPlayingScreen(
                 ModalBottomSheet(
                     onDismissRequest = { showSpeedDialog = false },
                     sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-                    containerColor = DarkSurfaceElevated,
-                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+                    containerColor = DarkSheetBackground,
+                    scrimColor = DarkSheetScrim,
+                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                 ) {
                     Column(
                         modifier = Modifier

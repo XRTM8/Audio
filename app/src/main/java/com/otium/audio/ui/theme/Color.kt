@@ -12,13 +12,19 @@ import androidx.compose.ui.graphics.Color
 // Canvas — Pure AMOLED Black
 val DarkSurface          = Color(0xFF000000)
 
-// Frosted Translucent Obsidian Glass (قوائم وزجاج معتم مدخن فاخر)
-val DarkSurfaceVariant   = Color(0x80101015) // 50% translucent smoky obsidian glass
-val DarkSurfaceContainer = Color(0x9914141A) // 60% translucent frosted dark glass
-val DarkSurfaceElevated  = Color(0xB3181822) // 70% elevated frosted titanium sheet
+// Solid Obsidian Luxury Surfaces for Sheets & Dialogs (تمنع تداخل النصوص والشفافية المشوشة)
+val DarkSheetBackground  = Color(0xFF121217) // True solid obsidian dark for bottom sheets
+val DarkSheetCard        = Color(0xFF1B1B24) // Elevated grouped cards inside sheets
+val DarkSheetCardBorder  = Color(0x1FFFFFFF) // 12% subtle titanium specular hairline border
+val DarkSheetScrim       = Color(0xD9000000) // 85% deep AMOLED scrim to eliminate background clutter
+
+// Obsidian Surfaces & Containers
+val DarkSurfaceVariant   = Color(0xFF14141A) // Solid smoky obsidian
+val DarkSurfaceContainer = Color(0xFF16161E) // Solid dark obsidian container
+val DarkSurfaceElevated  = Color(0xFF1C1C26) // Solid elevated titanium sheet
 val DarkCardBorder       = Color(0x1AFFFFFF) // 10% subtle titanium hairline border
 val GlassSheen           = Color(0x14FFFFFF) // 8% delicate specular sheen
-val GlassScrim           = Color(0xCC000000) // 80% deep AMOLED scrim
+val GlassScrim           = Color(0xD9000000) // 85% deep AMOLED scrim
 
 // Master Accent — Pure Titanium White (أبيض تيتانيوم نقي وفاخر، قمة الأناقة والاستوديو)
 val AccentTitaniumWhite  = Color(0xFFFFFFFF) // Pure crystalline titanium white
