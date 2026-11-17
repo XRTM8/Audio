@@ -248,7 +248,11 @@ class PlaybackService : MediaSessionService() {
         Log.i(TAG, "Opening AudioEffect session: $audioSessionId")
 
         // 1. Bind internal Equalizer engine
-        (application as? com.otium.audio.OtiumApplication)?.equalizerController?.bindAudioSession(audioSessionId)
+        try {
+            (application as? com.otium.audio.OtiumApplication)?.equalizerController?.bindAudioSession(audioSessionId)
+        } catch (e: Throwable) {
+            Log.w(TAG, "Error binding internal equalizer session: ${e.message}")
+        }
 
         // 2. Broadcast to system DSP (Dolby Atmos, Dirac, Sony Sound, etc.)
         try {
@@ -258,13 +262,13 @@ class PlaybackService : MediaSessionService() {
                 putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC)
             }
             sendBroadcast(intent)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.w(TAG, "Error broadcasting ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION", e)
         }
     }
 
     private fun closeSystemAudioEffectSession(audioSessionId: Int) {
-        if (audioSessionId == C.AUDIO_SESSION_ID_UNSET) return
+        if (audioSessionId <= 0 || audioSessionId == C.AUDIO_SESSION_ID_UNSET) return
 
         try {
             val intent = Intent(AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION).apply {
@@ -272,7 +276,7 @@ class PlaybackService : MediaSessionService() {
                 putExtra(AudioEffect.EXTRA_PACKAGE_NAME, packageName)
             }
             sendBroadcast(intent)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.w(TAG, "Error broadcasting ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION", e)
         }
         activeAudioSessionId = C.AUDIO_SESSION_ID_UNSET

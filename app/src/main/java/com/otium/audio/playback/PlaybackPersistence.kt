@@ -39,6 +39,24 @@ class PlaybackPersistence(private val context: Context) {
 
     fun isHiResFloatOutputEnabled(): Boolean = prefs.getBoolean(KEY_HI_RES_FLOAT, false)
 
+    fun saveLoudnessNormalization(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_LOUDNESS_NORMALIZATION, enabled).apply()
+    }
+
+    fun isLoudnessNormalizationEnabled(): Boolean = prefs.getBoolean(KEY_LOUDNESS_NORMALIZATION, false)
+
+    fun saveMinDurationSeconds(seconds: Int) {
+        prefs.edit().putInt(KEY_MIN_DURATION, seconds).apply()
+    }
+
+    fun getMinDurationSeconds(): Int = prefs.getInt(KEY_MIN_DURATION, 0) // 0s (default, filters only <3s)
+
+    fun saveBlacklistedFolders(folders: Set<String>) {
+        prefs.edit().putStringSet(KEY_BLACKLISTED_FOLDERS, folders).apply()
+    }
+
+    fun getBlacklistedFolders(): Set<String> = prefs.getStringSet(KEY_BLACKLISTED_FOLDERS, emptySet()) ?: emptySet()
+
     fun saveSortOrder(order: com.otium.audio.data.model.SortOrder) {
         prefs.edit().putString(KEY_SORT_ORDER, order.name).apply()
     }
@@ -71,6 +89,9 @@ class PlaybackPersistence(private val context: Context) {
         const val KEY_POSITION = "queue_position"
         const val KEY_SKIP_SILENCE = "skip_silence"
         const val KEY_HI_RES_FLOAT = "hi_res_float_output"
+        const val KEY_LOUDNESS_NORMALIZATION = "loudness_normalization"
+        const val KEY_MIN_DURATION = "min_duration_seconds"
+        const val KEY_BLACKLISTED_FOLDERS = "blacklisted_folders"
         const val KEY_SORT_ORDER = "sort_order"
     }
 }

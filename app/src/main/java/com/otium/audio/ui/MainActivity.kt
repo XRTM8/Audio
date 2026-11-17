@@ -109,7 +109,8 @@ class MainActivity : ComponentActivity() {
                             onToggleFavorite = viewModel::toggleFavorite,
                             onSetPlaybackSpeed = viewModel::setPlaybackSpeed,
                             onToggleSkipSilence = viewModel::setSkipSilence,
-                            onToggleHiResFloat = viewModel::toggleHiResFloat
+                            onToggleHiResFloat = viewModel::toggleHiResFloat,
+                            onToggleLoudnessNormalization = viewModel::toggleLoudnessNormalization
                         )
                     }
 
@@ -177,7 +178,10 @@ class MainActivity : ComponentActivity() {
                             onClearSelection = viewModel::clearSongSelection,
                             onAddBatchToPlaylist = viewModel::addSongsToPlaylist,
                             onAddBatchToQueue = viewModel::addSelectedToQueue,
-                            onPlayBatchNext = viewModel::playSelectedNext
+                            onPlayBatchNext = viewModel::playSelectedNext,
+                            onSetMinDurationSeconds = viewModel::setMinDurationSeconds,
+                            onExportBackup = viewModel::exportBackup,
+                            onImportBackup = viewModel::importBackup
                         )
                     }
 

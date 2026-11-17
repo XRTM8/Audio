@@ -78,11 +78,20 @@ class OtiumApplication : Application(), ImageLoaderFactory {
 
     override fun onCreate() {
         super.onCreate()
-        // Deliberately here and not in init: the controller opens preferences and the
-        // repository registers a content observer, and the base context does not exist
-        // until attachBaseContext has run. Touching either in the constructor crashes.
-        musicController.onTrackEnded = { sleepTimerController.onTrackEnded() }
-        applicationScope.launch(Dispatchers.IO) { repository.pruneHistory(HISTORY_RETENTION_DAYS) }
+
+        // Global crash guard to prevent unexpected thread crashes from terminating the app
+        val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            android.util.Log.e("OtiumApplication", "Uncaught exception in thread ${thread.name}", throwable)
+            defaultHandler?.uncaughtException(thread, throwable)
+        }
+
+        runCatching {
+            musicController.onTrackEnded = { sleepTimerController.onTrackEnded() }
+        }
+        applicationScope.launch(Dispatchers.IO) {
+            runCatching { repository.pruneHistory(HISTORY_RETENTION_DAYS) }
+        }
     }
 
     private companion object {

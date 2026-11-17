@@ -32,4 +32,14 @@ interface AudioRepository {
 
     /** Observes whether an explicit library rescan is currently in progress. */
     fun isScanningFlow(): Flow<Boolean>
+
+    /** Export user playlists and favorites to a structured JSON string */
+    suspend fun exportBackupJson(): String
+
+    /** Restore playlists and favorites from a JSON string */
+    suspend fun importBackupJson(jsonString: String): Boolean
+
+    /** Minimum duration threshold for filtering audio tracks */
+    fun getMinDurationSeconds(): Int
+    fun setMinDurationSeconds(seconds: Int)
 }

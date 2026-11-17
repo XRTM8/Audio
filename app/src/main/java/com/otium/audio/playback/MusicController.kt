@@ -54,22 +54,29 @@ class MusicController(
     }
 
     private fun initializeController() {
-        val sessionToken = SessionToken(
-            context,
-            ComponentName(context, PlaybackService::class.java)
-        )
-        controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
-        controllerFuture?.addListener({
-            try {
-                mediaController = controllerFuture?.get()?.apply {
-                    addListener(PlayerListener())
-                    syncState()
+        try {
+            val sessionToken = SessionToken(
+                context,
+                ComponentName(context, PlaybackService::class.java)
+            )
+            controllerFuture = MediaController.Builder(context, sessionToken)
+                .setApplicationLooper(android.os.Looper.getMainLooper())
+                .buildAsync()
+
+            controllerFuture?.addListener({
+                try {
+                    mediaController = controllerFuture?.get()?.apply {
+                        addListener(PlayerListener())
+                        syncState()
+                    }
+                    _playbackState.update { it.copy(isConnected = true) }
+                } catch (e: Throwable) {
+                    _playbackState.update { it.copy(isConnected = false) }
                 }
-                _playbackState.update { it.copy(isConnected = true) }
-            } catch (e: Exception) {
-                _playbackState.update { it.copy(isConnected = false) }
-            }
-        }, MoreExecutors.directExecutor())
+            }, androidx.core.content.ContextCompat.getMainExecutor(context))
+        } catch (_: Throwable) {
+            _playbackState.update { it.copy(isConnected = false) }
+        }
     }
 
     private fun resolveCurrentSong(mediaId: String?): Song? {
@@ -149,7 +156,7 @@ class MusicController(
     fun hasSavedSession(): Boolean = persistence.hasSession()
 
     /** Rebuilds the last queue from the library, paused where the user left it. */
-    fun restoreQueue(library: List<Song>): Boolean {
+    fun restoreQueue(library: List<Song>): Boolean = runCatching {
         val controller = mediaController ?: return false
         val byId = library.associateBy { it.id }
 
@@ -187,15 +194,16 @@ class MusicController(
         }
 
         val index = session.index.coerceIn(0, queue.lastIndex)
+        val validPosition = session.positionMs.coerceAtLeast(0L)
         currentPlaylistSongs = queue
-        controller.setMediaItems(queue.map { it.toMediaItem() }, index, session.positionMs)
+        controller.setMediaItems(queue.map { it.toMediaItem() }, index, validPosition)
         controller.prepare()
-        _position.value = session.positionMs
+        _position.value = validPosition
         _playbackState.update {
             it.copy(currentSong = queue[index], durationMs = queue[index].durationMs, queue = queue)
         }
-        return true
-    }
+        true
+    }.getOrDefault(false)
 
     private fun startProgressTracker() {
         progressTrackingJob?.cancel()

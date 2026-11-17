@@ -20,6 +20,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.LinearEasing
@@ -98,6 +103,12 @@ fun SettingsSheet(
     onToggleHiResFloat: (Boolean) -> Unit = {},
     isAutoPreAmpEnabled: Boolean = true,
     onToggleAutoPreAmp: (Boolean) -> Unit = {},
+    isLoudnessNormalizationEnabled: Boolean = false,
+    onToggleLoudnessNormalization: (Boolean) -> Unit = {},
+    minDurationSeconds: Int = 0,
+    onSetMinDurationSeconds: (Int) -> Unit = {},
+    onExportBackup: ((String?) -> Unit) -> Unit = {},
+    onImportBackup: (String, (Boolean) -> Unit) -> Unit = { _, _ -> },
     isScanning: Boolean = false,
     onRescanLibrary: () -> Unit = {},
     onOpenEqualizer: () -> Unit,
@@ -114,6 +125,29 @@ fun SettingsSheet(
     var updateProblem by remember { mutableStateOf<String?>(null) }
     var updateResultText by remember { mutableStateOf<String?>(null) }
     var latestFoundUpdate by remember { mutableStateOf(availableUpdate) }
+    var backupStatusText by remember { mutableStateOf<String?>(null) }
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            scope.launch {
+                val jsonString = runCatching {
+                    context.contentResolver.openInputStream(uri)?.use { stream ->
+                        stream.bufferedReader().use { it.readText() }
+                    }
+                }.getOrNull()
+
+                if (jsonString.isNullOrBlank()) {
+                    backupStatusText = "تعذّر قراءة ملف النسخة الاحتياطية"
+                } else {
+                    onImportBackup(jsonString) { success ->
+                        backupStatusText = if (success) "تمت استعادة القوائم والمفضلة بنجاح ✓" else "ملف النسخة الاحتياطية غير صالح"
+                    }
+                }
+            }
+        }
+    }
 
 
     ModalBottomSheet(
@@ -467,6 +501,139 @@ fun SettingsSheet(
                             )
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    HorizontalDivider(color = DarkCardBorder.copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Minimum Duration Filter Chips
+                    Text(
+                        text = "تصفية المقاطع الصوتية القصيرة",
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "إخفاء الملاحظات الصوتية والمؤثرات الأقصر من هذه المدة تلقائياً",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    val durationOptions = listOf(
+                        0 to "الكل (0ث)",
+                        10 to "10 ثوانٍ",
+                        30 to "30 ثانية",
+                        60 to "60 ثانية"
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        durationOptions.forEach { (sec, label) ->
+                            val isSelected = minDurationSeconds == sec
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (isSelected) AccentGold.copy(alpha = 0.2f) else DarkSurfaceContainer)
+                                    .border(
+                                        1.dp,
+                                        if (isSelected) AccentGold else DarkSheetCardBorder,
+                                        RoundedCornerShape(10.dp)
+                                    )
+                                    .clickable {
+                                        onSetMinDurationSeconds(sec)
+                                    }
+                                    .padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = if (isSelected) AccentGold else TextSecondary
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    HorizontalDivider(color = DarkCardBorder.copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Backup & Restore Row
+                    Text(
+                        text = "النسخ الاحتياطي للقوائم والمفضلة",
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "تصدير أو استعادة جميع قوائم التشغيل والأغاني المفضلة بصيغة ملف JSON",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondary
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                onExportBackup { json ->
+                                    if (!json.isNullOrBlank()) {
+                                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "application/json"
+                                            putExtra(Intent.EXTRA_SUBJECT, "otium_backup.json")
+                                            putExtra(Intent.EXTRA_TEXT, json)
+                                        }
+                                        context.startActivity(Intent.createChooser(shareIntent, "مشاركة أو حفظ النسخة الاحتياطية"))
+                                        backupStatusText = "تم تصدير النسخة الاحتياطية بنجاح ✓"
+                                    } else {
+                                        backupStatusText = "تعذّر تصدير النسخة الاحتياطية"
+                                    }
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = DarkSurfaceContainer),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = AccentGold
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("تصدير النسخة", style = MaterialTheme.typography.bodySmall, color = TextPrimary)
+                        }
+
+                        Button(
+                            onClick = {
+                                filePickerLauncher.launch("application/json")
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = DarkSurfaceContainer),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = AccentCyan
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("استعادة النسخة", style = MaterialTheme.typography.bodySmall, color = TextPrimary)
+                        }
+                    }
+
+                    if (backupStatusText != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = backupStatusText ?: "",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (backupStatusText!!.contains("✓")) SuccessGreen else ErrorRed
+                        )
+                    }
                 }
             }
 
@@ -612,6 +779,43 @@ fun SettingsSheet(
                         Switch(
                             checked = isHiResFloatEnabled,
                             onCheckedChange = onToggleHiResFloat,
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = AccentTitaniumWhite,
+                                checkedTrackColor = Color(0xFF2E2E3C),
+                                uncheckedThumbColor = TextSecondary,
+                                uncheckedTrackColor = Color(0xFF1B1B24)
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    HorizontalDivider(color = DarkCardBorder.copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Loudness Normalization Switch
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                            Text(
+                                text = "تسوية علو الصوت (Loudness Normalization)",
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "موازنة ديناميكية لحجم الصوت لتجنب الارتفاع أو الانخفاض المفاجئ بين المسارات المختلفة",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary
+                            )
+                        }
+                        Switch(
+                            checked = isLoudnessNormalizationEnabled,
+                            onCheckedChange = onToggleLoudnessNormalization,
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = AccentTitaniumWhite,
                                 checkedTrackColor = Color(0xFF2E2E3C),

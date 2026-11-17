@@ -55,6 +55,26 @@ interface AudioDao {
     @Query("DELETE FROM playlist_songs WHERE playlistId = :playlistId")
     suspend fun clearPlaylistSongs(playlistId: Long)
 
+    // --- Backup & Restore --------------------------------------------------
+
+    @Query("SELECT * FROM playlists")
+    suspend fun getAllPlaylists(): List<PlaylistEntity>
+
+    @Query("SELECT * FROM playlist_songs")
+    suspend fun getAllPlaylistSongs(): List<PlaylistSongCrossRef>
+
+    @Query("SELECT songId FROM favorites")
+    suspend fun getAllFavoriteIds(): List<Long>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertPlaylists(playlists: List<PlaylistEntity>): List<Long>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertPlaylistSongs(songs: List<PlaylistSongCrossRef>)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertFavorites(favorites: List<FavoriteEntity>)
+
     // --- Playback history --------------------------------------------------
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

@@ -56,7 +56,8 @@ class MusicViewModel(
     private val _uiState = MutableStateFlow(
         MusicUiState(
             selectedTab = initialTab,
-            sortOrder = initialSortOrder
+            sortOrder = initialSortOrder,
+            minDurationSeconds = repository.getMinDurationSeconds()
         )
     )
     val uiState: StateFlow<MusicUiState> = _uiState.asStateFlow()
@@ -439,6 +440,34 @@ class MusicViewModel(
     fun startSleepTimer(minutes: Int) = sleepTimerController.startTimer(minutes)
     fun startSleepEndOfTrack() = sleepTimerController.startEndOfTrackTimer()
     fun cancelSleepTimer() = sleepTimerController.cancelTimer()
+
+    // --- Library & Audiophile Settings ---
+
+    fun setMinDurationSeconds(seconds: Int) {
+        repository.setMinDurationSeconds(seconds)
+        _uiState.update { it.copy(minDurationSeconds = seconds) }
+    }
+
+    fun toggleLoudnessNormalization(enabled: Boolean) {
+        _uiState.update { it.copy(isLoudnessNormalizationEnabled = enabled) }
+    }
+
+    fun exportBackup(onResult: (String?) -> Unit) {
+        viewModelScope.launch {
+            val json = runCatching { repository.exportBackupJson() }.getOrNull()
+            onResult(json)
+        }
+    }
+
+    fun importBackup(jsonString: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            val ok = runCatching { repository.importBackupJson(jsonString) }.getOrDefault(false)
+            if (ok) {
+                repository.refresh()
+            }
+            onResult(ok)
+        }
+    }
 
     private data class Library(
         val songs: List<Song>,

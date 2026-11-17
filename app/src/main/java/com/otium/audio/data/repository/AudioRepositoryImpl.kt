@@ -178,7 +178,9 @@ class AudioRepositoryImpl(
     }
 
     init {
-        resolver.registerContentObserver(collection, true, observer)
+        runCatching {
+            resolver.registerContentObserver(collection, true, observer)
+        }
 
         scope.launch {
             if (!isScanning.value) {
@@ -403,6 +405,78 @@ class AudioRepositoryImpl(
         updated
     }
 
+    override fun getMinDurationSeconds(): Int =
+        com.otium.audio.playback.PlaybackPersistence(context).getMinDurationSeconds()
+
+    override fun setMinDurationSeconds(seconds: Int) {
+        com.otium.audio.playback.PlaybackPersistence(context).saveMinDurationSeconds(seconds)
+        refresh()
+    }
+
+    override suspend fun exportBackupJson(): String = withContext(io) {
+        val playlists = audioDao.getAllPlaylists()
+        val playlistSongs = audioDao.getAllPlaylistSongs()
+        val favorites = audioDao.getAllFavoriteIds()
+
+        val root = org.json.JSONObject()
+        root.put("version", 1)
+        root.put("timestamp", System.currentTimeMillis())
+
+        val favArr = org.json.JSONArray()
+        favorites.forEach { favArr.put(it) }
+        root.put("favorites", favArr)
+
+        val plArr = org.json.JSONArray()
+        for (pl in playlists) {
+            val plObj = org.json.JSONObject()
+            plObj.put("name", pl.name)
+            plObj.put("createdAt", pl.createdAt)
+            val songsArr = org.json.JSONArray()
+            playlistSongs.filter { it.playlistId == pl.playlistId }
+                .sortedBy { it.orderIndex }
+                .forEach { songsArr.put(it.songId) }
+            plObj.put("songs", songsArr)
+            plArr.put(plObj)
+        }
+        root.put("playlists", plArr)
+
+        root.toString(2)
+    }
+
+    override suspend fun importBackupJson(jsonString: String): Boolean = withContext(io) {
+        runCatching {
+            val root = org.json.JSONObject(jsonString)
+            val favArr = root.optJSONArray("favorites")
+            if (favArr != null) {
+                val favList = mutableListOf<com.otium.audio.data.local.entity.FavoriteEntity>()
+                for (i in 0 until favArr.length()) {
+                    favList.add(com.otium.audio.data.local.entity.FavoriteEntity(songId = favArr.getLong(i)))
+                }
+                audioDao.insertFavorites(favList)
+            }
+
+            val plArr = root.optJSONArray("playlists")
+            if (plArr != null) {
+                for (i in 0 until plArr.length()) {
+                    val plObj = plArr.getJSONObject(i)
+                    val name = plObj.getString("name")
+                    val createdAt = plObj.optLong("createdAt", System.currentTimeMillis())
+                    val songsArr = plObj.optJSONArray("songs")
+
+                    val playlistId = audioDao.insertPlaylist(PlaylistEntity(name = name, createdAt = createdAt))
+                    if (songsArr != null && playlistId > 0) {
+                        val crossRefs = mutableListOf<com.otium.audio.data.local.entity.PlaylistSongCrossRef>()
+                        for (j in 0 until songsArr.length()) {
+                            crossRefs.add(com.otium.audio.data.local.entity.PlaylistSongCrossRef(playlistId = playlistId, songId = songsArr.getLong(j), orderIndex = j))
+                        }
+                        audioDao.insertPlaylistSongs(crossRefs)
+                    }
+                }
+            }
+            true
+        }.getOrDefault(false)
+    }
+
     // Keeps identity for unchanged rows. Compose can then skip those items entirely
     // instead of re-diffing a fully reallocated list on every library change.
     private fun readLibrary(previous: List<Song>): List<Song> {
@@ -420,10 +494,10 @@ class AudioRepositoryImpl(
             MediaStore.Audio.Media.DATA,
             MediaStore.Audio.Media.DATE_ADDED
         )
-        // IS_MUSIC and a thirty second floor together hid a great deal of real
-        // audio. A one second floor only drops notification blips.
+        val minSec = getMinDurationSeconds()
+        val effectiveMinMs = if (minSec > 0) minSec * 1000L else MIN_DURATION_MS
         val selection = "${MediaStore.Audio.Media.DURATION} >= ?"
-        val args = arrayOf(MIN_DURATION_MS.toString())
+        val args = arrayOf(effectiveMinMs.toString())
 
         val embeddedCacheDir = java.io.File(context.cacheDir, "embedded_art")
         val cachedEmbeddedArtIds: Set<Long> = if (embeddedCacheDir.isDirectory) {

@@ -216,6 +216,46 @@ fun EqualizerSheet(
 
             Spacer(modifier = Modifier.height(14.dp))
 
+            // Live Studio FFT Spectrum Analyzer Card
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(DarkSheetCard)
+                    .border(1.dp, DarkSheetCardBorder, RoundedCornerShape(16.dp))
+                    .padding(14.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "محلل الطيف الصوتي (FFT SPECTRUM)",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp
+                        ),
+                        color = AccentTitaniumWhite
+                    )
+                    Text(
+                        text = "16 نطاقاً في الوقت الفعلي",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextTertiary
+                    )
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+                StudioSpectrumVisualizer(
+                    isPlaying = state.isEnabled,
+                    accentColor = AccentTitaniumWhite,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
             // Master Pre-Amp Card
             Column(
                 modifier = Modifier

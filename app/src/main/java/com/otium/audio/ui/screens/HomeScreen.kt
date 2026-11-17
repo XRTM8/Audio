@@ -165,6 +165,10 @@ fun HomeScreen(
     onAddBatchToPlaylist = libraryActions.onAddBatchToPlaylist,
     onAddBatchToQueue = libraryActions.onAddBatchToQueue,
     onPlayBatchNext = libraryActions.onPlayBatchNext,
+    onSetMinDurationSeconds = libraryActions.onSetMinDurationSeconds,
+    onToggleLoudnessNormalization = playbackActions.onToggleLoudnessNormalization,
+    onExportBackup = libraryActions.onExportBackup,
+    onImportBackup = libraryActions.onImportBackup,
     modifier = modifier
 )
 
@@ -211,6 +215,10 @@ fun HomeScreen(
     onAddBatchToPlaylist: (Long, Collection<Long>) -> Unit = { _, _ -> },
     onAddBatchToQueue: (List<Song>) -> Unit = {},
     onPlayBatchNext: (List<Song>) -> Unit = {},
+    onSetMinDurationSeconds: (Int) -> Unit = {},
+    onToggleLoudnessNormalization: (Boolean) -> Unit = {},
+    onExportBackup: ((String?) -> Unit) -> Unit = {},
+    onImportBackup: (String, (Boolean) -> Unit) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -589,6 +597,12 @@ fun HomeScreen(
                     onToggleHiResFloat = onToggleHiResFloat,
                     isAutoPreAmpEnabled = uiState.equalizerState.isAutoPreAmpEnabled,
                     onToggleAutoPreAmp = onToggleAutoPreAmp,
+                    isLoudnessNormalizationEnabled = uiState.isLoudnessNormalizationEnabled,
+                    onToggleLoudnessNormalization = onToggleLoudnessNormalization,
+                    minDurationSeconds = uiState.minDurationSeconds,
+                    onSetMinDurationSeconds = onSetMinDurationSeconds,
+                    onExportBackup = onExportBackup,
+                    onImportBackup = onImportBackup,
                     isScanning = uiState.isScanning,
                     onRescanLibrary = onRescanLibrary,
                     onOpenEqualizer = onOpenEqualizer,
