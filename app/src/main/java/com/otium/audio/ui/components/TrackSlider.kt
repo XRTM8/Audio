@@ -1,6 +1,8 @@
 package com.otium.audio.ui.components
 
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -8,12 +10,16 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,12 +34,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -41,11 +51,58 @@ import com.otium.audio.ui.theme.DarkCardBorder
 import com.otium.audio.ui.theme.DarkSurfaceVariant
 import com.otium.audio.ui.theme.TextSecondary
 import kotlinx.coroutines.flow.StateFlow
+import kotlin.math.roundToInt
 
 /**
- * Precision Studio Straight Seekbar (نفس تصميم شريط النسخة المصغرة - مكبّر وقابل للتحكم بالكامل).
- * - تصميم خطي مستقيم وأنيق 100% بدون أي كرات أو مقابض دائرية مشوهة.
- * - سمك 6dp في الوضع العادي (مكبر بشكل احترافي)، ويتوسع بنعومة إلى 8.5dp أثناء اللمس والتمرير.
+ * Tactile Studio Scrubber Thumb ("العتلة الاحترافية").
+ * عتلة نقية ومصقولة بتصميم تيتانيوم فاخر (Titanium White & Obsidian Glass):
+ * - قرص أبيض تيتانيوم نقي ومصقول بدقة متناهية
+ * - ظل محيطي وبؤري دقيق (Ambient & Spot Drop Shadow) يمنح العتلة عمقاً طبيعياً فاخراً
+ * - إطار مجهري خفيف (Hairline rim) يحفظ تباينها وتحديدها المتقن
+ * - حركة نابضية مرنة (Spring physics) تتوسع بنعومة فائقة عند السحب أو اللمس
+ * - مؤشر دقيق داخلي يظهر أثناء السحب النشط للتحكم المتقن
+ */
+@Composable
+fun PlayerScrubberThumb(
+    isDragging: Boolean,
+    currentSize: Dp,
+    modifier: Modifier = Modifier
+) {
+    val shadowElevation by animateDpAsState(
+        targetValue = if (isDragging) 6.dp else 2.5.dp,
+        animationSpec = tween(120),
+        label = "thumb_shadow"
+    )
+
+    Box(
+        modifier = modifier
+            .size(currentSize)
+            .shadow(
+                elevation = shadowElevation,
+                shape = CircleShape,
+                spotColor = Color(0x99000000),
+                ambientColor = Color(0x40000000)
+            )
+            .clip(CircleShape)
+            .background(Color.White)
+            .border(1.dp, Color(0x22000000), CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        if (isDragging) {
+            Box(
+                modifier = Modifier
+                    .size(4.5.dp)
+                    .clip(CircleShape)
+                    .background(Color(0x22000000))
+            )
+        }
+    }
+}
+
+/**
+ * Precision Studio Seekbar (شريط التقدم الاحترافي داخل المشغل الرئيسي).
+ * - شريط مكبر وأنيق بسمك 6.5dp في الوضع العادي، ويتوسع بنعومة إلى 9dp أثناء اللمس والتمرير.
+ * - عتلة احترافية مصقولة ("العتلة نفسها") بقطر 14.5dp تتوسع بنوابض مرنة إلى 20dp أثناء السحب.
  * - إمكانية التحكم الكاملة: نقر فوري للتقديم/التأخير، وسحب سلس جداً بدون أي تأخير على 120 فريم.
  * - أزرار القفز السريع [-10 ث] و [+10 ث] مع استجابة لمسية.
  */
@@ -65,8 +122,10 @@ fun TrackSlider(
     val safeDuration = if (durationMs > 0) durationMs.toFloat() else 1f
     val currentFraction = if (isDragging) {
         dragProgress
-    } else {
+    } else if (durationMs > 0) {
         (position.toFloat() / safeDuration).coerceIn(0f, 1f)
+    } else {
+        0f
     }
 
     val displayedPosition = if (isDragging) {
@@ -75,16 +134,29 @@ fun TrackSlider(
         position
     }
 
+    val restingBarHeight = 6.5.dp
+    val draggingBarHeight = 9.dp
     val barHeight by animateDpAsState(
-        targetValue = if (isDragging) 8.5.dp else 6.dp,
+        targetValue = if (isDragging) draggingBarHeight else restingBarHeight,
         animationSpec = tween(120),
         label = "slider_bar_height"
+    )
+
+    val restingThumbSize = 14.5.dp
+    val draggingThumbSize = 20.dp
+    val currentThumbSize by animateDpAsState(
+        targetValue = if (isDragging) draggingThumbSize else restingThumbSize,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "slider_thumb_size"
     )
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Column(modifier = modifier.fillMaxWidth()) {
             // Touch interaction zone (44dp comfortable target)
-            Box(
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(44.dp)
@@ -95,47 +167,82 @@ fun TrackSlider(
                                 val width = size.width.toFloat()
                                 if (width <= 0f) continue
 
+                                val thumbBaseRadius = restingThumbSize.toPx() / 2f
+                                val usable = (width - 2 * thumbBaseRadius).coerceAtLeast(1f)
+
                                 isDragging = true
-                                dragProgress = (down.position.x / width).coerceIn(0f, 1f)
+                                dragProgress = ((down.position.x - thumbBaseRadius) / usable).coerceIn(0f, 1f)
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
 
-                                while (true) {
-                                    val event = awaitPointerEvent()
-                                    val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                                    if (!change.pressed) {
-                                        val targetPosition = (dragProgress * safeDuration).toLong()
-                                        onSeekTo(targetPosition)
-                                        isDragging = false
+                                try {
+                                    while (true) {
+                                        val event = awaitPointerEvent()
+                                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                        if (!change.pressed) {
+                                            val targetPosition = if (durationMs > 0) {
+                                                (dragProgress * durationMs.toFloat()).toLong().coerceIn(0L, durationMs)
+                                            } else 0L
+                                            onSeekTo(targetPosition)
+                                            change.consume()
+                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            break
+                                        }
+                                        dragProgress = ((change.position.x - thumbBaseRadius) / usable).coerceIn(0f, 1f)
                                         change.consume()
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        break
                                     }
-                                    dragProgress = (change.position.x / width).coerceIn(0f, 1f)
-                                    change.consume()
+                                } finally {
+                                    isDragging = false
                                 }
                             }
                         }
                     },
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.CenterStart
             ) {
+                val density = LocalDensity.current
+                val totalWidthPx = constraints.maxWidth.toFloat()
+                val thumbBaseRadiusPx = with(density) { restingThumbSize.toPx() / 2f }
+                val usableWidth = (totalWidthPx - 2 * thumbBaseRadiusPx).coerceAtLeast(1f)
+                val thumbCenterPx = thumbBaseRadiusPx + currentFraction * usableWidth
+                val currentThumbSizePx = with(density) { currentThumbSize.toPx() }
+
                 // 1. Inactive Track (Clean translucent titanium obsidian, rounded pill shape)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(barHeight)
+                        .align(Alignment.Center)
                         .clip(RoundedCornerShape(barHeight / 2f))
                         .background(Color(0x33FFFFFF))
+                )
+
+                // 2. Active Played Track (Pure Titanium White, rounded pill shape)
+                val activeEndPx = if (currentFraction >= 0.999f) totalWidthPx else thumbCenterPx
+                val activeTrackWidth = with(density) { activeEndPx.toDp() }
+                if (currentFraction > 0.0001f) {
+                    Box(
+                        modifier = Modifier
+                            .width(activeTrackWidth)
+                            .height(barHeight)
+                            .align(Alignment.CenterStart)
+                            .clip(RoundedCornerShape(barHeight / 2f))
+                            .background(Color.White)
+                    )
+                }
+
+                // 3. Tactile Thumb ("العتلة الاحترافية")
+                val thumbLeftOffsetPx = (thumbCenterPx - currentThumbSizePx / 2f)
+                    .roundToInt()
+                    .coerceIn(0, (totalWidthPx - currentThumbSizePx).roundToInt().coerceAtLeast(0))
+
+                Box(
+                    modifier = Modifier
+                        .offset { IntOffset(x = thumbLeftOffsetPx, y = 0) }
+                        .align(Alignment.CenterStart)
                 ) {
-                    // 2. Active Played Track (Pure Titanium White, identical to mini player bar)
-                    if (currentFraction > 0f) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .fillMaxWidth(currentFraction)
-                                .clip(RoundedCornerShape(barHeight / 2f))
-                                .background(Color.White)
-                        )
-                    }
+                    PlayerScrubberThumb(
+                        isDragging = isDragging,
+                        currentSize = currentThumbSize
+                    )
                 }
             }
 

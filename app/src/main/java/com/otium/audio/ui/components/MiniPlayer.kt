@@ -1,9 +1,10 @@
 package com.otium.audio.ui.components
 
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
@@ -13,6 +14,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -57,11 +59,13 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -79,11 +83,12 @@ import com.otium.audio.ui.theme.TextSecondary
 import com.otium.audio.ui.theme.TextTertiary
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 
 /**
  * Poweramp-grade Full-Width Flat Bottom Console Player.
- * Large comfortable touch target seek strip, enlarged artwork, expanded typography,
+ * Large comfortable touch target seek strip with tactile thumb, enlarged artwork, expanded typography,
  * full playback controls (SkipPrevious, Play/Pause, SkipNext) and zero-allocation scrubber.
  */
 @Composable
@@ -128,10 +133,11 @@ fun MiniPlayer(
             .background(DarkSurfaceContainer)
             .clickable { onPlayerClick() }
     ) {
-        // Sleek studio hairline progress bar (Apple Music / Spotify style)
+        // Enlarged studio progress bar with tactile thumb ("العتلة الاحترافية")
         MiniPlayerProgressBar(
             positionFlow = positionFlow,
-            durationMs = durationMs
+            durationMs = durationMs,
+            onSeekTo = onSeekTo
         )
 
         // Enlarged console row (72dp height, 54dp album art, full playback controls)
@@ -272,29 +278,139 @@ fun MiniPlayer(
     }
 }
 
+/**
+ * Studio Precision Progress Bar with Tactile Scrubber Thumb ("شريط المشغل المصغر مع العتلة الاحترافية").
+ * - شريط مكبر بسمك 5dp في الوضع العادي، ويتوسع بنعومة إلى 7dp أثناء اللمس والتمرير.
+ * - عتلة احترافية مصقولة ("العتلة نفسها") بقطر 12.5dp تتوسع بنوابض مرنة إلى 16.5dp أثناء السحب.
+ * - إمكانية التقديم والتأخير الفوري بالنقر أو السحب السلس بدون تأخير وبدون تعارض مع نقر فتح المشغل.
+ */
 @Composable
 private fun MiniPlayerProgressBar(
     positionFlow: StateFlow<Long>,
-    durationMs: Long
+    durationMs: Long,
+    onSeekTo: (Long) -> Unit,
+    modifier: Modifier = Modifier
 ) {
+    val haptic = LocalHapticFeedback.current
     val position by positionFlow.collectAsState()
-    val progress = if (durationMs > 0)
-        (position.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
-    else 0f
+    var isDragging by remember { mutableStateOf(false) }
+    var dragProgress by remember { mutableFloatStateOf(0f) }
+
+    val safeDuration = if (durationMs > 0) durationMs.toFloat() else 1f
+    val currentFraction = if (isDragging) {
+        dragProgress
+    } else if (durationMs > 0) {
+        (position.toFloat() / safeDuration).coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+
+    val restingBarHeight = 5.dp
+    val draggingBarHeight = 7.dp
+    val barHeight by animateDpAsState(
+        targetValue = if (isDragging) draggingBarHeight else restingBarHeight,
+        animationSpec = tween(120),
+        label = "mini_bar_height"
+    )
+
+    val restingThumbSize = 12.5.dp
+    val draggingThumbSize = 16.5.dp
+    val currentThumbSize by animateDpAsState(
+        targetValue = if (isDragging) draggingThumbSize else restingThumbSize,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "mini_thumb_size"
+    )
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-        Box(
-            modifier = Modifier
+        BoxWithConstraints(
+            modifier = modifier
                 .fillMaxWidth()
-                .height(2.5.dp)
-                .background(Color(0x26FFFFFF))
+                .height(20.dp)
+                .pointerInput(safeDuration) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val down = awaitFirstDown(requireUnconsumed = false)
+                            val width = size.width.toFloat()
+                            if (width <= 0f) continue
+
+                            val thumbBaseRadius = restingThumbSize.toPx() / 2f
+                            val usable = (width - 2 * thumbBaseRadius).coerceAtLeast(1f)
+
+                            isDragging = true
+                            dragProgress = ((down.position.x - thumbBaseRadius) / usable).coerceIn(0f, 1f)
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+
+                            try {
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                    if (!change.pressed) {
+                                        val targetPosition = if (durationMs > 0) {
+                                            (dragProgress * durationMs.toFloat()).toLong().coerceIn(0L, durationMs)
+                                        } else 0L
+                                        onSeekTo(targetPosition)
+                                        change.consume()
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        break
+                                    }
+                                    dragProgress = ((change.position.x - thumbBaseRadius) / usable).coerceIn(0f, 1f)
+                                    change.consume()
+                                }
+                            } finally {
+                                isDragging = false
+                            }
+                        }
+                    }
+                },
+            contentAlignment = Alignment.CenterStart
         ) {
-            if (progress > 0f) {
+            val density = LocalDensity.current
+            val totalWidthPx = constraints.maxWidth.toFloat()
+            val thumbBaseRadiusPx = with(density) { restingThumbSize.toPx() / 2f }
+            val usableWidth = (totalWidthPx - 2 * thumbBaseRadiusPx).coerceAtLeast(1f)
+            val thumbCenterPx = thumbBaseRadiusPx + currentFraction * usableWidth
+            val currentThumbSizePx = with(density) { currentThumbSize.toPx() }
+
+            // 1. Inactive Track (Clean translucent titanium obsidian)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(barHeight)
+                    .align(Alignment.Center)
+                    .clip(RoundedCornerShape(barHeight / 2f))
+                    .background(Color(0x33FFFFFF))
+            )
+
+            // 2. Active Played Track (Pure Titanium White)
+            val activeEndPx = if (currentFraction >= 0.999f) totalWidthPx else thumbCenterPx
+            val activeTrackWidth = with(density) { activeEndPx.toDp() }
+            if (currentFraction > 0.0001f) {
                 Box(
                     modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(progress)
+                        .width(activeTrackWidth)
+                        .height(barHeight)
+                        .align(Alignment.CenterStart)
+                        .clip(RoundedCornerShape(barHeight / 2f))
                         .background(Color.White)
+                )
+            }
+
+            // 3. Tactile Thumb ("العتلة الاحترافية نفسها")
+            val thumbLeftOffsetPx = (thumbCenterPx - currentThumbSizePx / 2f)
+                .roundToInt()
+                .coerceIn(0, (totalWidthPx - currentThumbSizePx).roundToInt().coerceAtLeast(0))
+
+            Box(
+                modifier = Modifier
+                    .offset { IntOffset(x = thumbLeftOffsetPx, y = 0) }
+                    .align(Alignment.CenterStart)
+            ) {
+                PlayerScrubberThumb(
+                    isDragging = isDragging,
+                    currentSize = currentThumbSize
                 )
             }
         }
