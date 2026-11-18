@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
@@ -79,6 +80,8 @@ fun QueueSheet(
     onPlayTrackAt: (Int) -> Unit,
     onRemoveTrackAt: (Int) -> Unit,
     onMoveTrack: (Int, Int) -> Unit,
+    onClearQueue: (() -> Unit)? = null,
+    onSaveQueueAsPlaylist: ((String) -> Unit)? = null,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -89,6 +92,7 @@ fun QueueSheet(
 
     var draggedIndex by remember { mutableStateOf<Int?>(null) }
     var dragOffsetY by remember { mutableFloatStateOf(0f) }
+    var showSavePlaylistDialog by remember { mutableStateOf(false) }
     val itemHeightPx = with(density) { 64.dp.toPx() }
 
     ModalBottomSheet(
@@ -141,12 +145,42 @@ fun QueueSheet(
                     }
                 }
 
-                IconButton(onClick = onDismiss) {
-                    Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = TextSecondary)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (queue.isNotEmpty() && onSaveQueueAsPlaylist != null) {
+                        IconButton(onClick = { showSavePlaylistDialog = true }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
+                                contentDescription = "حفظ كقائمة تشغيل",
+                                tint = AccentGold
+                            )
+                        }
+                    }
+                    if (queue.isNotEmpty() && onClearQueue != null) {
+                        IconButton(onClick = onClearQueue) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "مسح الطابور",
+                                tint = TextSecondary
+                            )
+                        }
+                    }
+                    IconButton(onClick = onDismiss) {
+                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = TextSecondary)
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+
+            if (showSavePlaylistDialog && onSaveQueueAsPlaylist != null) {
+                com.otium.audio.ui.screens.CreatePlaylistDialog(
+                    onDismiss = { showSavePlaylistDialog = false },
+                    onCreate = { name ->
+                        onSaveQueueAsPlaylist(name)
+                        showSavePlaylistDialog = false
+                    }
+                )
+            }
 
             if (queue.isEmpty()) {
                 Box(

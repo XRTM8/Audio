@@ -105,6 +105,10 @@ fun SettingsSheet(
     onToggleAutoPreAmp: (Boolean) -> Unit = {},
     isLoudnessNormalizationEnabled: Boolean = false,
     onToggleLoudnessNormalization: (Boolean) -> Unit = {},
+    crossfadeSeconds: Int = 0,
+    onSetCrossfadeSeconds: (Int) -> Unit = {},
+    isResumeOnHeadsetConnect: Boolean = false,
+    onToggleResumeOnHeadsetConnect: (Boolean) -> Unit = {},
     minDurationSeconds: Int = 0,
     onSetMinDurationSeconds: (Int) -> Unit = {},
     onExportBackup: ((String?) -> Unit) -> Unit = {},
@@ -816,6 +820,96 @@ fun SettingsSheet(
                         Switch(
                             checked = isLoudnessNormalizationEnabled,
                             onCheckedChange = onToggleLoudnessNormalization,
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = AccentTitaniumWhite,
+                                checkedTrackColor = Color(0xFF2E2E3C),
+                                uncheckedThumbColor = TextSecondary,
+                                uncheckedTrackColor = Color(0xFF1B1B24)
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    HorizontalDivider(color = DarkCardBorder.copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = "التلاشي المتقاطع بين المقاطع (Crossfade)",
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "انتقال متداخل ناعم ومتلاشٍ بين المسارات لتفادي الانقطاع المفاجئ للصوت",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    val crossfadeOptions = listOf(
+                        0 to "معطل (0ث)",
+                        2 to "2 ثوانٍ",
+                        4 to "4 ثوانٍ",
+                        6 to "6 ثوانٍ"
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        crossfadeOptions.forEach { (sec, label) ->
+                            val isSelected = crossfadeSeconds == sec
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (isSelected) AccentGold.copy(alpha = 0.2f) else DarkSurfaceContainer)
+                                    .border(
+                                        1.dp,
+                                        if (isSelected) AccentGold else DarkSheetCardBorder,
+                                        RoundedCornerShape(10.dp)
+                                    )
+                                    .clickable {
+                                        onSetCrossfadeSeconds(sec)
+                                    }
+                                    .padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = if (isSelected) AccentGold else TextSecondary
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    HorizontalDivider(color = DarkCardBorder.copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Resume on Headset Connect Switch
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                            Text(
+                                text = "استئناف التشغيل عند توصيل السماعات",
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "استئناف الصوت تلقائياً عند اقتران سماعات البلوتوث أو إدخال كابل السماعة السلكية",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary
+                            )
+                        }
+                        Switch(
+                            checked = isResumeOnHeadsetConnect,
+                            onCheckedChange = onToggleResumeOnHeadsetConnect,
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = AccentTitaniumWhite,
                                 checkedTrackColor = Color(0xFF2E2E3C),

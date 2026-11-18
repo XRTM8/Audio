@@ -34,6 +34,7 @@ import com.otium.audio.ui.components.DeleteSongsDialog
 import com.otium.audio.ui.components.EqualizerSheet
 import com.otium.audio.ui.components.PlaylistPickerBottomSheet
 import com.otium.audio.ui.components.SongOptionsBottomSheet
+import com.otium.audio.ui.components.TrackDetailsBottomSheet
 import com.otium.audio.ui.screens.CreatePlaylistDialog
 import com.otium.audio.ui.screens.HomeScreen
 import com.otium.audio.ui.screens.NowPlayingScreen
@@ -88,6 +89,7 @@ class MainActivity : ComponentActivity() {
                     var songToDelete by remember { mutableStateOf<Song?>(null) }
                     var songsToDelete by remember { mutableStateOf<List<Song>?>(null) }
                     var songForOptions by remember { mutableStateOf<Song?>(null) }
+                    var songForDetails by remember { mutableStateOf<Song?>(null) }
                     var songForPlaylistPicker by remember { mutableStateOf<Song?>(null) }
                     var showCreatePlaylistFromPicker by remember { mutableStateOf(false) }
 
@@ -110,7 +112,9 @@ class MainActivity : ComponentActivity() {
                             onSetPlaybackSpeed = viewModel::setPlaybackSpeed,
                             onToggleSkipSilence = viewModel::setSkipSilence,
                             onToggleHiResFloat = viewModel::toggleHiResFloat,
-                            onToggleLoudnessNormalization = viewModel::toggleLoudnessNormalization
+                            onToggleLoudnessNormalization = viewModel::toggleLoudnessNormalization,
+                            onSetCrossfadeSeconds = viewModel::setCrossfadeSeconds,
+                            onToggleResumeOnHeadsetConnect = viewModel::setResumeOnHeadsetConnect
                         )
                     }
 
@@ -134,7 +138,9 @@ class MainActivity : ComponentActivity() {
                         QueueActions(
                             onPlayQueueIndex = viewModel::playQueueIndex,
                             onRemoveQueueItem = viewModel::removeQueueItem,
-                            onMoveQueueItem = viewModel::moveQueueItem
+                            onMoveQueueItem = viewModel::moveQueueItem,
+                            onClearQueue = viewModel::clearQueue,
+                            onSaveQueueAsPlaylist = viewModel::saveQueueAsPlaylist
                         )
                     }
 
@@ -142,7 +148,8 @@ class MainActivity : ComponentActivity() {
                         SleepTimerActions(
                             onStartTimer = viewModel::startSleepTimer,
                             onStartEndOfTrack = viewModel::startSleepEndOfTrack,
-                            onCancelTimer = viewModel::cancelSleepTimer
+                            onCancelTimer = viewModel::cancelSleepTimer,
+                            onAddMinutes = viewModel::addSleepTimerMinutes
                         )
                     }
 
@@ -181,7 +188,8 @@ class MainActivity : ComponentActivity() {
                             onPlayBatchNext = viewModel::playSelectedNext,
                             onSetMinDurationSeconds = viewModel::setMinDurationSeconds,
                             onExportBackup = viewModel::exportBackup,
-                            onImportBackup = viewModel::importBackup
+                            onImportBackup = viewModel::importBackup,
+                            onRemoveSongFromPlaylist = viewModel::removeSongFromPlaylist
                         )
                     }
 
@@ -226,12 +234,29 @@ class MainActivity : ComponentActivity() {
                                     songToDelete = songForOptions
                                     songForOptions = null
                                 },
+                                onShowDetailsClick = {
+                                    songForDetails = songForOptions
+                                    songForOptions = null
+                                },
+                                playlistName = uiState.selectedPlaylist?.name,
+                                onRemoveFromPlaylistClick = if (uiState.selectedPlaylist != null) {
+                                    val plId = uiState.selectedPlaylist!!.playlistId
+                                    val sId = songForOptions!!.id
+                                    { viewModel.removeSongFromPlaylist(plId, sId) }
+                                } else null,
                                 onSelectMultipleClick = {
                                     val targetId = songForOptions?.id
                                     songForOptions = null
                                     viewModel.startSelectionMode(targetId)
                                 },
                                 onDismiss = { songForOptions = null }
+                            )
+                        }
+
+                        if (songForDetails != null) {
+                            TrackDetailsBottomSheet(
+                                song = songForDetails!!,
+                                onDismiss = { songForDetails = null }
                             )
                         }
 

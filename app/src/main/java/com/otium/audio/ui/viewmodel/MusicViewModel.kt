@@ -440,6 +440,27 @@ class MusicViewModel(
     fun startSleepTimer(minutes: Int) = sleepTimerController.startTimer(minutes)
     fun startSleepEndOfTrack() = sleepTimerController.startEndOfTrackTimer()
     fun cancelSleepTimer() = sleepTimerController.cancelTimer()
+    fun addSleepTimerMinutes(minutes: Int) = sleepTimerController.addMinutes(minutes)
+
+    // --- Queue & Playback Actions ---
+
+    fun clearQueue() = musicController.clearQueue()
+
+    fun saveQueueAsPlaylist(name: String) {
+        viewModelScope.launch {
+            val queue = _uiState.value.playbackState.queue
+            if (queue.isEmpty()) return@launch
+            val playlistId = repository.createPlaylist(name)
+            if (playlistId > 0) {
+                queue.forEach { song ->
+                    repository.addSongToPlaylist(playlistId, song.id)
+                }
+            }
+        }
+    }
+
+    fun setCrossfadeSeconds(seconds: Int) = musicController.setCrossfadeSeconds(seconds)
+    fun setResumeOnHeadsetConnect(enabled: Boolean) = musicController.setResumeOnHeadsetConnect(enabled)
 
     // --- Library & Audiophile Settings ---
 

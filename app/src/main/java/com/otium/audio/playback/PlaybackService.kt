@@ -44,6 +44,24 @@ class PlaybackService : MediaSessionService() {
     private lateinit var player: ExoPlayer
     private var activeAudioSessionId: Int = C.AUDIO_SESSION_ID_UNSET
 
+    private val headsetReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val action = intent?.action ?: return
+            val persistence = PlaybackPersistence(this@PlaybackService)
+            if (!persistence.isResumeOnHeadsetConnectEnabled()) return
+
+            val shouldResume = when (action) {
+                Intent.ACTION_HEADSET_PLUG -> intent.getIntExtra("state", 0) == 1
+                android.bluetooth.BluetoothDevice.ACTION_ACL_CONNECTED -> true
+                else -> false
+            }
+
+            if (shouldResume && ::player.isInitialized && !player.isPlaying && player.mediaItemCount > 0) {
+                player.play()
+            }
+        }
+    }
+
     companion object {
         const val NOTIFICATION_CHANNEL_ID = "otium_playback_channel"
         const val NOTIFICATION_ID = 1001
@@ -58,6 +76,17 @@ class PlaybackService : MediaSessionService() {
         initializePlayer()
         initializeMediaSession()
         setupNotificationProvider()
+
+        val filter = android.content.IntentFilter().apply {
+            addAction(Intent.ACTION_HEADSET_PLUG)
+            addAction(android.bluetooth.BluetoothDevice.ACTION_ACL_CONNECTED)
+        }
+        androidx.core.content.ContextCompat.registerReceiver(
+            this,
+            headsetReceiver,
+            filter,
+            androidx.core.content.ContextCompat.RECEIVER_EXPORTED
+        )
     }
 
     @OptIn(UnstableApi::class)
@@ -230,6 +259,7 @@ class PlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        runCatching { unregisterReceiver(headsetReceiver) }
         VisualizerBridge.stopWorker()
         serviceScope.cancel()
         closeSystemAudioEffectSession(activeAudioSessionId)

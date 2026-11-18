@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.Icons
@@ -71,6 +72,9 @@ fun SongOptionsBottomSheet(
     onEditTagClick: () -> Unit,
     onDeleteClick: () -> Unit,
     onDismiss: () -> Unit,
+    onShowDetailsClick: (() -> Unit)? = null,
+    onRemoveFromPlaylistClick: (() -> Unit)? = null,
+    playlistName: String? = null,
     onSelectMultipleClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -277,6 +281,42 @@ fun SongOptionsBottomSheet(
                         }
                     )
                 }
+
+                if (onShowDetailsClick != null) {
+                    HorizontalDivider(
+                        thickness = 0.5.dp,
+                        color = DarkSheetCardBorder.copy(alpha = 0.35f),
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+
+                    MenuRowItem(
+                        icon = Icons.Default.Info,
+                        label = "تفاصيل المقطع التقنية",
+                        onClick = {
+                            onDismiss()
+                            onShowDetailsClick()
+                        }
+                    )
+                }
+
+                if (onRemoveFromPlaylistClick != null) {
+                    HorizontalDivider(
+                        thickness = 0.5.dp,
+                        color = DarkSheetCardBorder.copy(alpha = 0.35f),
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+
+                    MenuRowItem(
+                        icon = Icons.Default.Delete,
+                        label = if (playlistName.isNullOrBlank()) "إزالة من قائمة التشغيل هذه" else "إزالة من $playlistName",
+                        iconTint = ErrorRed,
+                        textColor = ErrorRed,
+                        onClick = {
+                            onDismiss()
+                            onRemoveFromPlaylistClick()
+                        }
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -381,6 +421,8 @@ private fun QuickActionButton(
 private fun MenuRowItem(
     icon: ImageVector,
     label: String,
+    iconTint: Color = AccentTitaniumWhite,
+    textColor: Color = TextPrimary,
     onClick: () -> Unit
 ) {
     Row(
@@ -394,13 +436,13 @@ private fun MenuRowItem(
             modifier = Modifier
                 .size(32.dp)
                 .clip(CircleShape)
-                .background(Color(0x10FFFFFF)),
+                .background(if (iconTint == ErrorRed) ErrorRed.copy(alpha = 0.12f) else Color(0x10FFFFFF)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = AccentTitaniumWhite,
+                tint = iconTint,
                 modifier = Modifier.size(17.dp)
             )
         }
@@ -411,7 +453,7 @@ private fun MenuRowItem(
                 fontWeight = FontWeight.Medium,
                 fontSize = 14.sp
             ),
-            color = TextPrimary,
+            color = textColor,
             modifier = Modifier.weight(1f)
         )
     }

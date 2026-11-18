@@ -42,12 +42,15 @@ class MusicController(
     var onTrackEnded: (() -> Unit)? = null
 
     private val persistence = PlaybackPersistence(context)
+    private var fadeJob: Job? = null
 
     init {
         _playbackState.update {
             it.copy(
                 isSkipSilenceEnabled = persistence.isSkipSilenceEnabled(),
-                isHiResFloatEnabled = persistence.isHiResFloatOutputEnabled()
+                isHiResFloatEnabled = persistence.isHiResFloatOutputEnabled(),
+                crossfadeSeconds = persistence.getCrossfadeSeconds(),
+                isResumeOnHeadsetConnect = persistence.isResumeOnHeadsetConnectEnabled()
             )
         }
         initializeController()
@@ -275,11 +278,34 @@ class MusicController(
     fun togglePlayPause() {
         val controller = mediaController ?: return
         val willPlay = !controller.isPlaying
-        _playbackState.update { it.copy(isPlaying = willPlay) }
+        fadeJob?.cancel()
+
         if (willPlay) {
+            _playbackState.update { it.copy(isPlaying = true) }
+            controller.volume = 0.0f
             controller.play()
+            fadeJob = coroutineScope.launch(Dispatchers.Main) {
+                val steps = 8
+                val stepDelay = 15L // 120ms total
+                for (i in 1..steps) {
+                    delay(stepDelay)
+                    controller.volume = i / steps.toFloat()
+                }
+                controller.volume = 1.0f
+            }
         } else {
-            controller.pause()
+            _playbackState.update { it.copy(isPlaying = false) }
+            fadeJob = coroutineScope.launch(Dispatchers.Main) {
+                val steps = 8
+                val stepDelay = 15L // 120ms total
+                val startVol = controller.volume
+                for (i in (steps - 1) downTo 0) {
+                    delay(stepDelay)
+                    controller.volume = (i / steps.toFloat()) * startVol
+                }
+                controller.pause()
+                controller.volume = 1.0f
+            }
         }
     }
 
@@ -297,6 +323,31 @@ class MusicController(
     }
 
     fun skipToNext() {
+        val controller = mediaController ?: return
+        val crossfadeSec = _playbackState.value.crossfadeSeconds
+
+        if (crossfadeSec > 0 && controller.isPlaying) {
+            fadeJob?.cancel()
+            fadeJob = coroutineScope.launch(Dispatchers.Main) {
+                val steps = 6
+                val stepDelay = 25L // 150ms fade
+                for (i in (steps - 1) downTo 0) {
+                    delay(stepDelay)
+                    controller.volume = (i / steps.toFloat())
+                }
+                executeSkipNext()
+                for (i in 1..steps) {
+                    delay(stepDelay)
+                    controller.volume = (i / steps.toFloat())
+                }
+                controller.volume = 1.0f
+            }
+        } else {
+            executeSkipNext()
+        }
+    }
+
+    private fun executeSkipNext() {
         val controller = mediaController ?: return
         val queue = currentPlaylistSongs
         val currentIndex = controller.currentMediaItemIndex
@@ -321,6 +372,31 @@ class MusicController(
             controller.seekToNextMediaItem()
         } else if (controller.mediaItemCount > 0) {
             controller.seekToDefaultPosition(0)
+        }
+    }
+
+    fun setCrossfadeSeconds(seconds: Int) {
+        persistence.saveCrossfadeSeconds(seconds)
+        _playbackState.update { it.copy(crossfadeSeconds = seconds) }
+    }
+
+    fun setResumeOnHeadsetConnect(enabled: Boolean) {
+        persistence.saveResumeOnHeadsetConnect(enabled)
+        _playbackState.update { it.copy(isResumeOnHeadsetConnect = enabled) }
+    }
+
+    fun clearQueue() {
+        val controller = mediaController ?: return
+        currentPlaylistSongs = emptyList()
+        persistence.clearQueue()
+        controller.clearMediaItems()
+        _playbackState.update {
+            it.copy(
+                queue = emptyList(),
+                currentSong = null,
+                isPlaying = false,
+                durationMs = 0L
+            )
         }
     }
 

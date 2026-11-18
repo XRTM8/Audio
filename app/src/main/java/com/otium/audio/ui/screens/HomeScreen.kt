@@ -169,6 +169,9 @@ fun HomeScreen(
     onToggleLoudnessNormalization = playbackActions.onToggleLoudnessNormalization,
     onExportBackup = libraryActions.onExportBackup,
     onImportBackup = libraryActions.onImportBackup,
+    onRemoveSongFromPlaylist = libraryActions.onRemoveSongFromPlaylist,
+    onSetCrossfadeSeconds = playbackActions.onSetCrossfadeSeconds,
+    onToggleResumeOnHeadsetConnect = playbackActions.onToggleResumeOnHeadsetConnect,
     modifier = modifier
 )
 
@@ -219,6 +222,9 @@ fun HomeScreen(
     onToggleLoudnessNormalization: (Boolean) -> Unit = {},
     onExportBackup: ((String?) -> Unit) -> Unit = {},
     onImportBackup: (String, (Boolean) -> Unit) -> Unit = { _, _ -> },
+    onRemoveSongFromPlaylist: (Long, Long) -> Unit = { _, _ -> },
+    onSetCrossfadeSeconds: (Int) -> Unit = {},
+    onToggleResumeOnHeadsetConnect: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -413,20 +419,90 @@ fun HomeScreen(
                 }
 
                 if (uiState.selectedPlaylist != null) {
-                    Row(
+                    val playlistSongs = uiState.selectedPlaylistSongs
+                    val totalDurationMs = remember(playlistSongs) { playlistSongs.sumOf { it.durationMs } }
+                    val totalMinutes = totalDurationMs / 60_000
+                    val durationText = if (totalMinutes >= 60) {
+                        "${totalMinutes / 60} س ${totalMinutes % 60} د"
+                    } else {
+                        "$totalMinutes دقيقة"
+                    }
+
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 14.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(DarkSheetCard)
+                            .border(1.dp, DarkSheetCardBorder, RoundedCornerShape(16.dp))
+                            .padding(14.dp)
                     ) {
-                        IconButton(onClick = onClearSelectedPlaylist) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(onClick = onClearSelectedPlaylist) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
+                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = uiState.selectedPlaylist.name,
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = TextPrimary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = "${playlistSongs.size} مقطع  •  $durationText",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = TextSecondary
+                                )
+                            }
                         }
-                        Text(
-                            text = uiState.selectedPlaylist.name,
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = TextPrimary
-                        )
+
+                        if (playlistSongs.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Button(
+                                    onClick = { onSongSelected(playlistSongs.first(), playlistSongs) },
+                                    colors = ButtonDefaults.buttonColors(containerColor = AccentGold),
+                                    shape = RoundedCornerShape(10.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PlayArrow,
+                                        contentDescription = null,
+                                        tint = DarkSurface,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("تشغيل الكل", fontWeight = FontWeight.Bold, color = DarkSurface, fontSize = 13.sp)
+                                }
+
+                                Button(
+                                    onClick = {
+                                        val shuffled = playlistSongs.shuffled()
+                                        onSongSelected(shuffled.first(), shuffled)
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = DarkSurfaceContainer),
+                                    shape = RoundedCornerShape(10.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Shuffle,
+                                        contentDescription = null,
+                                        tint = AccentTitaniumWhite,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("عشوائي", fontWeight = FontWeight.SemiBold, color = AccentTitaniumWhite, fontSize = 13.sp)
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -599,6 +675,10 @@ fun HomeScreen(
                     onToggleAutoPreAmp = onToggleAutoPreAmp,
                     isLoudnessNormalizationEnabled = uiState.isLoudnessNormalizationEnabled,
                     onToggleLoudnessNormalization = onToggleLoudnessNormalization,
+                    crossfadeSeconds = uiState.playbackState.crossfadeSeconds,
+                    onSetCrossfadeSeconds = onSetCrossfadeSeconds,
+                    isResumeOnHeadsetConnect = uiState.playbackState.isResumeOnHeadsetConnect,
+                    onToggleResumeOnHeadsetConnect = onToggleResumeOnHeadsetConnect,
                     minDurationSeconds = uiState.minDurationSeconds,
                     onSetMinDurationSeconds = onSetMinDurationSeconds,
                     onExportBackup = onExportBackup,

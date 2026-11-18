@@ -67,6 +67,12 @@ class SleepTimerController(
         _state.value = SleepTimerState(isActive = true, remainingSeconds = 0L, isEndOfTrack = true)
     }
 
+    fun addMinutes(minutes: Int) {
+        if (!_state.value.isActive || _state.value.isEndOfTrack) return
+        val additionalSeconds = minutes * 60L
+        _state.update { it.copy(remainingSeconds = it.remainingSeconds + additionalSeconds) }
+    }
+
     fun onTrackEnded() {
         if (_state.value.isEndOfTrack) {
             coroutineScope.launch(Dispatchers.Main) {

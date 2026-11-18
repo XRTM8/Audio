@@ -216,9 +216,12 @@ fun NowPlayingScreen(
     onPlayQueueIndex = queueActions.onPlayQueueIndex,
     onRemoveQueueItem = queueActions.onRemoveQueueItem,
     onMoveQueueItem = queueActions.onMoveQueueItem,
+    onClearQueue = queueActions.onClearQueue,
+    onSaveQueueAsPlaylist = queueActions.onSaveQueueAsPlaylist,
     onStartSleepTimer = sleepTimerActions.onStartTimer,
     onStartSleepEndOfTrack = sleepTimerActions.onStartEndOfTrack,
     onCancelSleepTimer = sleepTimerActions.onCancelTimer,
+    onAddSleepMinutes = sleepTimerActions.onAddMinutes,
     onEditTagClick = onEditTagClick,
     modifier = modifier
 )
@@ -259,9 +262,12 @@ fun NowPlayingScreen(
     onPlayQueueIndex: (Int) -> Unit = {},
     onRemoveQueueItem: (Int) -> Unit = {},
     onMoveQueueItem: (Int, Int) -> Unit = { _, _ -> },
+    onClearQueue: (() -> Unit)? = null,
+    onSaveQueueAsPlaylist: ((String) -> Unit)? = null,
     onStartSleepTimer: (Int) -> Unit = {},
     onStartSleepEndOfTrack: () -> Unit = {},
     onCancelSleepTimer: () -> Unit = {},
+    onAddSleepMinutes: ((Int) -> Unit)? = null,
     onEditTagClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -976,6 +982,8 @@ fun NowPlayingScreen(
                     onPlayTrackAt = onPlayQueueIndex,
                     onRemoveTrackAt = onRemoveQueueItem,
                     onMoveTrack = onMoveQueueItem,
+                    onClearQueue = onClearQueue,
+                    onSaveQueueAsPlaylist = onSaveQueueAsPlaylist,
                     onDismiss = { showQueue = false }
                 )
             }
@@ -987,6 +995,7 @@ fun NowPlayingScreen(
                     onStartTimer = onStartSleepTimer,
                     onStartEndOfTrack = onStartSleepEndOfTrack,
                     onCancelTimer = onCancelSleepTimer,
+                    onAddMinutes = onAddSleepMinutes,
                     onDismiss = { showSleepTimer = false }
                 )
             }

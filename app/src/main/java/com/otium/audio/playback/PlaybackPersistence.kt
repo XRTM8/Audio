@@ -67,6 +67,18 @@ class PlaybackPersistence(private val context: Context) {
             .getOrDefault(com.otium.audio.data.model.SortOrder.DATE_ADDED_DESC)
     }
 
+    fun saveCrossfadeSeconds(seconds: Int) {
+        prefs.edit().putInt(KEY_CROSSFADE_SECONDS, seconds).apply()
+    }
+
+    fun getCrossfadeSeconds(): Int = prefs.getInt(KEY_CROSSFADE_SECONDS, 0) // 0s = disabled
+
+    fun saveResumeOnHeadsetConnect(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_RESUME_HEADSET, enabled).apply()
+    }
+
+    fun isResumeOnHeadsetConnectEnabled(): Boolean = prefs.getBoolean(KEY_RESUME_HEADSET, false)
+
     fun clearQueue() {
         prefs.edit().remove(KEY_IDS).remove(KEY_INDEX).remove(KEY_POSITION).apply()
     }
@@ -93,5 +105,7 @@ class PlaybackPersistence(private val context: Context) {
         const val KEY_MIN_DURATION = "min_duration_seconds"
         const val KEY_BLACKLISTED_FOLDERS = "blacklisted_folders"
         const val KEY_SORT_ORDER = "sort_order"
+        const val KEY_CROSSFADE_SECONDS = "crossfade_seconds"
+        const val KEY_RESUME_HEADSET = "resume_on_headset"
     }
 }

@@ -27,7 +27,9 @@ data class PlaybackActions(
     val onSetPlaybackSpeed: (Float) -> Unit = {},
     val onToggleSkipSilence: (Boolean) -> Unit = {},
     val onToggleHiResFloat: (Boolean) -> Unit = {},
-    val onToggleLoudnessNormalization: (Boolean) -> Unit = {}
+    val onToggleLoudnessNormalization: (Boolean) -> Unit = {},
+    val onSetCrossfadeSeconds: (Int) -> Unit = {},
+    val onToggleResumeOnHeadsetConnect: (Boolean) -> Unit = {}
 )
 
 @Immutable
@@ -49,14 +51,17 @@ data class EqualizerActions(
 data class QueueActions(
     val onPlayQueueIndex: (Int) -> Unit = {},
     val onRemoveQueueItem: (Int) -> Unit = {},
-    val onMoveQueueItem: (Int, Int) -> Unit = { _, _ -> }
+    val onMoveQueueItem: (Int, Int) -> Unit = { _, _ -> },
+    val onClearQueue: () -> Unit = {},
+    val onSaveQueueAsPlaylist: (String) -> Unit = {}
 )
 
 @Immutable
 data class SleepTimerActions(
     val onStartTimer: (Int) -> Unit = {},
     val onStartEndOfTrack: () -> Unit = {},
-    val onCancelTimer: () -> Unit = {}
+    val onCancelTimer: () -> Unit = {},
+    val onAddMinutes: (Int) -> Unit = {}
 )
 
 @Immutable
@@ -74,6 +79,7 @@ data class LibraryActions(
     val onAlbumSelected: (AudioAlbum) -> Unit = {},
     val onClearSelectedAlbum: () -> Unit = {},
     val onAddToPlaylist: (Long, Long) -> Unit = { _, _ -> },
+    val onRemoveSongFromPlaylist: (Long, Long) -> Unit = { _, _ -> },
     val onPlayNext: (Song) -> Unit = {},
     val onAddToQueue: (Song) -> Unit = {},
     val onCreatePlaylist: (String) -> Unit = {},

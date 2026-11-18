@@ -46,6 +46,7 @@ fun SleepTimerDialog(
     onStartTimer: (Int) -> Unit,
     onStartEndOfTrack: () -> Unit,
     onCancelTimer: () -> Unit,
+    onAddMinutes: ((Int) -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     val presets = listOf(15, 30, 45, 60, 90)
@@ -100,6 +101,29 @@ fun SleepTimerDialog(
                                     style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                                     color = AccentGold
                                 )
+
+                                if (onAddMinutes != null) {
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Button(
+                                            onClick = { onAddMinutes(5) },
+                                            colors = ButtonDefaults.buttonColors(containerColor = DarkSurface),
+                                            shape = RoundedCornerShape(8.dp)
+                                        ) {
+                                            Text("+5 دقائق", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = AccentGold)
+                                        }
+                                        Button(
+                                            onClick = { onAddMinutes(15) },
+                                            colors = ButtonDefaults.buttonColors(containerColor = DarkSurface),
+                                            shape = RoundedCornerShape(8.dp)
+                                        ) {
+                                            Text("+15 دقيقة", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = AccentGold)
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
