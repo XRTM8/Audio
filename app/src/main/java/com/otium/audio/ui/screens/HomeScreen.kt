@@ -36,8 +36,10 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.Icons
 import androidx.compose.ui.graphics.Color
@@ -96,7 +98,10 @@ import com.otium.audio.ui.components.SongListItem
 import com.otium.audio.ui.components.SortBottomSheet
 import com.otium.audio.ui.components.TagEditorSheet
 import com.otium.audio.ui.theme.AccentGold
+import com.otium.audio.ui.theme.AccentTitaniumWhite
 import com.otium.audio.ui.theme.DarkCardBorder
+import com.otium.audio.ui.theme.DarkSheetCard
+import com.otium.audio.ui.theme.DarkSheetCardBorder
 import com.otium.audio.ui.theme.DarkSurface
 import com.otium.audio.ui.theme.DarkSurfaceContainer
 import com.otium.audio.ui.theme.DarkSurfaceVariant
