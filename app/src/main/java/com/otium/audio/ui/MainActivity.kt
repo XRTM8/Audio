@@ -14,8 +14,10 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
@@ -347,8 +349,11 @@ class MainActivity : ComponentActivity() {
                             enter = slideInVertically(
                                 initialOffsetY = { it },
                                 animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)
-                            ),
-                            exit = fadeOut(animationSpec = tween(durationMillis = 140))
+                            ) + fadeIn(animationSpec = tween(durationMillis = 150)),
+                            exit = slideOutVertically(
+                                targetOffsetY = { it },
+                                animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)
+                            ) + fadeOut(animationSpec = tween(durationMillis = 150))
                         ) {
                             if (currentSong != null) {
                                 BackHandler {

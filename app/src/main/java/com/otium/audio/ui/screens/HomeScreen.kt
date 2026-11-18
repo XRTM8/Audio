@@ -582,10 +582,17 @@ fun HomeScreen(
                         val handleSongClick = remember(displayedSongs, onSongSelected) {
                             { song: Song -> onSongSelected(song, displayedSongs) }
                         }
+                        val handleSongDoubleClick = remember(displayedSongs, onSongSelected, onOpenNowPlaying) {
+                            { song: Song ->
+                                onSongSelected(song, displayedSongs)
+                                onOpenNowPlaying()
+                            }
+                        }
                         MasterSongListView(
                             songs = displayedSongs,
                             currentSong = uiState.playbackState.currentSong,
                             onSongClick = handleSongClick,
+                            onSongDoubleClick = handleSongDoubleClick,
                             onFavoriteClick = onFavoriteToggle,
                             onEditTagClick = onEditTagClick,
                             onSongLongPress = {
@@ -712,6 +719,7 @@ private fun MasterSongListView(
     songs: List<Song>,
     currentSong: Song?,
     onSongClick: (Song) -> Unit,
+    onSongDoubleClick: ((Song) -> Unit)? = null,
     onFavoriteClick: (Song) -> Unit,
     onEditTagClick: ((Song) -> Unit)? = null,
     onSongLongPress: (Song) -> Unit,
@@ -754,6 +762,7 @@ private fun MasterSongListView(
                     song = song,
                     isCurrentSong = currentSong?.id == song.id,
                     onSongClick = onSongClick,
+                    onDoubleClick = onSongDoubleClick,
                     onFavoriteClick = onFavoriteClick,
                     onEditTagClick = onEditTagClick,
                     onLongClick = onSongLongPress,

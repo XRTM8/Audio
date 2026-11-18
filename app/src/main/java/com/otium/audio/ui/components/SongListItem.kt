@@ -93,6 +93,7 @@ fun SongListItem(
     song: Song,
     isCurrentSong: Boolean,
     onSongClick: (Song) -> Unit,
+    onDoubleClick: ((Song) -> Unit)? = null,
     onFavoriteClick: (Song) -> Unit,
     onEditTagClick: ((Song) -> Unit)? = null,
     onLongClick: ((Song) -> Unit)? = null,
@@ -158,6 +159,14 @@ fun SongListItem(
             }
         } else null
     }
+    val onRowDoubleClick: (() -> Unit)? = remember(song, isSelectionMode, onDoubleClick) {
+        if (onDoubleClick != null && !isSelectionMode) {
+            {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onDoubleClick(song)
+            }
+        } else null
+    }
 
     Row(
         modifier = modifier
@@ -190,7 +199,8 @@ fun SongListItem(
                 interactionSource = EmptyRowInteractionSource,
                 indication = null,
                 onClick = onRowClick,
-                onLongClick = onRowLongClick
+                onLongClick = onRowLongClick,
+                onDoubleClick = onRowDoubleClick
             )
             .padding(
                 start = if (isCurrentSong) 16.dp else 14.dp,

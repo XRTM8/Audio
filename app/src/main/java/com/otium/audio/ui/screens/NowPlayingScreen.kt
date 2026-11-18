@@ -93,6 +93,8 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -421,32 +423,30 @@ fun NowPlayingScreen(
         context.resources.displayMetrics.heightPixels.toFloat()
     }
     val dismissThreshold = with(density) { 68.dp.toPx() }
-    var isDismissing by remember { mutableStateOf(false) }
 
-    // Ensure initial entry starts clean at offset 0
-    LaunchedEffect(Unit) {
+    // Always reset drag offset clean to 0 when entering composition or when song changes
+    LaunchedEffect(song.id) {
         dragY.snapTo(0f)
-        isDismissing = false
+    }
+
+    DisposableEffect(Unit) {
+        dragY.snapTo(0f)
+        onDispose {
+            scope.launch { dragY.snapTo(0f) }
+        }
     }
 
     fun triggerDismiss() {
-        if (isDismissing) return
-        isDismissing = true
+        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        onCollapse()
         scope.launch {
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            dragY.animateTo(
-                targetValue = screenHeightPx,
-                animationSpec = tween(durationMillis = 200, easing = FastOutLinearInEasing)
-            )
-            onCollapse()
+            dragY.snapTo(0f)
         }
     }
 
     val verticalDraggableState = rememberDraggableState { delta ->
-        if (!isDismissing) {
-            val newY = (dragY.value + delta).coerceAtLeast(0f)
-            scope.launch { dragY.snapTo(newY) }
-        }
+        val newY = (dragY.value + delta).coerceAtLeast(0f)
+        scope.launch { dragY.snapTo(newY) }
     }
 
     Box(
