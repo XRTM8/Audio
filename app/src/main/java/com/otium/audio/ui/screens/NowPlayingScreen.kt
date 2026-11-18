@@ -430,7 +430,6 @@ fun NowPlayingScreen(
     }
 
     DisposableEffect(Unit) {
-        dragY.snapTo(0f)
         onDispose {
             scope.launch { dragY.snapTo(0f) }
         }
