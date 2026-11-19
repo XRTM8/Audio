@@ -67,6 +67,8 @@ import com.otium.audio.ui.theme.TextTertiary
 private val EmptyRowInteractionSource = MutableInteractionSource()
 
 
+private val SearchHighlightAmber = Color(0xFFFFB800) // Distinct radiant studio amber
+
 private val TitleStyleRegular = TextStyle(
     fontWeight = FontWeight.Medium,
     fontSize = 14.sp,
@@ -248,7 +250,7 @@ fun SongListItem(
                     text = song.displayTitle,
                     query = searchQuery,
                     defaultColor = if (isCurrentSong) AccentTitaniumWhite else TextPrimary,
-                    highlightColor = AccentGold
+                    highlightColor = SearchHighlightAmber
                 )
             }
             Text(
@@ -277,10 +279,18 @@ fun SongListItem(
 
                 Spacer(modifier = Modifier.width(6.dp))
 
+                val subtitleAnnotated = remember(song.subtitle, searchQuery) {
+                    buildHighlightedText(
+                        text = song.subtitle,
+                        query = searchQuery,
+                        defaultColor = TextSecondary,
+                        highlightColor = SearchHighlightAmber
+                    )
+                }
+
                 Text(
-                    text = song.subtitle,
+                    text = subtitleAnnotated,
                     style = SubtitleStyle,
-                    color = TextSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -393,17 +403,59 @@ private fun buildHighlightedText(
     }
     val builder = AnnotatedString.Builder(text)
     builder.addStyle(SpanStyle(color = defaultColor), 0, text.length)
+
+    val tokens = trimmed.split(' ').filter { it.isNotBlank() }
     val lowerText = text.lowercase()
-    val lowerQuery = trimmed.lowercase()
-    var idx = lowerText.indexOf(lowerQuery)
-    while (idx >= 0) {
-        val end = (idx + lowerQuery.length).coerceAtMost(text.length)
-        builder.addStyle(
-            SpanStyle(color = highlightColor, fontWeight = FontWeight.Bold),
-            idx,
-            end
-        )
-        idx = lowerText.indexOf(lowerQuery, end)
+
+    for (token in tokens) {
+        val lowerToken = token.lowercase()
+        var idx = lowerText.indexOf(lowerToken)
+        while (idx >= 0) {
+            val end = (idx + lowerToken.length).coerceAtMost(text.length)
+            builder.addStyle(
+                SpanStyle(
+                    color = highlightColor,
+                    fontWeight = FontWeight.Black,
+                    background = highlightColor.copy(alpha = 0.22f)
+                ),
+                idx,
+                end
+            )
+            idx = lowerText.indexOf(lowerToken, end)
+        }
+
+        // Also support Arabic normalized matching (e.g. Alif variants, Ta Marbuta)
+        val normToken = Song.normalizeForSearchFast(token)
+        if (normToken.isNotEmpty() && normToken != lowerToken && text.length >= normToken.length) {
+            for (i in 0..text.length - normToken.length) {
+                var matches = true
+                for (j in normToken.indices) {
+                    val normalizedChar = when (text[i + j]) {
+                        '\u0622', '\u0623', '\u0625', '\u0671' -> 'ا'
+                        'ة' -> 'ه'
+                        'ى', 'ئ', '\u06CC' -> 'ي'
+                        'ؤ' -> 'و'
+                        else -> text[i + j].lowercaseChar()
+                    }
+                    if (normalizedChar != normToken[j]) {
+                        matches = false
+                        break
+                    }
+                }
+                if (matches) {
+                    val end = (i + normToken.length).coerceAtMost(text.length)
+                    builder.addStyle(
+                        SpanStyle(
+                            color = highlightColor,
+                            fontWeight = FontWeight.Black,
+                            background = highlightColor.copy(alpha = 0.22f)
+                        ),
+                        i,
+                        end
+                    )
+                }
+            }
+        }
     }
     return builder.toAnnotatedString()
 }

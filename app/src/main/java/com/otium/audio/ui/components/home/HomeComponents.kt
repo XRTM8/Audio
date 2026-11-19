@@ -104,9 +104,9 @@ private fun TopBarActionButton(
         if (showIndicatorDot) {
             Box(
                 modifier = Modifier
+                    .padding(top = 4.dp, end = 4.dp)
                     .size(6.dp)
                     .align(Alignment.TopEnd)
-                    .offset(x = (-3).dp, y = 3.dp)
                     .clip(CircleShape)
                     .background(indicatorColor)
             )
@@ -132,30 +132,19 @@ fun HomeTopBar(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Balanced typographic hierarchy: Section title on top, track count subtitle
-        Column(
-            modifier = Modifier.weight(1f, fill = false),
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "مكتبتك",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 22.sp,
-                    letterSpacing = (-0.3).sp
-                ),
-                color = TextPrimary
-            )
-            Spacer(modifier = Modifier.height(1.dp))
-            Text(
-                text = "$songCount مقطع صوتي",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 12.sp
-                ),
-                color = TextSecondary
-            )
-        }
+        // Clean single-line track count (no wrapping, clutter-free)
+        Text(
+            text = "$songCount مقطع صوتي",
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                letterSpacing = (-0.2).sp
+            ),
+            color = TextPrimary,
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false)
+        )
 
         // Clutter-free unified studio control cluster
         Row(

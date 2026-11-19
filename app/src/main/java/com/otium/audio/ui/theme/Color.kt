@@ -13,15 +13,15 @@ import androidx.compose.ui.graphics.Color
 val DarkSurface          = Color(0xFF000000)
 
 // Solid Obsidian Luxury Surfaces for Sheets & Dialogs (تمنع تداخل النصوص والشفافية المشوشة)
-val DarkSheetBackground  = Color(0xFF121217) // True solid obsidian dark for bottom sheets
-val DarkSheetCard        = Color(0xFF1B1B24) // Elevated grouped cards inside sheets
-val DarkSheetCardBorder  = Color(0x1FFFFFFF) // 12% subtle titanium specular hairline border
+val DarkSheetBackground  = Color(0xFF0E0E12) // True deep obsidian dark for bottom sheets
+val DarkSheetCard        = Color(0xFF131318) // Elevated grouped cards inside sheets
+val DarkSheetCardBorder  = Color(0x18FFFFFF) // 10% subtle titanium specular hairline border
 val DarkSheetScrim       = Color(0xD9000000) // 85% deep AMOLED scrim to eliminate background clutter
 
 // Obsidian Surfaces & Containers
-val DarkSurfaceVariant   = Color(0xFF14141A) // Solid smoky obsidian
-val DarkSurfaceContainer = Color(0xFF16161E) // Solid dark obsidian container
-val DarkSurfaceElevated  = Color(0xFF1C1C26) // Solid elevated titanium sheet
+val DarkSurfaceVariant   = Color(0xFF111116) // Solid smoky obsidian
+val DarkSurfaceContainer = Color(0xFF131318) // Solid dark obsidian container
+val DarkSurfaceElevated  = Color(0xFF181822) // Solid elevated titanium sheet
 val DarkCardBorder       = Color(0x1AFFFFFF) // 10% subtle titanium hairline border
 val GlassSheen           = Color(0x14FFFFFF) // 8% delicate specular sheen
 val GlassScrim           = Color(0xD9000000) // 85% deep AMOLED scrim
