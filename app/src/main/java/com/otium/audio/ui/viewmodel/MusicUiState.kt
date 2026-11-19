@@ -16,10 +16,12 @@ enum class LibraryTab {
     ARTISTS,
     ALBUMS,
     FAVORITES,
-    RECENTLY_ADDED,
-    MOST_PLAYED,
+    WEEKLY_ROTATION,
+    FORGOTTEN_GEMS,
     FOLDERS,
+    RECENTLY_ADDED,
     PLAYLISTS,
+    MOST_PLAYED,
     HISTORY
 }
 
@@ -36,6 +38,8 @@ data class MusicUiState(
     val history: List<Song> = emptyList(),
     val mostPlayed: List<Song> = emptyList(),
     val recentlyAdded: List<Song> = emptyList(),
+    val weeklyRotation: List<Song> = emptyList(),
+    val forgottenGems: List<Song> = emptyList(),
     val selectedArtist: AudioArtist? = null,
     val selectedAlbum: AudioAlbum? = null,
     val selectedFolder: AudioFolder? = null,

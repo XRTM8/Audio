@@ -376,6 +376,22 @@ class AudioRepositoryImpl(
             ids.mapNotNull { byId[it] }
         }
 
+    override fun getWeeklyRotationFlow(limit: Int): Flow<List<Song>> {
+        val weekAgo = System.currentTimeMillis() - (7L * 24 * 60 * 60 * 1000)
+        return combine(getAllSongsFlow(), audioDao.getWeeklyRotationSongIdsFlow(weekAgo, limit)) { list, ids ->
+            val byId = list.associateBy { it.id }
+            ids.mapNotNull { byId[it] }
+        }
+    }
+
+    override fun getForgottenGemsFlow(limit: Int): Flow<List<Song>> {
+        val fortyDaysAgo = System.currentTimeMillis() - (40L * 24 * 60 * 60 * 1000)
+        return combine(getAllSongsFlow(), audioDao.getForgottenGemsSongIdsFlow(fortyDaysAgo, limit)) { list, ids ->
+            val byId = list.associateBy { it.id }
+            ids.mapNotNull { byId[it] }
+        }
+    }
+
     override suspend fun updateSongMetadata(
         songId: Long,
         title: String,

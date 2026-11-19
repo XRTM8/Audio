@@ -131,6 +131,12 @@ class MusicViewModel(
                     .combine(repository.getRecentlyAddedFlow()) { lib, added ->
                         lib.copy(recentlyAdded = added)
                     }
+                    .combine(repository.getWeeklyRotationFlow()) { lib, weekly ->
+                        lib.copy(weeklyRotation = weekly)
+                    }
+                    .combine(repository.getForgottenGemsFlow()) { lib, gems ->
+                        lib.copy(forgottenGems = gems)
+                    }
                     .conflate()
                     .collect { lib ->
                         val extractedArtists = AudioArtist.extractArtistsFromSongs(lib.songs)
@@ -145,7 +151,9 @@ class MusicViewModel(
                                 playlists = lib.playlists,
                                 history = lib.recentlyPlayed,
                                 mostPlayed = lib.mostPlayed,
-                                recentlyAdded = lib.recentlyAdded
+                                recentlyAdded = lib.recentlyAdded,
+                                weeklyRotation = lib.weeklyRotation,
+                                forgottenGems = lib.forgottenGems
                             )
                         }
                     }
@@ -510,7 +518,9 @@ class MusicViewModel(
         val playlists: List<PlaylistEntity>,
         val recentlyPlayed: List<Song> = emptyList(),
         val mostPlayed: List<Song> = emptyList(),
-        val recentlyAdded: List<Song> = emptyList()
+        val recentlyAdded: List<Song> = emptyList(),
+        val weeklyRotation: List<Song> = emptyList(),
+        val forgottenGems: List<Song> = emptyList()
     )
 
     class Factory(

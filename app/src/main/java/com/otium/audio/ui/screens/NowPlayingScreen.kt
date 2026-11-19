@@ -722,24 +722,61 @@ fun NowPlayingScreen(
                             modifier = Modifier.basicMarquee()
                         )
 
-                        if (!audioSpecs.isNullOrBlank()) {
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Box(
+                        val displaySpecs = audioSpecs ?: targetSong.audioFormatBadge
+                        val isLosslessOrHiRes = remember(targetSong, audioSpecs) {
+                            val badge = targetSong.audioFormatBadge.uppercase()
+                            val spec = (audioSpecs ?: "").uppercase()
+                            badge in listOf("FLAC", "WAV", "ALAC", "AIFF", "DSD") ||
+                                spec.contains("FLAC") || spec.contains("WAV") || spec.contains("DSD") ||
+                                spec.contains("96.0") || spec.contains("192.0") || spec.contains("88.2") || spec.contains("48.0")
+                        }
+
+                        if (displaySpecs.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(DarkSurfaceContainer.copy(alpha = 0.85f))
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(DarkSurfaceContainer.copy(alpha = 0.90f))
+                                    .border(0.5.dp, DarkCardBorder.copy(alpha = 0.45f), RoundedCornerShape(6.dp))
                                     .clickable { showAudioInspector = true }
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
                             ) {
-                                Text(
-                                    text = audioSpecs!!,
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        letterSpacing = 0.5.sp
-                                    ),
-                                    color = AccentGold.copy(alpha = 0.9f)
+                                Icon(
+                                    imageVector = Icons.Default.Headphones,
+                                    contentDescription = null,
+                                    tint = AccentGold,
+                                    modifier = Modifier.size(12.dp)
                                 )
+                                Text(
+                                    text = displaySpecs,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 10.5.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        letterSpacing = 0.4.sp
+                                    ),
+                                    color = AccentGold.copy(alpha = 0.95f)
+                                )
+                                if (isLosslessOrHiRes) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(3.dp))
+                                            .background(AccentGold.copy(alpha = 0.20f))
+                                            .border(0.5.dp, AccentGold.copy(alpha = 0.5f), RoundedCornerShape(3.dp))
+                                            .padding(horizontal = 4.dp, vertical = 1.dp)
+                                    ) {
+                                        Text(
+                                            text = "BIT-PERFECT",
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontSize = 8.5.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                letterSpacing = 0.6.sp
+                                            ),
+                                            color = AccentGold
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -753,6 +790,7 @@ fun NowPlayingScreen(
                     durationMs = durationMs,
                     onSeekTo = onSeekTo,
                     onSeekBy = onSeekBy,
+                    waveformSeed = targetSong.id,
                     modifier = Modifier.padding(horizontal = 20.dp)
                 )
 

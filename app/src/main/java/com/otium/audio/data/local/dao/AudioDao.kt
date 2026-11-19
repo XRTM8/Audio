@@ -102,6 +102,34 @@ interface AudioDao {
     )
     fun getMostPlayedSongIdsFlow(limit: Int = 50): Flow<List<Long>>
 
+    // --- Smart Dynamic Playlists ---
+
+    @Query(
+        """
+        SELECT songId FROM playback_history
+        WHERE playedAt >= :sinceTimestamp
+        GROUP BY songId
+        ORDER BY COUNT(historyId) DESC, MAX(playedAt) DESC
+        LIMIT :limit
+        """
+    )
+    fun getWeeklyRotationSongIdsFlow(sinceTimestamp: Long, limit: Int = 30): Flow<List<Long>>
+
+    @Query(
+        """
+        SELECT f.songId FROM favorites f
+        LEFT JOIN (
+            SELECT songId, MAX(playedAt) as lastPlayed
+            FROM playback_history
+            GROUP BY songId
+        ) h ON f.songId = h.songId
+        WHERE h.lastPlayed IS NULL OR h.lastPlayed < :cutoffTimestamp
+        ORDER BY f.addedAt DESC
+        LIMIT :limit
+        """
+    )
+    fun getForgottenGemsSongIdsFlow(cutoffTimestamp: Long, limit: Int = 30): Flow<List<Long>>
+
     @Query("DELETE FROM playback_history WHERE playedAt < :cutoff")
     suspend fun pruneHistory(cutoff: Long)
 }

@@ -343,11 +343,13 @@ fun HomeFilterPills(
                 Triple(LibraryTab.ARTISTS, "الفنانين", counts.getOrElse(1) { 0 }),
                 Triple(LibraryTab.ALBUMS, "الألبومات", counts.getOrElse(2) { 0 }),
                 Triple(LibraryTab.FAVORITES, "المفضلة", counts.getOrElse(3) { 0 }),
-                Triple(LibraryTab.FOLDERS, "المجلدات", counts.getOrElse(4) { 0 }),
-                Triple(LibraryTab.RECENTLY_ADDED, "المضافة حديثاً", counts.getOrElse(5) { 0 }),
-                Triple(LibraryTab.PLAYLISTS, "قوائم التشغيل", counts.getOrElse(6) { 0 }),
-                Triple(LibraryTab.MOST_PLAYED, "الأكثر استماعاً", counts.getOrElse(7) { 0 }),
-                Triple(LibraryTab.HISTORY, "سجل التشغيل", counts.getOrElse(8) { 0 })
+                Triple(LibraryTab.WEEKLY_ROTATION, "التدوير الأسبوعي", counts.getOrElse(4) { 0 }),
+                Triple(LibraryTab.FORGOTTEN_GEMS, "جواهر منسية", counts.getOrElse(5) { 0 }),
+                Triple(LibraryTab.FOLDERS, "المجلدات", counts.getOrElse(6) { 0 }),
+                Triple(LibraryTab.RECENTLY_ADDED, "المضافة حديثاً", counts.getOrElse(7) { 0 }),
+                Triple(LibraryTab.PLAYLISTS, "قوائم التشغيل", counts.getOrElse(8) { 0 }),
+                Triple(LibraryTab.MOST_PLAYED, "الأكثر استماعاً", counts.getOrElse(9) { 0 }),
+                Triple(LibraryTab.HISTORY, "سجل التشغيل", counts.getOrElse(10) { 0 })
             )
         }
 

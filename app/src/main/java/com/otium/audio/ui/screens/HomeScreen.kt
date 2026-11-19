@@ -34,9 +34,11 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Album
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Equalizer
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shuffle
@@ -250,6 +252,8 @@ fun HomeScreen(
         uiState.selectedArtist != null -> uiState.selectedArtist.songs
         uiState.selectedAlbum != null -> uiState.selectedAlbum.songs
         uiState.selectedTab == LibraryTab.FAVORITES -> uiState.favorites
+        uiState.selectedTab == LibraryTab.WEEKLY_ROTATION -> uiState.weeklyRotation
+        uiState.selectedTab == LibraryTab.FORGOTTEN_GEMS -> uiState.forgottenGems
         uiState.selectedTab == LibraryTab.RECENTLY_ADDED -> uiState.recentlyAdded
         uiState.selectedTab == LibraryTab.MOST_PLAYED -> uiState.mostPlayed
         uiState.selectedTab == LibraryTab.HISTORY -> uiState.history
@@ -257,7 +261,7 @@ fun HomeScreen(
     }
 
     val displayedSongs = remember(rawSongs, uiState.sortOrder, uiState.isSearching, uiState.selectedTab) {
-        if (uiState.isSearching || uiState.selectedTab == LibraryTab.RECENTLY_ADDED || uiState.selectedTab == LibraryTab.MOST_PLAYED || uiState.selectedTab == LibraryTab.HISTORY) {
+        if (uiState.isSearching || uiState.selectedTab == LibraryTab.RECENTLY_ADDED || uiState.selectedTab == LibraryTab.MOST_PLAYED || uiState.selectedTab == LibraryTab.HISTORY || uiState.selectedTab == LibraryTab.WEEKLY_ROTATION || uiState.selectedTab == LibraryTab.FORGOTTEN_GEMS) {
             rawSongs
         } else {
             uiState.sortOrder.sort(rawSongs)
@@ -337,6 +341,8 @@ fun HomeScreen(
                             uiState.artists.size,
                             uiState.albums.size,
                             uiState.favorites.size,
+                            uiState.weeklyRotation.size,
+                            uiState.forgottenGems.size,
                             uiState.folders.size,
                             uiState.recentlyAdded.size,
                             uiState.playlists.size,
@@ -575,6 +581,9 @@ fun HomeScreen(
                     } else if (uiState.selectedTab == LibraryTab.PLAYLISTS && uiState.selectedPlaylist == null && !uiState.isSearching) {
                         PlaylistsView(
                             playlists = uiState.playlists,
+                            weeklyRotationCount = uiState.weeklyRotation.size,
+                            forgottenGemsCount = uiState.forgottenGems.size,
+                            onOpenSmartPlaylist = onTabSelected,
                             onPlaylistClick = onPlaylistSelected,
                             onDeletePlaylist = onDeletePlaylist,
                             onCreatePlaylistClick = { showCreatePlaylistDialog = true }
@@ -1011,6 +1020,9 @@ private fun FolderListView(
 @Composable
 private fun PlaylistsView(
     playlists: List<PlaylistEntity>,
+    weeklyRotationCount: Int,
+    forgottenGemsCount: Int,
+    onOpenSmartPlaylist: (LibraryTab) -> Unit,
     onPlaylistClick: (PlaylistEntity) -> Unit,
     onDeletePlaylist: (Long) -> Unit,
     onCreatePlaylistClick: () -> Unit,
@@ -1039,24 +1051,123 @@ private fun PlaylistsView(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        if (playlists.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = "لا توجد قوائم تشغيل حتى الآن", color = TextSecondary)
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Button(
-                        onClick = onCreatePlaylistClick,
-                        colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = DarkSurface),
-                        shape = RoundedCornerShape(8.dp)
+        LazyColumn(modifier = Modifier.fillMaxSize()) {
+            // ── Smart Dynamic Playlists Section ─────────────────────
+            item(key = "smart_header") {
+                Text(
+                    text = "القوائم الذكية",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                    color = AccentGold,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 6.dp)
+                )
+            }
+
+            // 1. Weekly Heavy Rotation
+            item(key = "smart_weekly") {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(DarkSurfaceVariant)
+                        .clickable { onOpenSmartPlaylist(LibraryTab.WEEKLY_ROTATION) }
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(AccentGold.copy(alpha = 0.15f))
+                            .border(1.dp, AccentGold.copy(alpha = 0.35f), RoundedCornerShape(8.dp)),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("قائمة تشغيل جديدة", fontWeight = FontWeight.Bold)
+                        Icon(
+                            imageVector = Icons.Default.Repeat,
+                            contentDescription = null,
+                            tint = AccentGold,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "التدوير الأسبوعي",
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold, fontSize = 14.sp),
+                            color = TextPrimary
+                        )
+                        Text(
+                            text = "$weeklyRotationCount مقطع • الأكثر استماعاً خلال الأسبوع",
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
+                            color = TextSecondary
+                        )
                     }
                 }
+                HorizontalDivider(thickness = 0.5.dp, color = DarkCardBorder.copy(alpha = 0.25f))
             }
-        } else {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
+
+            // 2. Forgotten Gems
+            item(key = "smart_gems") {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(DarkSurfaceVariant)
+                        .clickable { onOpenSmartPlaylist(LibraryTab.FORGOTTEN_GEMS) }
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFFE57373).copy(alpha = 0.15f))
+                            .border(1.dp, Color(0xFFE57373).copy(alpha = 0.35f), RoundedCornerShape(8.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Favorite,
+                            contentDescription = null,
+                            tint = Color(0xFFEF5350),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "جواهر منسية",
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold, fontSize = 14.sp),
+                            color = TextPrimary
+                        )
+                        Text(
+                            text = "$forgottenGemsCount مقطع • مفضلتك التي لم تسمعها مؤخراً",
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
+                            color = TextSecondary
+                        )
+                    }
+                }
+                HorizontalDivider(thickness = 0.5.dp, color = DarkCardBorder.copy(alpha = 0.25f))
+            }
+
+            // ── User Manual Playlists Section ────────────────────────
+            item(key = "user_playlists_header") {
+                Text(
+                    text = "قوائمي (${playlists.size})",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                    color = TextSecondary,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 6.dp)
+                )
+            }
+
+            if (playlists.isEmpty()) {
+                item(key = "empty_playlists") {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("لا توجد قوائم مخصصة حتى الآن", color = TextSecondary, fontSize = 13.sp)
+                    }
+                }
+            } else {
                 items(playlists, key = { it.playlistId }, contentType = { "playlist_row" }) { playlist ->
                     Row(
                         modifier = Modifier
@@ -1095,23 +1206,23 @@ private fun PlaylistsView(
                     }
                     HorizontalDivider(thickness = 0.5.dp, color = DarkCardBorder.copy(alpha = 0.25f))
                 }
-                item { Spacer(modifier = Modifier.height(80.dp)) }
             }
+            item { Spacer(modifier = Modifier.height(80.dp)) }
+        }
 
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = 16.dp)
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 16.dp, bottom = 16.dp)
+        ) {
+            Button(
+                onClick = onCreatePlaylistClick,
+                colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = DarkSurface),
+                shape = RoundedCornerShape(10.dp)
             ) {
-                Button(
-                    onClick = onCreatePlaylistClick,
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = DarkSurface),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("قائمة جديدة", fontWeight = FontWeight.Bold)
-                }
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("قائمة جديدة", fontWeight = FontWeight.Bold)
             }
         }
     }

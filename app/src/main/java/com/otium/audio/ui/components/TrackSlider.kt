@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -35,6 +36,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -112,7 +116,9 @@ fun TrackSlider(
     durationMs: Long,
     onSeekTo: (Long) -> Unit,
     modifier: Modifier = Modifier,
-    onSeekBy: ((Long) -> Unit)? = null
+    onSeekBy: ((Long) -> Unit)? = null,
+    waveformSeed: Long = 0L,
+    waveformPeaks: FloatArray? = null
 ) {
     val haptic = LocalHapticFeedback.current
     val position by positionFlow.collectAsState()
@@ -134,12 +140,12 @@ fun TrackSlider(
         position
     }
 
-    val restingBarHeight = 6.5.dp
-    val draggingBarHeight = 9.dp
-    val barHeight by animateDpAsState(
-        targetValue = if (isDragging) draggingBarHeight else restingBarHeight,
+    val restingWaveformHeight = 18.dp
+    val draggingWaveformHeight = 28.dp
+    val waveformHeight by animateDpAsState(
+        targetValue = if (isDragging) draggingWaveformHeight else restingWaveformHeight,
         animationSpec = tween(120),
-        label = "slider_bar_height"
+        label = "waveform_height"
     )
 
     val restingThumbSize = 14.5.dp
@@ -155,11 +161,11 @@ fun TrackSlider(
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Column(modifier = modifier.fillMaxWidth()) {
-            // Touch interaction zone (44dp comfortable target)
+            // Touch interaction zone (48dp comfortable target)
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(44.dp)
+                    .height(48.dp)
                     .pointerInput(safeDuration) {
                         awaitPointerEventScope {
                             while (true) {
@@ -211,28 +217,78 @@ fun TrackSlider(
                 val thumbCenterPx = thumbBaseRadiusPx + currentFraction * usableWidth
                 val currentThumbSizePx = with(density) { currentThumbSize.toPx() }
 
-                // 1. Inactive Track (Clean translucent titanium obsidian, rounded pill shape)
+                // Waveform calculation
+                val barWidthDp = 2.8.dp
+                val barGapDp = 1.6.dp
+                val barWidthPx = with(density) { barWidthDp.toPx() }
+                val barGapPx = with(density) { barGapDp.toPx() }
+                val barSlotPx = barWidthPx + barGapPx
+                val barCount = remember(totalWidthPx, barSlotPx) {
+                    (totalWidthPx / barSlotPx).toInt().coerceAtLeast(16)
+                }
+
+                val peaks = remember(waveformPeaks, barCount, waveformSeed) {
+                    if (waveformPeaks != null && waveformPeaks.isNotEmpty()) {
+                        FloatArray(barCount) { i ->
+                            val idx = (i.toFloat() / barCount * waveformPeaks.size).toInt().coerceIn(0, waveformPeaks.size - 1)
+                            waveformPeaks[idx].coerceIn(0.18f, 1f)
+                        }
+                    } else {
+                        val random = java.util.Random(waveformSeed xor 0x5DEECE66DL)
+                        val f1 = 0.09f + (random.nextFloat() * 0.05f)
+                        val f2 = 0.23f + (random.nextFloat() * 0.08f)
+                        val f3 = 0.51f + (random.nextFloat() * 0.15f)
+                        val offset = random.nextFloat() * 10f
+                        FloatArray(barCount) { i ->
+                            val idx = i + offset
+                            val s1 = kotlin.math.sin(idx * f1)
+                            val s2 = kotlin.math.cos(idx * f2)
+                            val s3 = kotlin.math.sin(idx * f3)
+                            val noise = (random.nextFloat() * 0.22f)
+                            val raw = (s1 * 0.38f + s2 * 0.24f + s3 * 0.14f + 0.65f + noise)
+                            (raw * 0.68f).coerceIn(0.18f, 1.0f)
+                        }
+                    }
+                }
+
+                // 1. Subtle hairline baseline track
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(barHeight)
+                        .height(2.dp)
                         .align(Alignment.Center)
-                        .clip(RoundedCornerShape(barHeight / 2f))
-                        .background(Color(0x33FFFFFF))
+                        .background(Color(0x1AFFFFFF))
                 )
 
-                // 2. Active Played Track (Pure Titanium White, rounded pill shape)
-                val activeEndPx = if (currentFraction >= 0.999f) totalWidthPx else thumbCenterPx
-                val activeTrackWidth = with(density) { activeEndPx.toDp() }
-                if (currentFraction > 0.0001f) {
-                    Box(
-                        modifier = Modifier
-                            .width(activeTrackWidth)
-                            .height(barHeight)
-                            .align(Alignment.CenterStart)
-                            .clip(RoundedCornerShape(barHeight / 2f))
-                            .background(Color.White)
-                    )
+                // 2. Interactive Waveform Bars
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(waveformHeight)
+                        .align(Alignment.Center)
+                ) {
+                    val canvasH = size.height
+                    val centerY = canvasH / 2f
+                    val cornerRadius = CornerRadius(barWidthPx / 2f, barWidthPx / 2f)
+                    val minBarH = with(density) { 3.dp.toPx() }
+
+                    for (i in 0 until barCount) {
+                        val barLeft = i * barSlotPx
+                        val barCenter = barLeft + barWidthPx / 2f
+                        val peak = peaks.getOrElse(i) { 0.35f }
+                        val barH = (peak * canvasH).coerceIn(minBarH, canvasH)
+                        val top = centerY - barH / 2f
+
+                        val isPlayed = barCenter <= thumbCenterPx
+                        val barColor = if (isPlayed) Color.White else Color(0x38FFFFFF)
+
+                        drawRoundRect(
+                            color = barColor,
+                            topLeft = Offset(barLeft, top),
+                            size = Size(barWidthPx, barH),
+                            cornerRadius = cornerRadius
+                        )
+                    }
                 }
 
                 // 3. Tactile Thumb ("العتلة الاحترافية")
