@@ -133,7 +133,8 @@ class MainActivity : ComponentActivity() {
                             onReverbChange = viewModel::setReverb,
                             onReverbPresetChange = viewModel::setReverbPreset,
                             onChorusChange = viewModel::setChorus,
-                            onClarityChange = viewModel::setClarity
+                            onClarityChange = viewModel::setClarity,
+                            onToggleCrossfeed = viewModel::toggleCrossfeed
                         )
                     }
 
@@ -323,6 +324,7 @@ class MainActivity : ComponentActivity() {
                                 onReverbPresetChange = equalizerActions.onReverbPresetChange,
                                 onChorusChange = equalizerActions.onChorusChange,
                                 onClarityChange = equalizerActions.onClarityChange,
+                                onToggleCrossfeed = equalizerActions.onToggleCrossfeed,
                                 onDismiss = { showHomeEqualizer = false }
                             )
                         }

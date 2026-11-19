@@ -1,6 +1,7 @@
 mod biquad;
 mod chorus;
 mod clarity;
+mod crossfeed;
 mod engine;
 mod limiter;
 mod reverb;
@@ -100,6 +101,20 @@ pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_setParamete
             clarity_strength,
             is_enabled != 0,
         );
+    });
+}
+
+#[no_mangle]
+pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_setCrossfeed(
+    _env: JNIEnv,
+    _class: JClass,
+    engine_ptr: jlong,
+    enabled: jboolean,
+) {
+    if engine_ptr == 0 { return; }
+    catch_panic_or!((), {
+        let engine = unsafe { &mut *(engine_ptr as *mut OtiumDspEngine) };
+        engine.set_crossfeed(enabled != 0);
     });
 }
 

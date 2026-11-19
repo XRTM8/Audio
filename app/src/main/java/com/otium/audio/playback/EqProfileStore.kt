@@ -31,6 +31,7 @@ class EqProfileStore(context: Context) {
             .putString(key(device, REVERB_PRESET), state.reverbPreset)
             .putInt(key(device, CHORUS), state.chorusStrength)
             .putInt(key(device, CLARITY), state.clarityStrength)
+            .putBoolean(key(device, CROSSFEED), state.isCrossfeedEnabled)
             .apply()
     }
 
@@ -49,7 +50,8 @@ class EqProfileStore(context: Context) {
             reverb = prefs.getInt(key(device, REVERB), 0),
             reverbPreset = prefs.getString(key(device, REVERB_PRESET), "Studio") ?: "Studio",
             chorus = prefs.getInt(key(device, CHORUS), 0),
-            clarity = prefs.getInt(key(device, CLARITY), 0)
+            clarity = prefs.getInt(key(device, CLARITY), 0),
+            isCrossfeed = prefs.getBoolean(key(device, CROSSFEED), false)
         )
     }
 
@@ -64,7 +66,8 @@ class EqProfileStore(context: Context) {
         val reverb: Int = 0,
         val reverbPreset: String = "Studio",
         val chorus: Int = 0,
-        val clarity: Int = 0
+        val clarity: Int = 0,
+        val isCrossfeed: Boolean = false
     )
 
     private fun key(device: String, field: String) = "${device}_$field"
@@ -82,6 +85,7 @@ class EqProfileStore(context: Context) {
         const val REVERB_PRESET = "reverb_preset"
         const val CHORUS = "chorus"
         const val CLARITY = "clarity"
+        const val CROSSFEED = "crossfeed"
         const val WRITE_INTERVAL_MS = 600L
     }
 }

@@ -446,6 +446,7 @@ class MusicViewModel(
     fun setReverbPreset(preset: String) = equalizerController.setReverbPreset(preset)
     fun setChorus(strength: Int) = equalizerController.setChorus(strength)
     fun setClarity(strength: Int) = equalizerController.setClarity(strength)
+    fun toggleCrossfeed(enabled: Boolean) = equalizerController.setCrossfeed(enabled)
 
     // --- Sleep timer -------------------------------------------------------
 

@@ -72,6 +72,7 @@ fun EqualizerSheet(
     onReverbPresetChange: (String) -> Unit = {},
     onChorusChange: (Int) -> Unit = {},
     onClarityChange: (Int) -> Unit = {},
+    onToggleCrossfeed: (Boolean) -> Unit = {},
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -630,6 +631,41 @@ fun EqualizerSheet(
                     isBipolar = false,
                     activeColor = AccentTitaniumWhite
                 )
+
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(thickness = 0.5.dp, color = DarkSheetCardBorder.copy(alpha = 0.35f))
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // 4. NATURAL ACOUSTIC CROSSFEED (Headphone Staging)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                        Text(
+                            text = "المسرح الصوتي للسماعات (CROSSFEED)",
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                            color = TextPrimary
+                        )
+                        Text(
+                            text = "محاكاة مكبرات الصوت الطبيعية للحد من إرهاق السماعات وتوسيع المسرح الصوتي",
+                            fontSize = 10.sp,
+                            color = TextTertiary
+                        )
+                    }
+                    Switch(
+                        checked = state.isCrossfeedEnabled,
+                        onCheckedChange = onToggleCrossfeed,
+                        enabled = state.isEnabled,
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = AccentTitaniumWhite,
+                            checkedTrackColor = Color(0xFF2E2E3C),
+                            uncheckedThumbColor = TextSecondary,
+                            uncheckedTrackColor = Color(0xFF1B1B24)
+                        )
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(28.dp))

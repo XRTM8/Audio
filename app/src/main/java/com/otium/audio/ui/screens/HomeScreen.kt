@@ -177,6 +177,7 @@ fun HomeScreen(
     onRemoveSongFromPlaylist = libraryActions.onRemoveSongFromPlaylist,
     onSetCrossfadeSeconds = playbackActions.onSetCrossfadeSeconds,
     onToggleResumeOnHeadsetConnect = playbackActions.onToggleResumeOnHeadsetConnect,
+    onToggleCrossfeed = equalizerActions.onToggleCrossfeed,
     modifier = modifier
 )
 
@@ -230,6 +231,7 @@ fun HomeScreen(
     onRemoveSongFromPlaylist: (Long, Long) -> Unit = { _, _ -> },
     onSetCrossfadeSeconds: (Int) -> Unit = {},
     onToggleResumeOnHeadsetConnect: (Boolean) -> Unit = {},
+    onToggleCrossfeed: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -698,6 +700,8 @@ fun HomeScreen(
                     onToggleAutoPreAmp = onToggleAutoPreAmp,
                     isLoudnessNormalizationEnabled = uiState.isLoudnessNormalizationEnabled,
                     onToggleLoudnessNormalization = onToggleLoudnessNormalization,
+                    isCrossfeedEnabled = uiState.equalizerState.isCrossfeedEnabled,
+                    onToggleCrossfeed = onToggleCrossfeed,
                     crossfadeSeconds = uiState.playbackState.crossfadeSeconds,
                     onSetCrossfadeSeconds = onSetCrossfadeSeconds,
                     isResumeOnHeadsetConnect = uiState.playbackState.isResumeOnHeadsetConnect,

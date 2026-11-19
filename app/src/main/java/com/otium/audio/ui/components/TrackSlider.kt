@@ -172,6 +172,7 @@ fun TrackSlider(
 
                                 isDragging = true
                                 dragProgress = ((down.position.x - thumbBaseRadius) / usable).coerceIn(0f, 1f)
+                                var lastHapticProgress = dragProgress
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
 
                                 try {
@@ -187,7 +188,12 @@ fun TrackSlider(
                                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                             break
                                         }
-                                        dragProgress = ((change.position.x - thumbBaseRadius) / usable).coerceIn(0f, 1f)
+                                        val newProgress = ((change.position.x - thumbBaseRadius) / usable).coerceIn(0f, 1f)
+                                        if (kotlin.math.abs(newProgress - lastHapticProgress) >= 0.035f) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            lastHapticProgress = newProgress
+                                        }
+                                        dragProgress = newProgress
                                         change.consume()
                                     }
                                 } finally {

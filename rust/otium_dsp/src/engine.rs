@@ -1,6 +1,7 @@
 use crate::biquad::Biquad;
 use crate::chorus::StereoChorus;
 use crate::clarity::ClarityEnhancer;
+use crate::crossfeed::Crossfeed;
 use crate::limiter::PeakLimiter;
 use crate::reverb::AudiophileReverb;
 
@@ -16,6 +17,7 @@ pub struct OtiumDspEngine {
     chorus: StereoChorus,
     reverb: AudiophileReverb,
     limiter: PeakLimiter,
+    crossfeed: Crossfeed,
     pub virtualizer_strength: i32,
     pub peak_l: f32,
     pub peak_r: f32,
@@ -61,6 +63,7 @@ impl OtiumDspEngine {
             chorus: StereoChorus::new(sample_rate_hz),
             reverb: AudiophileReverb::new(),
             limiter: PeakLimiter::new(sample_rate_hz),
+            crossfeed: Crossfeed::new(sample_rate_hz),
             virtualizer_strength: 0,
             peak_l: 0.0,
             peak_r: 0.0,
@@ -117,9 +120,16 @@ impl OtiumDspEngine {
         self.chorus.strength = if is_enabled { chorus_strength } else { 0 };
         self.clarity.strength = if is_enabled { clarity_strength } else { 0 };
 
-        let has_fx = reverb_strength > 0 || chorus_strength > 0 || clarity_strength > 0 || virtualizer_strength > 0;
+        let has_fx = reverb_strength > 0 || chorus_strength > 0 || clarity_strength > 0 || virtualizer_strength > 0 || self.crossfeed.is_enabled();
         self.limiter.enabled = is_enabled && (has_boost || has_fx);
         self.is_bypass = !is_enabled || (!has_boost && !has_cut && !has_fx);
+    }
+
+    pub fn set_crossfeed(&mut self, enabled: bool) {
+        self.crossfeed.set_enabled(enabled);
+        if enabled {
+            self.is_bypass = false;
+        }
     }
 
     pub fn reset(&mut self) {
@@ -132,6 +142,7 @@ impl OtiumDspEngine {
         self.chorus.reset();
         self.reverb.reset();
         self.limiter.reset();
+        self.crossfeed.reset();
         self.peak_l = 0.0;
         self.peak_r = 0.0;
         self.rms_l = 0.0;
@@ -196,7 +207,12 @@ impl OtiumDspEngine {
                 right = self.reverb.out_r;
             }
 
-            // 6. Peak Limiter
+            // 6. Natural Acoustic Crossfeed
+            let (cf_l, cf_r) = self.crossfeed.process(left, right);
+            left = cf_l;
+            right = cf_r;
+
+            // 7. Peak Limiter
             left = self.limiter.process(left, 0);
             right = self.limiter.process(right, 1);
 
@@ -274,6 +290,11 @@ impl OtiumDspEngine {
                 left = self.reverb.out_l;
                 right = self.reverb.out_r;
             }
+
+            // 6. Natural Acoustic Crossfeed
+            let (cf_l, cf_r) = self.crossfeed.process(left, right);
+            left = cf_l;
+            right = cf_r;
 
             left = self.limiter.process(left, 0);
             right = self.limiter.process(right, 1);

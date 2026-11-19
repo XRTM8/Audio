@@ -37,6 +37,7 @@ object NativeAudioDsp {
         clarityStrength: Int,
         isEnabled: Boolean
     )
+    external fun setCrossfeed(enginePtr: Long, enabled: Boolean)
     external fun processDirectBuffer(
         enginePtr: Long,
         buffer: ByteBuffer,

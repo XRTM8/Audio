@@ -105,6 +105,8 @@ fun SettingsSheet(
     onToggleAutoPreAmp: (Boolean) -> Unit = {},
     isLoudnessNormalizationEnabled: Boolean = false,
     onToggleLoudnessNormalization: (Boolean) -> Unit = {},
+    isCrossfeedEnabled: Boolean = false,
+    onToggleCrossfeed: (Boolean) -> Unit = {},
     crossfadeSeconds: Int = 0,
     onSetCrossfadeSeconds: (Int) -> Unit = {},
     isResumeOnHeadsetConnect: Boolean = false,
@@ -820,6 +822,43 @@ fun SettingsSheet(
                         Switch(
                             checked = isLoudnessNormalizationEnabled,
                             onCheckedChange = onToggleLoudnessNormalization,
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = AccentTitaniumWhite,
+                                checkedTrackColor = Color(0xFF2E2E3C),
+                                uncheckedThumbColor = TextSecondary,
+                                uncheckedTrackColor = Color(0xFF1B1B24)
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    HorizontalDivider(color = DarkCardBorder.copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Acoustic Crossfeed Switch
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                            Text(
+                                text = "المسرح الصوتي للسماعات (Acoustic Crossfeed)",
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "محاكاة مكبرات الصوت الطبيعية للحد من إرهاق السمع وتوسيع المسرح الصوتي عند استخدام السماعات",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary
+                            )
+                        }
+                        Switch(
+                            checked = isCrossfeedEnabled,
+                            onCheckedChange = onToggleCrossfeed,
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = AccentTitaniumWhite,
                                 checkedTrackColor = Color(0xFF2E2E3C),

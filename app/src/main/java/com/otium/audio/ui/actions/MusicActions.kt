@@ -44,7 +44,8 @@ data class EqualizerActions(
     val onReverbChange: (Int) -> Unit = {},
     val onReverbPresetChange: (String) -> Unit = {},
     val onChorusChange: (Int) -> Unit = {},
-    val onClarityChange: (Int) -> Unit = {}
+    val onClarityChange: (Int) -> Unit = {},
+    val onToggleCrossfeed: (Boolean) -> Unit = {}
 )
 
 @Immutable

@@ -1,6 +1,9 @@
 package com.otium.audio.ui.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -30,6 +33,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -121,7 +127,17 @@ fun LyricsSheet(
                     label = "lyric_color"
                 )
 
-                val fontSize = if (isActive) 24.sp else 18.sp
+                val haptic = LocalHapticFeedback.current
+                val lineScale by animateFloatAsState(
+                    targetValue = if (isActive) 1.05f else 1.0f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMediumLow
+                    ),
+                    label = "lyric_scale"
+                )
+
+                val fontSize = if (isActive) 23.sp else 17.5.sp
                 val fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium
 
                 Text(
@@ -133,8 +149,15 @@ fun LyricsSheet(
                     lineHeight = 32.sp,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .graphicsLayer {
+                            scaleX = lineScale
+                            scaleY = lineScale
+                        }
                         .clip(RoundedCornerShape(8.dp))
-                        .clickable { onSeekTo(line.timeMs) }
+                        .clickable {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onSeekTo(line.timeMs)
+                        }
                         .padding(vertical = 4.dp, horizontal = 8.dp)
                 )
             }

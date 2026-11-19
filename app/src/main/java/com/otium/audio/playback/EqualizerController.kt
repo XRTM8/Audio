@@ -52,6 +52,7 @@ data class EqualizerState(
     val reverbPreset: String = "Studio", // "Studio", "Room", "Hall", "Plate"
     val chorusStrength: Int = 0, // 0 to 100
     val clarityStrength: Int = 0, // 0 to 100
+    val isCrossfeedEnabled: Boolean = false,
     val currentPreset: String = "Flat",
     val presets: List<String> = listOf(
         "Flat",
@@ -104,6 +105,7 @@ class EqualizerController(
                 reverbPreset = saved.reverbPreset,
                 chorusStrength = saved.chorus,
                 clarityStrength = saved.clarity,
+                isCrossfeedEnabled = saved.isCrossfeed,
                 currentPreset = saved.preset ?: "Custom",
                 bands = DEFAULT_10_BANDS.mapIndexed { index, band ->
                     band.copy(levelDb = saved.bandLevels.getOrElse(index) { band.levelDb })
@@ -155,6 +157,7 @@ class EqualizerController(
                 reverbPreset = saved?.reverbPreset ?: "Studio",
                 chorusStrength = saved?.chorus ?: 0,
                 clarityStrength = saved?.clarity ?: 0,
+                isCrossfeedEnabled = saved?.isCrossfeed ?: false,
                 currentPreset = saved?.preset ?: "Flat"
             )
         }
@@ -388,6 +391,11 @@ class EqualizerController(
     fun setClarity(strength: Int) {
         val safeStrength = strength.coerceIn(0, 100)
         _state.update { it.copy(clarityStrength = safeStrength) }
+        store.save(currentDevice.key, _state.value)
+    }
+
+    fun setCrossfeed(enabled: Boolean) {
+        _state.update { it.copy(isCrossfeedEnabled = enabled) }
         store.save(currentDevice.key, _state.value)
     }
 

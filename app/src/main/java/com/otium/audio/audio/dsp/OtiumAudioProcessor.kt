@@ -332,6 +332,10 @@ class OtiumAudioProcessor(
                     clarityStrength = if (state.isEnabled) state.clarityStrength else 0,
                     isEnabled = state.isEnabled
                 )
+                NativeAudioDsp.setCrossfeed(
+                    enginePtr = nativeEnginePtr,
+                    enabled = state.isEnabled && state.isCrossfeedEnabled
+                )
             }
         }
     }
