@@ -741,7 +741,7 @@ fun NowPlayingScreen(
                             if (isLosslessOrHiRes) false
                             else {
                                 val spec = (audioSpecs ?: "").uppercase()
-                                spec.contains("320") || targetSong.bitrate >= 310_000
+                                spec.contains("320") || (targetSong.durationMs > 0 && (targetSong.size * 8000L / targetSong.durationMs) >= 300_000L)
                             }
                         }
 
