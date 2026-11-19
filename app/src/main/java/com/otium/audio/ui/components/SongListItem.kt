@@ -158,15 +158,6 @@ fun SongListItem(
             }
         } else null
     }
-    val onRowDoubleClick: (() -> Unit)? = remember(song, isSelectionMode, onDoubleClick) {
-        if (onDoubleClick != null && !isSelectionMode) {
-            {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onDoubleClick(song)
-            }
-        } else null
-    }
-
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -199,7 +190,7 @@ fun SongListItem(
                 indication = null,
                 onClick = onRowClick,
                 onLongClick = onRowLongClick,
-                onDoubleClick = onRowDoubleClick
+                onDoubleClick = null // Set null to eliminate Compose double-tap timeout; double click is handled with 0ms delay at controller level
             )
             .padding(
                 start = if (isCurrentSong) 16.dp else 14.dp,

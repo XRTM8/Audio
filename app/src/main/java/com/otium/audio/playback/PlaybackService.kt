@@ -126,8 +126,8 @@ class PlaybackService : MediaSessionService() {
             ): AudioSink? {
                 val controller = (context.applicationContext as OtiumApplication).equalizerController
                 val bufferSizeProvider = DefaultAudioTrackBufferSizeProvider.Builder()
-                    .setMinPcmBufferDurationUs(500_000)
-                    .setMaxPcmBufferDurationUs(2_000_000)
+                    .setMinPcmBufferDurationUs(150_000)
+                    .setMaxPcmBufferDurationUs(1_500_000)
                     .build()
 
                 val isFloatEnabled = PlaybackPersistence(context).isHiResFloatOutputEnabled()
@@ -144,15 +144,14 @@ class PlaybackService : MediaSessionService() {
             setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF)
         }
 
-        // Ultra-low latency local audio playback buffer configuration.
-        // bufferForPlaybackMs reduced from 2,500ms to 250ms for instantaneous sub-20ms track flipping,
-        // eliminating the audible stalling gap when skipping songs.
+        // Instantaneous local audio playback buffer configuration.
+        // bufferForPlaybackMs reduced to 100ms for immediate sub-frame audio playback response.
         val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()
             .setBufferDurationsMs(
-                /* minBufferMs = */ 15_000,
-                /* maxBufferMs = */ 50_000,
-                /* bufferForPlaybackMs = */ 250,
-                /* bufferForPlaybackAfterRebufferMs = */ 1_000
+                /* minBufferMs = */ 10_000,
+                /* maxBufferMs = */ 40_000,
+                /* bufferForPlaybackMs = */ 100,
+                /* bufferForPlaybackAfterRebufferMs = */ 500
             )
             .setPrioritizeTimeOverSizeThresholds(true)
             .setBackBuffer(/* backBufferMs = */ 10_000, /* retainBackBufferFromKeyframe = */ true)

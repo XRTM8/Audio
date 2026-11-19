@@ -59,6 +59,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -589,32 +590,41 @@ fun HomeScreen(
                             onCreatePlaylistClick = { showCreatePlaylistDialog = true }
                         )
                     } else {
-                        // High-performance single master song list
+                        // High-performance single master song list with immediate 0ms click response
+                        var lastSongClickTime by remember { mutableLongStateOf(0L) }
+                        var lastSongClickId by remember { mutableLongStateOf(-1L) }
+
                         val handleSongClick = remember(displayedSongs, uiState.playbackState, onSongSelected, onOpenNowPlaying) {
                             { song: Song ->
+                                val now = android.os.SystemClock.uptimeMillis()
                                 val isThisSongPlaying = uiState.playbackState.isPlaying && uiState.playbackState.currentSong?.id == song.id
                                 if (isThisSongPlaying) {
-                                    // إذا الأغنية مشتغلة: ضغطة وحدة تكبّرها وتفتحها كنافذة كبيرة
+                                    // إذا الأغنية مشتغلة: ضغطة وحدة تفتحها كنافذة كبيرة فوراً
                                     onOpenNowPlaying()
                                 } else {
-                                    // إذا ممشتغلة: نقرة تشغل الأغنية بشكل مصغر
-                                    onSongSelected(song, displayedSongs)
+                                    val isQuickDoubleClick = (song.id == lastSongClickId) && (now - lastSongClickTime < 450L)
+                                    if (isQuickDoubleClick) {
+                                        // ضغطتين متتاليتين على أغنية غير مشتغلة: تشغيلها وفتح نافذة كبيرة فوراً
+                                        onSongSelected(song, displayedSongs)
+                                        onOpenNowPlaying()
+                                        lastSongClickTime = 0L
+                                        lastSongClickId = -1L
+                                    } else {
+                                        // نقرة واحدة: تشغيل فوري بدون أي تأخير إطلاقاً (0ms latency!)
+                                        onSongSelected(song, displayedSongs)
+                                        lastSongClickTime = now
+                                        lastSongClickId = song.id
+                                    }
                                 }
                             }
                         }
-                        val handleSongDoubleClick = remember(displayedSongs, onSongSelected, onOpenNowPlaying) {
-                            { song: Song ->
-                                // ضغطتين: تشغيل وفتح بشكل نافذة كبيرة
-                                onSongSelected(song, displayedSongs)
-                                onOpenNowPlaying()
-                            }
-                        }
+
                         MasterSongListView(
                             songs = displayedSongs,
                             currentSong = uiState.playbackState.currentSong,
                             isPlaying = uiState.playbackState.isPlaying,
                             onSongClick = handleSongClick,
-                            onSongDoubleClick = handleSongDoubleClick,
+                            onSongDoubleClick = null,
                             onFavoriteClick = onFavoriteToggle,
                             onEditTagClick = onEditTagClick,
                             onSongLongPress = {
