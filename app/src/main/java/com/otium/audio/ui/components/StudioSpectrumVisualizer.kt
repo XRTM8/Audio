@@ -25,11 +25,12 @@ fun StudioSpectrumVisualizer(
     accentColor: Color,
     modifier: Modifier = Modifier
 ) {
+    val spectrum by VisualizerBridge.spectrumBands.collectAsState()
     val activeColors = remember(accentColor) { listOf(Color.White, accentColor.copy(alpha = 0.85f)) }
     val inactiveColors = remember { listOf(Color(0x33FFFFFF), Color(0x1AFFFFFF)) }
+    val smoothedBands = remember { FloatArray(16) { 0.08f } }
 
     Canvas(modifier = modifier) {
-        val spectrum = VisualizerBridge.spectrumBands.value
         val totalWidth = size.width
         val totalHeight = size.height
         val barCount = 16
@@ -37,16 +38,31 @@ fun StudioSpectrumVisualizer(
         val barWidth = ((totalWidth - gap * (barCount - 1)) / barCount).coerceAtLeast(2.5f)
         val radius = CornerRadius(barWidth / 2f, barWidth / 2f)
 
+        val hasEnergy = spectrum.any { it > 0.005f }
+        val active = isPlaying && hasEnergy
+
         val barBrush = Brush.verticalGradient(
-            colors = if (isPlaying) activeColors else inactiveColors,
+            colors = if (active) activeColors else inactiveColors,
             startY = 0f,
             endY = totalHeight
         )
 
         for (i in 0 until barCount) {
-            val rawMag = if (isPlaying && spectrum.size > i) spectrum[i] else 0f
-            val mag = (rawMag * 1.85f).coerceIn(0.08f, 1f)
-            val barHeight = totalHeight * mag
+            val rawMag = if (active && spectrum.size > i) spectrum[i] else 0f
+            // Logarithmic tilt / pink-noise pre-emphasis: balances mid and treble energy against dominant bass
+            val tilt = 1.0f + (i.toFloat() / (barCount - 1).coerceAtLeast(1)) * 2.2f
+            val targetMag = (rawMag * tilt * 2.2f).coerceIn(0.08f, 1f)
+
+            // Analog ballistic envelope: instantaneous attack for transients, smooth exponential decay for musical feel
+            val prev = smoothedBands[i]
+            val smoothed = if (targetMag >= prev) {
+                targetMag
+            } else {
+                (prev * 0.84f + targetMag * 0.16f).coerceAtLeast(0.08f)
+            }
+            smoothedBands[i] = smoothed
+
+            val barHeight = totalHeight * smoothed
             val left = i * (barWidth + gap)
             val top = totalHeight - barHeight
 

@@ -346,7 +346,7 @@ fun TrackSlider(
                             .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = "-10 ث",
+                            text = "\u200E-10 ث",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 11.5.sp
@@ -371,7 +371,7 @@ fun TrackSlider(
                             .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = "+10 ث",
+                            text = "\u200E+10 ث",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 11.5.sp

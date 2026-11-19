@@ -314,6 +314,7 @@ class MainActivity : ComponentActivity() {
                         if (showHomeEqualizer) {
                             EqualizerSheet(
                                 state = uiState.equalizerState,
+                                isPlaying = uiState.playbackState.isPlaying,
                                 onToggleEnabled = equalizerActions.onToggle,
                                 onBandLevelChange = equalizerActions.onBandLevelChange,
                                 onBassBoostChange = equalizerActions.onBassBoostChange,

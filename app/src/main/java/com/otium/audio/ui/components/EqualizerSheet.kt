@@ -62,6 +62,7 @@ import java.util.Locale
 @Composable
 fun EqualizerSheet(
     state: EqualizerState,
+    isPlaying: Boolean = true,
     onToggleEnabled: (Boolean) -> Unit,
     onBandLevelChange: (Short, Float) -> Unit,
     onBassBoostChange: (Int) -> Unit,
@@ -247,7 +248,7 @@ fun EqualizerSheet(
                 }
                 Spacer(modifier = Modifier.height(10.dp))
                 StudioSpectrumVisualizer(
-                    isPlaying = state.isEnabled,
+                    isPlaying = isPlaying,
                     accentColor = AccentTitaniumWhite,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -656,8 +657,12 @@ fun EqualizerSheet(
                     }
                     Switch(
                         checked = state.isCrossfeedEnabled,
-                        onCheckedChange = onToggleCrossfeed,
-                        enabled = state.isEnabled,
+                        onCheckedChange = { isChecked ->
+                            if (isChecked && !state.isEnabled) {
+                                onToggleEnabled(true)
+                            }
+                            onToggleCrossfeed(isChecked)
+                        },
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = AccentTitaniumWhite,
                             checkedTrackColor = Color(0xFF2E2E3C),

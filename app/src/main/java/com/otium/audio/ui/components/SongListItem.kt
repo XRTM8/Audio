@@ -349,9 +349,9 @@ fun SongListItem(
  */
 @Composable
 fun MiniEqBars(modifier: Modifier = Modifier) {
+    val spectrum by VisualizerBridge.spectrumBands.collectAsState()
     Canvas(modifier = modifier.size(width = 16.dp, height = 13.dp)) {
-        val spectrum = VisualizerBridge.spectrumBands.value
-        val hasLiveAudio = spectrum.isNotEmpty() && (spectrum[0] > 0.005f || spectrum[2] > 0.005f)
+        val hasLiveAudio = spectrum.isNotEmpty() && spectrum.any { it > 0.005f }
         val totalWidth = size.width
         val totalHeight = size.height
         val barCount = 4
@@ -362,10 +362,10 @@ fun MiniEqBars(modifier: Modifier = Modifier) {
 
         val c = Color.White
 
-        val v1 = if (hasLiveAudio) (spectrum.getOrElse(0) { 0.25f } * 1.5f).coerceIn(0.12f, 1f) else 0.35f
-        val v2 = if (hasLiveAudio) (spectrum.getOrElse(2) { 0.55f } * 1.5f).coerceIn(0.12f, 1f) else 0.70f
-        val v3 = if (hasLiveAudio) (spectrum.getOrElse(5) { 0.40f } * 1.5f).coerceIn(0.12f, 1f) else 0.50f
-        val v4 = if (hasLiveAudio) (spectrum.getOrElse(8) { 0.65f } * 1.5f).coerceIn(0.12f, 1f) else 0.85f
+        val v1 = if (hasLiveAudio) (spectrum.getOrElse(1) { 0.25f } * 2.0f).coerceIn(0.15f, 1f) else 0.35f
+        val v2 = if (hasLiveAudio) (spectrum.getOrElse(3) { 0.55f } * 2.2f).coerceIn(0.15f, 1f) else 0.70f
+        val v3 = if (hasLiveAudio) (spectrum.getOrElse(6) { 0.40f } * 2.5f).coerceIn(0.15f, 1f) else 0.50f
+        val v4 = if (hasLiveAudio) (spectrum.getOrElse(10) { 0.35f } * 2.8f).coerceIn(0.15f, 1f) else 0.85f
 
         val h1 = totalHeight * v1
         drawRoundRect(color = c, topLeft = Offset(0f, totalHeight - h1), size = Size(barWidth, h1), cornerRadius = radius)

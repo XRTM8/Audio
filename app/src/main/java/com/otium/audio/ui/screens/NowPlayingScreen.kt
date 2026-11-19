@@ -216,6 +216,7 @@ fun NowPlayingScreen(
     onReverbPresetChange = equalizerActions.onReverbPresetChange,
     onChorusChange = equalizerActions.onChorusChange,
     onClarityChange = equalizerActions.onClarityChange,
+    onToggleCrossfeed = equalizerActions.onToggleCrossfeed,
     onPlayQueueIndex = queueActions.onPlayQueueIndex,
     onRemoveQueueItem = queueActions.onRemoveQueueItem,
     onMoveQueueItem = queueActions.onMoveQueueItem,
@@ -262,6 +263,7 @@ fun NowPlayingScreen(
     onReverbPresetChange: (String) -> Unit = {},
     onChorusChange: (Int) -> Unit = {},
     onClarityChange: (Int) -> Unit = {},
+    onToggleCrossfeed: (Boolean) -> Unit = {},
     onPlayQueueIndex: (Int) -> Unit = {},
     onRemoveQueueItem: (Int) -> Unit = {},
     onMoveQueueItem: (Int, Int) -> Unit = { _, _ -> },
@@ -726,9 +728,21 @@ fun NowPlayingScreen(
                         val isLosslessOrHiRes = remember(targetSong, audioSpecs) {
                             val badge = targetSong.audioFormatBadge.uppercase()
                             val spec = (audioSpecs ?: "").uppercase()
-                            badge in listOf("FLAC", "WAV", "ALAC", "AIFF", "DSD") ||
-                                spec.contains("FLAC") || spec.contains("WAV") || spec.contains("DSD") ||
-                                spec.contains("96.0") || spec.contains("192.0") || spec.contains("88.2") || spec.contains("48.0")
+                            val isLossy = badge in listOf("MP3", "MPEG", "AAC", "OGG", "OPUS", "M4A") ||
+                                spec.contains("MPEG") || spec.contains("MP3") || spec.contains("AAC") || spec.contains("VORBIS")
+                            val isLosslessCodec = badge in listOf("FLAC", "WAV", "ALAC", "AIFF", "DSD") ||
+                                spec.contains("FLAC") || spec.contains("WAV") || spec.contains("DSD") || spec.contains("ALAC")
+                            val isHiResRate = spec.contains("96.0") || spec.contains("192.0") || spec.contains("88.2") ||
+                                spec.contains("176.4") || spec.contains("384.0") || spec.contains("24-BIT") || spec.contains("32-BIT")
+
+                            !isLossy && (isLosslessCodec || isHiResRate)
+                        }
+                        val isHqAudio = remember(targetSong, audioSpecs, isLosslessOrHiRes) {
+                            if (isLosslessOrHiRes) false
+                            else {
+                                val spec = (audioSpecs ?: "").uppercase()
+                                spec.contains("320") || targetSong.bitrate >= 310_000
+                            }
                         }
 
                         if (displaySpecs.isNotBlank()) {
@@ -774,6 +788,24 @@ fun NowPlayingScreen(
                                                 letterSpacing = 0.6.sp
                                             ),
                                             color = AccentGold
+                                        )
+                                    }
+                                } else if (isHqAudio) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(3.dp))
+                                            .background(Color(0xFF2A2A38))
+                                            .border(0.5.dp, Color(0xFF4E4E68), RoundedCornerShape(3.dp))
+                                            .padding(horizontal = 4.dp, vertical = 1.dp)
+                                    ) {
+                                        Text(
+                                            text = "HQ AUDIO",
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontSize = 8.5.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                letterSpacing = 0.6.sp
+                                            ),
+                                            color = Color(0xFFE2E2EC)
                                         )
                                     }
                                 }
@@ -995,6 +1027,7 @@ fun NowPlayingScreen(
             if (showEqualizer) {
                 EqualizerSheet(
                     state = equalizerState,
+                    isPlaying = isPlaying,
                     onToggleEnabled = onToggleEqualizer,
                     onBandLevelChange = onEqualizerBandChange,
                     onBassBoostChange = onBassBoostChange,
@@ -1005,6 +1038,7 @@ fun NowPlayingScreen(
                     onReverbPresetChange = onReverbPresetChange,
                     onChorusChange = onChorusChange,
                     onClarityChange = onClarityChange,
+                    onToggleCrossfeed = onToggleCrossfeed,
                     onDismiss = { showEqualizer = false }
                 )
             }
