@@ -31,17 +31,21 @@ jobs:
         with:
           targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
 
+      - name: Cache cargo-ndk binary
+        id: cache-cargo-ndk
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/cargo-ndk
+          key: ${{ runner.os }}-cargo-ndk-v4
+
+      - name: Install cargo-ndk
+        if: steps.cache-cargo-ndk.outputs.cache-hit != 'true'
+        run: cargo install cargo-ndk
+
       - name: Cache Rust Dependencies
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: "rust/otium_dsp -> rust/otium_dsp/target"
-
-      - name: Install cargo-ndk (Prebuilt Binary)
-        run: |
-          mkdir -p ~/.cargo/bin
-          curl -sSL "https://github.com/bbqsrc/cargo-ndk/releases/download/v4.1.2/cargo-ndk-x86_64-unknown-linux-musl-v4.1.2.tgz" | tar -xz -C ~/.cargo/bin
-          chmod +x ~/.cargo/bin/cargo-ndk
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
       - name: Build Rust Native DSP Engine (libotium_dsp.so)
         working-directory: rust/otium_dsp
