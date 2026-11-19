@@ -790,7 +790,7 @@ fun NowPlayingScreen(
                     durationMs = durationMs,
                     onSeekTo = onSeekTo,
                     onSeekBy = onSeekBy,
-                    waveformSeed = targetSong.id,
+                    waveformSeed = song.id,
                     modifier = Modifier.padding(horizontal = 20.dp)
                 )
 

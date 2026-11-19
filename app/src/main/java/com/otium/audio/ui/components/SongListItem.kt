@@ -64,6 +64,8 @@ import com.otium.audio.ui.theme.TextPrimary
 import com.otium.audio.ui.theme.TextSecondary
 import com.otium.audio.ui.theme.TextTertiary
 
+private val EmptyRowInteractionSource = MutableInteractionSource()
+
 
 private val TitleStyleRegular = TextStyle(
     fontWeight = FontWeight.Medium,
