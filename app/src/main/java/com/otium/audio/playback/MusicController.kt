@@ -234,11 +234,36 @@ class MusicController(
         progressTrackingJob = null
     }
 
-    fun playSong(song: Song, playlist: List<Song>) {
+    fun playSong(song: Song, playlist: List<Song>, forceRestart: Boolean = false) {
         val controller = mediaController ?: return
 
         val songIndex = playlist.indexOfFirst { it.id == song.id }
         if (songIndex == -1) return
+
+        val currentMediaId = controller.currentMediaItem?.mediaId
+        val isSameSong = (currentMediaId != null && currentMediaId == song.id.toString()) ||
+            (_playbackState.value.currentSong?.id == song.id)
+
+        val isEnded = controller.playbackState == Player.STATE_ENDED ||
+            (controller.duration > 0 && controller.currentPosition >= controller.duration - 500L)
+
+        if (isSameSong && !forceRestart && !isEnded) {
+            if (currentPlaylistSongs.isEmpty() && playlist.isNotEmpty()) {
+                currentPlaylistSongs = playlist
+            }
+            if (!controller.isPlaying) {
+                controller.play()
+            }
+            _playbackState.update {
+                it.copy(
+                    currentSong = song,
+                    isPlaying = true,
+                    durationMs = if (controller.duration > 0) controller.duration else song.durationMs,
+                    queue = if (it.queue.isEmpty()) playlist else it.queue
+                )
+            }
+            return
+        }
 
         // Fast path: if the requested song is in the already-loaded queue, seek directly without rebuilding the queue
         val isSameQueue = controller.mediaItemCount == playlist.size &&

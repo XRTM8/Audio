@@ -579,11 +579,21 @@ fun HomeScreen(
                         )
                     } else {
                         // High-performance single master song list
-                        val handleSongClick = remember(displayedSongs, onSongSelected) {
-                            { song: Song -> onSongSelected(song, displayedSongs) }
+                        val handleSongClick = remember(displayedSongs, uiState.playbackState, onSongSelected, onOpenNowPlaying) {
+                            { song: Song ->
+                                val isThisSongPlaying = uiState.playbackState.isPlaying && uiState.playbackState.currentSong?.id == song.id
+                                if (isThisSongPlaying) {
+                                    // إذا الأغنية مشتغلة: ضغطة وحدة تكبّرها وتفتحها كنافذة كبيرة
+                                    onOpenNowPlaying()
+                                } else {
+                                    // إذا ممشتغلة: نقرة تشغل الأغنية بشكل مصغر
+                                    onSongSelected(song, displayedSongs)
+                                }
+                            }
                         }
                         val handleSongDoubleClick = remember(displayedSongs, onSongSelected, onOpenNowPlaying) {
                             { song: Song ->
+                                // ضغطتين: تشغيل وفتح بشكل نافذة كبيرة
                                 onSongSelected(song, displayedSongs)
                                 onOpenNowPlaying()
                             }
@@ -591,6 +601,7 @@ fun HomeScreen(
                         MasterSongListView(
                             songs = displayedSongs,
                             currentSong = uiState.playbackState.currentSong,
+                            isPlaying = uiState.playbackState.isPlaying,
                             onSongClick = handleSongClick,
                             onSongDoubleClick = handleSongDoubleClick,
                             onFavoriteClick = onFavoriteToggle,
@@ -718,6 +729,7 @@ fun HomeScreen(
 private fun MasterSongListView(
     songs: List<Song>,
     currentSong: Song?,
+    isPlaying: Boolean = false,
     onSongClick: (Song) -> Unit,
     onSongDoubleClick: ((Song) -> Unit)? = null,
     onFavoriteClick: (Song) -> Unit,
@@ -758,11 +770,12 @@ private fun MasterSongListView(
                 key = { it.id },
                 contentType = { "audiophile_song_row" }
             ) { song ->
+                val isThisSongPlaying = isPlaying && currentSong?.id == song.id
                 SongListItem(
                     song = song,
                     isCurrentSong = currentSong?.id == song.id,
                     onSongClick = onSongClick,
-                    onDoubleClick = onSongDoubleClick,
+                    onDoubleClick = if (isThisSongPlaying) null else onSongDoubleClick,
                     onFavoriteClick = onFavoriteClick,
                     onEditTagClick = onEditTagClick,
                     onLongClick = onSongLongPress,

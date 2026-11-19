@@ -300,9 +300,9 @@ class MusicViewModel(
 
     // --- Playback ----------------------------------------------------------
 
-    fun playSong(song: Song, playlist: List<Song>) {
+    fun playSong(song: Song, playlist: List<Song>, forceRestart: Boolean = false) {
         sessionRestored = true
-        musicController.playSong(song, playlist)
+        musicController.playSong(song, playlist, forceRestart)
     }
     fun togglePlayPause() = musicController.togglePlayPause()
     fun seekTo(positionMs: Long) = musicController.seekTo(positionMs)

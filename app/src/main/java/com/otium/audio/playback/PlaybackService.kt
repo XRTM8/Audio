@@ -34,8 +34,12 @@ import com.otium.audio.R
 import com.otium.audio.ui.MainActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 class PlaybackService : MediaSessionService() {
 
@@ -43,6 +47,18 @@ class PlaybackService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
     private lateinit var player: ExoPlayer
     private var activeAudioSessionId: Int = C.AUDIO_SESSION_ID_UNSET
+    private var servicePositionJob: Job? = null
+
+    private fun savePlaybackSession(sync: Boolean = false) {
+        if (!::player.isInitialized) return
+        val pos = player.currentPosition.coerceAtLeast(0L)
+        val index = player.currentMediaItemIndex
+        val persistence = PlaybackPersistence(this)
+        persistence.savePosition(pos, sync = sync)
+        if (index >= 0) {
+            persistence.saveIndex(index, sync = sync)
+        }
+    }
 
     private val headsetReceiver = object : android.content.BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -252,6 +268,7 @@ class PlaybackService : MediaSessionService() {
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
+        savePlaybackSession(sync = true)
         val activePlayer = mediaSession?.player
         if (activePlayer == null || !activePlayer.playWhenReady || activePlayer.mediaItemCount == 0) {
             stopSelf()
@@ -259,6 +276,9 @@ class PlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        savePlaybackSession(sync = true)
+        servicePositionJob?.cancel()
+        servicePositionJob = null
         runCatching { unregisterReceiver(headsetReceiver) }
         VisualizerBridge.stopWorker()
         serviceScope.cancel()
@@ -340,8 +360,21 @@ class PlaybackService : MediaSessionService() {
             if (isPlaying) {
                 consecutiveErrors = 0
                 VisualizerBridge.startWorker(serviceScope)
+                servicePositionJob?.cancel()
+                servicePositionJob = serviceScope.launch {
+                    while (isActive) {
+                        delay(2500L)
+                        if (::player.isInitialized && player.isPlaying) {
+                            val pos = player.currentPosition.coerceAtLeast(0L)
+                            PlaybackPersistence(this@PlaybackService).savePosition(pos)
+                        }
+                    }
+                }
             } else {
                 VisualizerBridge.stopWorker()
+                servicePositionJob?.cancel()
+                servicePositionJob = null
+                savePlaybackSession(sync = true)
             }
             updateWidgetState()
             val currentId = player.audioSessionId
@@ -352,6 +385,7 @@ class PlaybackService : MediaSessionService() {
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             super.onMediaItemTransition(mediaItem, reason)
+            savePlaybackSession(sync = false)
             updateWidgetState()
             val currentId = player.audioSessionId
             if (currentId > 0 && currentId != C.AUDIO_SESSION_ID_UNSET && currentId != activeAudioSessionId) {

@@ -19,12 +19,14 @@ class PlaybackPersistence(private val context: Context) {
             .apply()
     }
 
-    fun saveIndex(index: Int) {
-        prefs.edit().putInt(KEY_INDEX, index).apply()
+    fun saveIndex(index: Int, sync: Boolean = false) {
+        val editor = prefs.edit().putInt(KEY_INDEX, index)
+        if (sync) editor.commit() else editor.apply()
     }
 
-    fun savePosition(positionMs: Long) {
-        prefs.edit().putLong(KEY_POSITION, positionMs).apply()
+    fun savePosition(positionMs: Long, sync: Boolean = false) {
+        val editor = prefs.edit().putLong(KEY_POSITION, positionMs)
+        if (sync) editor.commit() else editor.apply()
     }
 
     fun saveSkipSilence(enabled: Boolean) {
