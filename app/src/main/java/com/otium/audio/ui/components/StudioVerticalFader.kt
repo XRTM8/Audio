@@ -99,6 +99,7 @@ fun StudioVerticalFader(
     val isNonZero = abs(clampedValue - centerDetent) > 0.1f
     val isBoost = clampedValue > centerDetent + 0.1f
     val isCut = clampedValue < centerDetent - 0.1f
+    val isDark = LocalOtiumColors.current.isDark
 
     Column(
         modifier = modifier.width(42.dp),
@@ -199,7 +200,6 @@ fun StudioVerticalFader(
             val currentThumbY = thumbHeightPx / 2f + (1f - fractionFromBottom) * trackHeightPx
             val centerX = widthPx / 2f
 
-            val isDark = LocalOtiumColors.current.isDark
             val cyanColor = AccentCyan
             val titaniumWhiteColor = AccentTitaniumWhite
             val activeFillColor = if (isBoost) activeColor else cyanColor

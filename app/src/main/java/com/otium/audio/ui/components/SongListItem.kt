@@ -59,6 +59,7 @@ import androidx.compose.ui.text.SpanStyle
 import com.otium.audio.ui.theme.DarkCardBorder
 import com.otium.audio.ui.theme.DarkSurface
 import com.otium.audio.ui.theme.DarkSurfaceContainer
+import com.otium.audio.ui.theme.LocalOtiumColors
 import com.otium.audio.ui.theme.ErrorRed
 import com.otium.audio.ui.theme.TextPrimary
 import com.otium.audio.ui.theme.TextSecondary
@@ -168,6 +169,8 @@ fun SongListItem(
     val goldColor = AccentGold
     val activeIndicatorColor = AccentTitaniumWhite
     val highlightColor = SearchHighlightAmber
+    val titleDefaultColor = if (isCurrentSong) AccentTitaniumWhite else TextPrimary
+    val subtitleDefaultColor = TextSecondary
 
     Row(
         modifier = modifier
@@ -252,11 +255,11 @@ fun SongListItem(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.Center
         ) {
-            val titleAnnotated = remember(song.displayTitle, searchQuery, isCurrentSong, highlightColor) {
+            val titleAnnotated = remember(song.displayTitle, searchQuery, titleDefaultColor, highlightColor) {
                 buildHighlightedText(
                     text = song.displayTitle,
                     query = searchQuery,
-                    defaultColor = if (isCurrentSong) AccentTitaniumWhite else TextPrimary,
+                    defaultColor = titleDefaultColor,
                     highlightColor = highlightColor
                 )
             }
@@ -286,11 +289,11 @@ fun SongListItem(
 
                 Spacer(modifier = Modifier.width(6.dp))
 
-                val subtitleAnnotated = remember(song.subtitle, searchQuery, highlightColor) {
+                val subtitleAnnotated = remember(song.subtitle, searchQuery, subtitleDefaultColor, highlightColor) {
                     buildHighlightedText(
                         text = song.subtitle,
                         query = searchQuery,
-                        defaultColor = TextSecondary,
+                        defaultColor = subtitleDefaultColor,
                         highlightColor = highlightColor
                     )
                 }
