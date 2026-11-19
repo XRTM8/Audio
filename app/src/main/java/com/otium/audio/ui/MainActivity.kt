@@ -83,7 +83,8 @@ class MainActivity : ComponentActivity() {
                     // "this is active" reads it, everything else stays neutral.
                     val playing = uiState.playbackState.currentSong
                     LaunchedEffect(playing?.albumArtUri) {
-                        val art = playing?.albumArtUri ?: return@LaunchedEffect
+                        val art = playing?.albumArtUri
+                        if (art == null || art == android.net.Uri.EMPTY) return@LaunchedEffect
                         val colors = PaletteManager.extractColors(this@MainActivity, art)
                         OtiumAccent.color = colors.vibrant.asReadableAccent()
                     }

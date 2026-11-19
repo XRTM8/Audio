@@ -79,7 +79,6 @@ private val SubtitleStyle = TextStyle(
     textDirection = TextDirection.ContentOrLtr,
     fontSize = 11.5.sp
 )
-private val EmptyRowInteractionSource = MutableInteractionSource()
 private val failedArtUris: MutableSet<android.net.Uri> = java.util.Collections.synchronizedSet(HashSet<android.net.Uri>())
 
 /**
@@ -196,7 +195,7 @@ fun SongListItem(
                 )
             }
             .combinedClickable(
-                interactionSource = EmptyRowInteractionSource,
+                interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = onRowClick,
                 onLongClick = onRowLongClick,

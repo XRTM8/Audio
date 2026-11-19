@@ -765,17 +765,16 @@ private fun MasterSongListView(
                 .fillMaxSize()
                 .padding(end = if (hasScroller) 14.dp else 0.dp)
         ) {
-            items(
+            itemsIndexed(
                 items = songs,
-                key = { it.id },
-                contentType = { "audiophile_song_row" }
-            ) { song ->
-                val isThisSongPlaying = isPlaying && currentSong?.id == song.id
+                key = { index, song -> "${song.id}_$index" },
+                contentType = { _, _ -> "audiophile_song_row" }
+            ) { _, song ->
                 SongListItem(
                     song = song,
                     isCurrentSong = currentSong?.id == song.id,
                     onSongClick = onSongClick,
-                    onDoubleClick = if (isThisSongPlaying) null else onSongDoubleClick,
+                    onDoubleClick = onSongDoubleClick,
                     onFavoriteClick = onFavoriteClick,
                     onEditTagClick = onEditTagClick,
                     onLongClick = onSongLongPress,

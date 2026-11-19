@@ -94,6 +94,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -367,10 +368,11 @@ fun NowPlayingScreen(
         playlist.indexOfFirst { it.id == song.id }.coerceAtLeast(0)
     }
 
-    val pagerState = rememberPagerState(
-        initialPage = currentTrackIndex.coerceIn(0, (playlist.size - 1).coerceAtLeast(0))
-    ) {
-        playlist.size
+    val safeInitialPage = currentTrackIndex.coerceIn(0, (playlist.size - 1).coerceAtLeast(0))
+    val pagerState = key(playlist.size) {
+        rememberPagerState(initialPage = safeInitialPage) {
+            playlist.size.coerceAtLeast(1)
+        }
     }
 
     val fastSnapFlingBehavior = PagerDefaults.flingBehavior(
@@ -381,36 +383,38 @@ fun NowPlayingScreen(
         )
     )
 
-    var userSelectedTrackIndex by remember { mutableIntStateOf(-1) }
-
-    // External change (e.g. queue sheet tap, skip next/prev buttons, track completion)
+    // External change (e.g. skip next/prev buttons, queue sheet tap, or track completion)
     LaunchedEffect(currentTrackIndex) {
-        if (currentTrackIndex == userSelectedTrackIndex) {
-            // Initiated by user swipe in this pager; do not fight user gesture!
-            return@LaunchedEffect
-        }
-        userSelectedTrackIndex = -1
-        if (playlist.isNotEmpty() &&
-            currentTrackIndex in playlist.indices &&
+        if (currentTrackIndex in playlist.indices &&
             pagerState.currentPage != currentTrackIndex &&
             !pagerState.isScrollInProgress
         ) {
-            pagerState.scrollToPage(currentTrackIndex)
+            runCatching {
+                pagerState.scrollToPage(currentTrackIndex)
+            }
         }
     }
 
-    // Gesture settlement on a new page -> switch track immediately
+    // Gesture settlement on a new page -> switch track immediately only after active user swipe
     LaunchedEffect(pagerState) {
-        snapshotFlow { pagerState.settledPage }.collect { settledPage ->
-            if (playlist.isNotEmpty() &&
-                settledPage in playlist.indices &&
-                playlist[settledPage].id != song.id
-            ) {
-                userSelectedTrackIndex = settledPage
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                onPlayQueueIndex(settledPage)
+        var wasScrolling = false
+        snapshotFlow { pagerState.isScrollInProgress to pagerState.settledPage }
+            .collect { (isScrolling, settledPage) ->
+                if (isScrolling) {
+                    wasScrolling = true
+                } else if (wasScrolling) {
+                    wasScrolling = false
+                    if (playlist.isNotEmpty() &&
+                        settledPage in playlist.indices &&
+                        playlist[settledPage].id != song.id
+                    ) {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        runCatching {
+                            onPlayQueueIndex(settledPage)
+                        }
+                    }
+                }
             }
-        }
     }
 
     val playBtnScale by animateFloatAsState(
@@ -426,21 +430,15 @@ fun NowPlayingScreen(
 
     // Always reset drag offset clean to 0 when entering composition or when song changes
     LaunchedEffect(song.id) {
-        dragY.snapTo(0f)
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            scope.launch { dragY.snapTo(0f) }
+        runCatching { dragY.snapTo(0f) }
+        if (currentTrackIndex in playlist.indices && pagerState.currentPage != currentTrackIndex) {
+            runCatching { pagerState.scrollToPage(currentTrackIndex) }
         }
     }
 
     fun triggerDismiss() {
         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
         onCollapse()
-        scope.launch {
-            dragY.snapTo(0f)
-        }
     }
 
     val verticalDraggableState = rememberDraggableState { delta ->
@@ -558,7 +556,7 @@ fun NowPlayingScreen(
                                     pageSpacing = 16.dp,
                                     beyondViewportPageCount = 1,
                                     key = { page ->
-                                        if (page in playlist.indices) playlist[page].id else page
+                                        if (page in playlist.indices) "${playlist[page].id}_$page" else "$page"
                                     }
                                 ) { page ->
                                     val pageSong = playlist.getOrElse(page) { song }

@@ -37,6 +37,7 @@ object PaletteManager {
     fun getCached(key: String): TrackColors? = synchronized(colorCache) { colorCache.get(key) }
 
     suspend fun extractColors(context: Context, albumArtUri: Uri): TrackColors = withContext(Dispatchers.IO) {
+        if (albumArtUri == Uri.EMPTY || albumArtUri.toString().isBlank()) return@withContext TrackColors()
         val key = albumArtUri.toString()
         synchronized(colorCache) { colorCache.get(key) }?.let { return@withContext it }
 
