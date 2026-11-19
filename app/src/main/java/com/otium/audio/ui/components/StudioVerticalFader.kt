@@ -42,8 +42,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.otium.audio.ui.theme.AccentCyan
 import com.otium.audio.ui.theme.AccentTitaniumWhite
+import com.otium.audio.ui.theme.DarkCardBorder
 import com.otium.audio.ui.theme.DarkSheetCard
 import com.otium.audio.ui.theme.DarkSheetCardBorder
+import com.otium.audio.ui.theme.LocalOtiumColors
 import com.otium.audio.ui.theme.TextPrimary
 import com.otium.audio.ui.theme.TextSecondary
 import com.otium.audio.ui.theme.TextTertiary
@@ -197,13 +199,50 @@ fun StudioVerticalFader(
             val currentThumbY = thumbHeightPx / 2f + (1f - fractionFromBottom) * trackHeightPx
             val centerX = widthPx / 2f
 
+            val isDark = LocalOtiumColors.current.isDark
+            val cyanColor = AccentCyan
+            val titaniumWhiteColor = AccentTitaniumWhite
+            val activeFillColor = if (isBoost) activeColor else cyanColor
+            val grooveColor = if (isDark) Color(0xFF1B1B24) else Color(0xFFE2E6EC)
+            val notchColor = if (enabled) {
+                if (isDark) Color(0x66FFFFFF) else Color(0x66000000)
+            } else {
+                if (isDark) Color(0x2AFFFFFF) else Color(0x2A000000)
+            }
+            val tickColor = if (isDark) Color(0x22FFFFFF) else Color(0x20000000)
+            val capBaseColor = if (isDark) Color(0xFF09090D) else Color(0xFFCBD5E1)
+            val capBodyColor = if (enabled) {
+                if (isDragging) {
+                    if (isDark) Color(0xFF323242) else Color(0xFFE5E7EB)
+                } else {
+                    if (isDark) Color(0xFF232330) else Color(0xFFFFFFFF)
+                }
+            } else {
+                if (isDark) Color(0xFF191922) else Color(0xFFF1F5F9)
+            }
+            val capBorderColor = if (enabled) {
+                if (isDragging) {
+                    if (isDark) titaniumWhiteColor.copy(alpha = 0.8f) else Color(0xFF101217)
+                } else {
+                    if (isDark) Color(0xFF454558) else Color(0xFFCBD5E1)
+                }
+            } else {
+                if (isDark) Color(0xFF2C2C38) else Color(0xFFE2E8F0)
+            }
+            val lineIndicatorColor = when {
+                !enabled -> if (isDark) Color(0x44FFFFFF) else Color(0x44000000)
+                isBoost -> activeColor
+                isCut -> cyanColor
+                else -> if (isDark) Color.White else Color(0xFF101217)
+            }
+
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val trackGrooveWidth = 3.5.dp.toPx()
                 val trackRadius = CornerRadius(trackGrooveWidth / 2f, trackGrooveWidth / 2f)
 
                 // 1. Recessed Channel Track Groove
                 drawRoundRect(
-                    color = Color(0xFF1B1B24),
+                    color = grooveColor,
                     topLeft = Offset(centerX - trackGrooveWidth / 2f, thumbHeightPx / 2f),
                     size = Size(trackGrooveWidth, trackHeightPx),
                     cornerRadius = trackRadius
@@ -215,10 +254,8 @@ fun StudioVerticalFader(
                     val fillBottom = max(centerY, currentThumbY)
                     val fillHeight = (fillBottom - fillTop).coerceAtLeast(1f)
 
-                    val fillColor = if (isBoost) activeColor else AccentCyan
-
                     drawRoundRect(
-                        color = fillColor,
+                        color = activeFillColor,
                         topLeft = Offset(centerX - trackGrooveWidth / 2f, fillTop),
                         size = Size(trackGrooveWidth, fillHeight),
                         cornerRadius = trackRadius
@@ -229,7 +266,7 @@ fun StudioVerticalFader(
                 val notchWidth = 10.dp.toPx()
                 val notchHeight = 1.5.dp.toPx()
                 drawRoundRect(
-                    color = if (enabled) Color(0x66FFFFFF) else Color(0x2AFFFFFF),
+                    color = notchColor,
                     topLeft = Offset(centerX - notchWidth / 2f, centerY - notchHeight / 2f),
                     size = Size(notchWidth, notchHeight),
                     cornerRadius = CornerRadius(notchHeight / 2f, notchHeight / 2f)
@@ -242,12 +279,12 @@ fun StudioVerticalFader(
                 val bottomTickY = thumbHeightPx / 2f + (1f - ((-10f - valueRange.start) / rangeSpan)) * trackHeightPx
 
                 drawRect(
-                    color = Color(0x22FFFFFF),
+                    color = tickColor,
                     topLeft = Offset(centerX - tickWidth / 2f, topTickY - tickHeight / 2f),
                     size = Size(tickWidth, tickHeight)
                 )
                 drawRect(
-                    color = Color(0x22FFFFFF),
+                    color = tickColor,
                     topLeft = Offset(centerX - tickWidth / 2f, bottomTickY - tickHeight / 2f),
                     size = Size(tickWidth, tickHeight)
                 )
@@ -259,33 +296,23 @@ fun StudioVerticalFader(
 
                 // Cap Outer Shadow / Base
                 drawRoundRect(
-                    color = Color(0xFF09090D),
+                    color = capBaseColor,
                     topLeft = Offset(capLeft, capTop + 1.dp.toPx()),
                     size = Size(thumbWidthPx, thumbHeightPx),
                     cornerRadius = capCorner
                 )
 
                 // Cap Metallic Body
-                val capColor = if (enabled) {
-                    if (isDragging) Color(0xFF323242) else Color(0xFF232330)
-                } else {
-                    Color(0xFF191922)
-                }
                 drawRoundRect(
-                    color = capColor,
+                    color = capBodyColor,
                     topLeft = Offset(capLeft, capTop),
                     size = Size(thumbWidthPx, thumbHeightPx),
                     cornerRadius = capCorner
                 )
 
                 // Cap Hairline Rim Border
-                val borderColor = if (enabled) {
-                    if (isDragging) AccentTitaniumWhite.copy(alpha = 0.8f) else Color(0xFF454558)
-                } else {
-                    Color(0xFF2C2C38)
-                }
                 drawRoundRect(
-                    color = borderColor,
+                    color = capBorderColor,
                     topLeft = Offset(capLeft, capTop),
                     size = Size(thumbWidthPx, thumbHeightPx),
                     cornerRadius = capCorner,
@@ -293,12 +320,6 @@ fun StudioVerticalFader(
                 )
 
                 // Cap Center White Registration Hairline Indicator
-                val lineIndicatorColor = when {
-                    !enabled -> Color(0x44FFFFFF)
-                    isBoost -> activeColor
-                    isCut -> AccentCyan
-                    else -> Color.White
-                }
                 val indicatorWidth = thumbWidthPx - 6.dp.toPx()
                 val indicatorHeight = 2.dp.toPx()
                 drawRoundRect(
@@ -320,10 +341,16 @@ fun StudioVerticalFader(
             modifier = Modifier
                 .width(36.dp)
                 .clip(RoundedCornerShape(6.dp))
-                .background(if (isNonZero && enabled) Color(0x22FFFFFF) else Color(0x10FFFFFF))
+                .background(
+                    if (isNonZero && enabled) {
+                        if (isDark) Color(0x22FFFFFF) else Color(0x20000000)
+                    } else {
+                        if (isDark) Color(0x10FFFFFF) else Color(0xFFE2E6EC)
+                    }
+                )
                 .border(
                     width = 0.5.dp,
-                    color = if (isNonZero && enabled) AccentTitaniumWhite.copy(alpha = 0.35f) else Color(0x1AFFFFFF),
+                    color = if (isNonZero && enabled) AccentTitaniumWhite.copy(alpha = 0.35f) else DarkCardBorder,
                     shape = RoundedCornerShape(6.dp)
                 )
                 .padding(vertical = 3.dp),

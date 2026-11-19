@@ -216,7 +216,7 @@ fun SettingsSheet(
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
-                        .background(Color(0x14FFFFFF))
+                        .background(DarkSurfaceVariant)
                         .clickable { onDismiss() },
                     contentAlignment = Alignment.Center
                 ) {

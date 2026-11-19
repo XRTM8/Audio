@@ -44,4 +44,8 @@ interface AudioRepository {
     /** Minimum duration threshold for filtering audio tracks */
     fun getMinDurationSeconds(): Int
     fun setMinDurationSeconds(seconds: Int)
+
+    /** Theme Preference (Dark AMOLED vs Studio Light) */
+    fun isDarkMode(): Boolean
+    fun setDarkMode(enabled: Boolean)
 }

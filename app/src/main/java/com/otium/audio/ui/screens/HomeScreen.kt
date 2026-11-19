@@ -182,6 +182,7 @@ fun HomeScreen(
     onSetCrossfadeSeconds = playbackActions.onSetCrossfadeSeconds,
     onToggleResumeOnHeadsetConnect = playbackActions.onToggleResumeOnHeadsetConnect,
     onToggleCrossfeed = equalizerActions.onToggleCrossfeed,
+    onToggleDarkMode = libraryActions.onToggleDarkMode,
     modifier = modifier
 )
 
@@ -236,6 +237,7 @@ fun HomeScreen(
     onSetCrossfadeSeconds: (Int) -> Unit = {},
     onToggleResumeOnHeadsetConnect: (Boolean) -> Unit = {},
     onToggleCrossfeed: (Boolean) -> Unit = {},
+    onToggleDarkMode: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -321,6 +323,8 @@ fun HomeScreen(
                         songCount = uiState.songs.size,
                         isEqualizerEnabled = uiState.equalizerState.isEnabled,
                         availableUpdate = uiState.availableUpdate,
+                        isDarkMode = uiState.isDarkMode,
+                        onToggleDarkMode = onToggleDarkMode,
                         onOpenEqualizer = onOpenEqualizer,
                         onOpenSettings = { showSettings = true },
                         onOpenSort = { showSortSheet = true },

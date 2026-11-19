@@ -29,8 +29,10 @@ import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Equalizer
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
@@ -60,6 +62,7 @@ import com.otium.audio.data.update.UpdateInfo
 import com.otium.audio.ui.theme.AccentGold
 import com.otium.audio.ui.theme.DarkCardBorder
 import com.otium.audio.ui.theme.DarkSurfaceContainer
+import com.otium.audio.ui.theme.LocalOtiumColors
 import com.otium.audio.ui.theme.ErrorRed
 import com.otium.audio.ui.theme.TextPrimary
 import com.otium.audio.ui.theme.TextSecondary
@@ -79,16 +82,28 @@ private fun TopBarActionButton(
     tint: Color = TextSecondary,
     isActive: Boolean = false,
     showIndicatorDot: Boolean = false,
-    indicatorColor: Color = Color.White
+    indicatorColor: Color = AccentGold
 ) {
+    val isDark = LocalOtiumColors.current.isDark
+    val bg = if (isActive) {
+        if (isDark) Color(0x24FFFFFF) else Color(0x20000000)
+    } else {
+        if (isDark) Color(0x0EFFFFFF) else Color(0xFFEBEEF2)
+    }
+    val border = if (isActive) {
+        if (isDark) Color(0x40FFFFFF) else Color(0x35000000)
+    } else {
+        DarkCardBorder
+    }
+
     Box(
         modifier = modifier
             .size(38.dp)
             .clip(CircleShape)
-            .background(if (isActive) Color(0x24FFFFFF) else Color(0x0EFFFFFF))
+            .background(bg)
             .border(
                 width = 0.75.dp,
-                color = if (isActive) Color(0x40FFFFFF) else Color(0x14FFFFFF),
+                color = border,
                 shape = CircleShape
             )
             .clickable(onClick = onClick),
@@ -97,7 +112,7 @@ private fun TopBarActionButton(
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = if (isActive) Color.White else tint,
+            tint = if (isActive) TextPrimary else tint,
             modifier = Modifier.size(19.dp)
         )
 
@@ -119,6 +134,8 @@ fun HomeTopBar(
     songCount: Int,
     isEqualizerEnabled: Boolean,
     availableUpdate: UpdateInfo?,
+    isDarkMode: Boolean = true,
+    onToggleDarkMode: () -> Unit = {},
     onOpenEqualizer: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenSort: () -> Unit = {},
@@ -151,21 +168,28 @@ fun HomeTopBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            // 1. Batch selection mode
+            // 1. Dark / Light Mode Switcher ("ايقونة بالاعلى تحويل بين الوضع المظلم والنهاري")
+            TopBarActionButton(
+                icon = if (isDarkMode) Icons.Default.LightMode else Icons.Default.DarkMode,
+                contentDescription = if (isDarkMode) "التبديل إلى الوضع النهاري" else "التبديل إلى الوضع المظلم",
+                onClick = onToggleDarkMode
+            )
+
+            // 2. Batch selection mode
             TopBarActionButton(
                 icon = Icons.Default.Check,
                 contentDescription = "Selection Mode",
                 onClick = onStartSelection
             )
 
-            // 2. Sort order sheet
+            // 3. Sort order sheet
             TopBarActionButton(
                 icon = Icons.AutoMirrored.Filled.Sort,
                 contentDescription = "Sort",
                 onClick = onOpenSort
             )
 
-            // 3. Audio Equalizer (with active glow detent)
+            // 4. Audio Equalizer (with active glow detent)
             TopBarActionButton(
                 icon = Icons.Default.Equalizer,
                 contentDescription = "Equalizer",
@@ -175,7 +199,7 @@ fun HomeTopBar(
                 indicatorColor = AccentGold
             )
 
-            // 4. Application settings (shows indicator dot if update is ready)
+            // 5. Application settings (shows indicator dot if update is ready)
             TopBarActionButton(
                 icon = Icons.Default.Settings,
                 contentDescription = "Settings",
@@ -313,56 +337,57 @@ fun HomeSearchBar(
     focusManager: FocusManager,
     modifier: Modifier = Modifier
 ) {
-    OutlinedTextField(
-        value = query,
-        onValueChange = onQueryChanged,
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .height(46.dp),
-        placeholder = {
-            Text(
-                text = "بحث في $songCount مقطعاً، فناناً، ألبوماً...",
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary.copy(alpha = 0.65f),
-                fontSize = 12.5.sp
-            )
-        },
-        leadingIcon = {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = null,
-                tint = TextSecondary,
-                modifier = Modifier.size(18.dp)
-            )
-        },
-        trailingIcon = {
-            if (query.isNotEmpty()) {
-                IconButton(onClick = { onQueryChanged("") }) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Clear",
-                        tint = TextSecondary,
-                        modifier = Modifier.size(16.dp)
-                    )
+        val isDark = LocalOtiumColors.current.isDark
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQueryChanged,
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp)
+                .height(46.dp),
+            placeholder = {
+                Text(
+                    text = "بحث في $songCount مقطعاً، فناناً، ألبوماً...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextSecondary.copy(alpha = 0.65f),
+                    fontSize = 12.5.sp
+                )
+            },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = null,
+                    tint = TextSecondary,
+                    modifier = Modifier.size(18.dp)
+                )
+            },
+            trailingIcon = {
+                if (query.isNotEmpty()) {
+                    IconButton(onClick = { onQueryChanged("") }) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Clear",
+                            tint = TextSecondary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
-            }
-        },
-        shape = RoundedCornerShape(23.dp),
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-        keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = Color(0xFF0C0C10),
-            unfocusedContainerColor = Color(0xFF0C0C10),
-            focusedBorderColor = Color(0x38FFFFFF),
-            unfocusedBorderColor = Color(0x14FFFFFF),
-            cursorColor = Color.White,
-            focusedTextColor = TextPrimary,
-            unfocusedTextColor = TextPrimary
-        ),
-        singleLine = true,
-        textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp)
-    )
+            },
+            shape = RoundedCornerShape(23.dp),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = if (isDark) Color(0xFF0C0C10) else Color(0xFFEBEEF2),
+                unfocusedContainerColor = if (isDark) Color(0xFF0C0C10) else Color(0xFFEBEEF2),
+                focusedBorderColor = if (isDark) Color(0x38FFFFFF) else Color(0x35000000),
+                unfocusedBorderColor = DarkCardBorder,
+                cursorColor = TextPrimary,
+                focusedTextColor = TextPrimary,
+                unfocusedTextColor = TextPrimary
+            ),
+            singleLine = true,
+            textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp)
+        )
 }
 
 @Composable
@@ -397,23 +422,35 @@ fun HomeFilterPills(
             )
         }
 
+        val isDark = LocalOtiumColors.current.isDark
+
         filterPills.forEach { (tab, label, _) ->
             val isSelected = selectedTab == tab
 
             val pillBg by animateColorAsState(
-                targetValue = if (isSelected) Color.White else Color(0x0EFFFFFF),
+                targetValue = if (isSelected) {
+                    if (isDark) Color.White else Color(0xFF101217)
+                } else {
+                    if (isDark) Color(0x0EFFFFFF) else Color(0xFFEBEEF2)
+                },
                 animationSpec = tween(140),
                 label = "pill_bg"
             )
 
             val pillBorderColor by animateColorAsState(
-                targetValue = if (isSelected) Color.White else Color(0x14FFFFFF),
+                targetValue = if (isSelected) {
+                    if (isDark) Color.White else Color(0xFF101217)
+                } else {
+                    DarkCardBorder
+                },
                 animationSpec = tween(140),
                 label = "pill_border"
             )
 
             val textColor by animateColorAsState(
-                targetValue = if (isSelected) Color.Black else TextSecondary,
+                targetValue = if (isSelected) {
+                    if (isDark) Color.Black else Color.White
+                } else TextSecondary,
                 animationSpec = tween(140),
                 label = "pill_text"
             )

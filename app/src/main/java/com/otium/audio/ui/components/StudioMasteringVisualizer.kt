@@ -23,6 +23,7 @@ import com.otium.audio.audio.dsp.VisualizerBridge
 import com.otium.audio.playback.EqualizerBand
 import com.otium.audio.ui.theme.AccentCyan
 import com.otium.audio.ui.theme.AccentTitaniumWhite
+import com.otium.audio.ui.theme.LocalOtiumColors
 import kotlin.math.max
 import kotlin.math.min
 
@@ -47,6 +48,21 @@ fun StudioMasteringVisualizer(
     val spectrum by VisualizerBridge.spectrumBands.collectAsState()
     val smoothedBands = remember { FloatArray(16) { 0.05f } }
 
+    val isDark = LocalOtiumColors.current.isDark
+    val gridColor = if (isDark) Color(0x18FFFFFF) else Color(0x18000000)
+    val baselineColor = if (isDark) Color(0x35FFFFFF) else Color(0x40000000)
+    val freqMarkerColor = if (isDark) Color(0x0EFFFFFF) else Color(0x10000000)
+    val activeSpectrumColors = if (isDark) {
+        listOf(Color(0x38FFFFFF), Color(0x12FFFFFF))
+    } else {
+        listOf(Color(0x38101217), Color(0x12101217))
+    }
+    val inactiveSpectrumColors = if (isDark) {
+        listOf(Color(0x18FFFFFF), Color(0x06FFFFFF))
+    } else {
+        listOf(Color(0x18101217), Color(0x06101217))
+    }
+
     Canvas(
         modifier = modifier
             .fillMaxWidth()
@@ -66,21 +82,21 @@ fun StudioMasteringVisualizer(
         // 1. Reference Grid Lines
         // +12 dB Guide
         drawLine(
-            color = Color(0x18FFFFFF),
+            color = gridColor,
             start = Offset(0f, plus12Y),
             end = Offset(width, plus12Y),
             strokeWidth = 1f
         )
         // 0 dB Baseline (Master reference)
         drawLine(
-            color = Color(0x35FFFFFF),
+            color = baselineColor,
             start = Offset(0f, zeroY),
             end = Offset(width, zeroY),
             strokeWidth = 1.2f
         )
         // -12 dB Guide
         drawLine(
-            color = Color(0x18FFFFFF),
+            color = gridColor,
             start = Offset(0f, minus12Y),
             end = Offset(width, minus12Y),
             strokeWidth = 1f
@@ -90,7 +106,7 @@ fun StudioMasteringVisualizer(
         val freqMarkers = listOf(0.12f, 0.35f, 0.65f, 0.88f)
         freqMarkers.forEach { xFrac ->
             drawLine(
-                color = Color(0x0EFFFFFF),
+                color = freqMarkerColor,
                 start = Offset(width * xFrac, 0f),
                 end = Offset(width * xFrac, height),
                 strokeWidth = 1f
@@ -108,11 +124,7 @@ fun StudioMasteringVisualizer(
         val active = isPlaying && hasEnergy
 
         val spectrumBrush = Brush.verticalGradient(
-            colors = if (active) {
-                listOf(Color(0x38FFFFFF), Color(0x12FFFFFF))
-            } else {
-                listOf(Color(0x18FFFFFF), Color(0x06FFFFFF))
-            },
+            colors = if (active) activeSpectrumColors else inactiveSpectrumColors,
             startY = 0f,
             endY = height
         )
@@ -221,7 +233,7 @@ fun StudioMasteringVisualizer(
             // Continuous transfer curve line
             drawPath(
                 path = curvePath,
-                color = if (isEnabled) accentColor else Color(0x66FFFFFF),
+                color = if (isEnabled) accentColor else (if (isDark) Color(0x66FFFFFF) else Color(0x40000000)),
                 style = Stroke(
                     width = if (isEnabled) 2.2.dp.toPx() else 1.2.dp.toPx(),
                     cap = androidx.compose.ui.graphics.StrokeCap.Round
@@ -246,13 +258,13 @@ fun StudioMasteringVisualizer(
                             center = pt
                         )
                         drawCircle(
-                            color = Color(0xFF0C0C10),
+                            color = if (isDark) Color(0xFF0C0C10) else Color(0xFFFFFFFF),
                             radius = 1.dp.toPx(),
                             center = pt
                         )
                     } else {
                         drawCircle(
-                            color = Color(0x55FFFFFF),
+                            color = if (isDark) Color(0x55FFFFFF) else Color(0x35000000),
                             radius = 1.5.dp.toPx(),
                             center = pt
                         )

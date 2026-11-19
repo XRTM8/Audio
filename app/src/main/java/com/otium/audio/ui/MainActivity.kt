@@ -72,13 +72,13 @@ class MainActivity : ComponentActivity() {
         window.decorView.post { enableHighRefreshRate() }
 
         setContent {
-            OtiumAudioTheme {
+            val uiState by viewModel.uiState.collectAsState()
+
+            OtiumAudioTheme(darkTheme = uiState.isDarkMode) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = DarkSurface
                 ) {
-                    val uiState by viewModel.uiState.collectAsState()
-
                     // One colour, taken from whatever is playing. Everything that means
                     // "this is active" reads it, everything else stays neutral.
                     val playing = uiState.playbackState.currentSong
@@ -183,6 +183,7 @@ class MainActivity : ComponentActivity() {
                             onDismissUpdate = viewModel::dismissUpdate,
                             onRescanLibrary = viewModel::rescanLibrary,
                             onSortOrderChanged = viewModel::setSortOrder,
+                            onToggleDarkMode = viewModel::toggleDarkMode,
                             onStartSelection = { song -> viewModel.startSelectionMode(song?.id) },
                             onToggleSelection = viewModel::toggleSongSelection,
                             onSelectAll = viewModel::selectAllSongs,

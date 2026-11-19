@@ -200,7 +200,7 @@ fun LyricsSheet(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0x18FFFFFF))
+                            .background(DarkSheetCard)
                             .clickable { manualOffsetMs -= 500L }
                             .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
@@ -220,7 +220,7 @@ fun LyricsSheet(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0x18FFFFFF))
+                            .background(DarkSheetCard)
                             .clickable { manualOffsetMs += 500L }
                             .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {

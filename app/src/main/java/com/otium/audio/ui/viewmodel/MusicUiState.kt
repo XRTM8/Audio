@@ -59,5 +59,6 @@ data class MusicUiState(
     val selectedSongIds: Set<Long> = emptySet(),
     val availableUpdate: com.otium.audio.data.update.UpdateInfo? = null,
     val minDurationSeconds: Int = 0,
-    val isLoudnessNormalizationEnabled: Boolean = false
+    val isLoudnessNormalizationEnabled: Boolean = false,
+    val isDarkMode: Boolean = true
 )

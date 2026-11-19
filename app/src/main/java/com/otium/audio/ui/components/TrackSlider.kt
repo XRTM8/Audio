@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.otium.audio.ui.theme.LocalOtiumColors
 import com.otium.audio.ui.theme.DarkCardBorder
 import com.otium.audio.ui.theme.DarkSurfaceVariant
 import com.otium.audio.ui.theme.TextSecondary
@@ -94,6 +95,11 @@ fun PlayerScrubberThumb(
         label = "thumb_halo_alpha"
     )
 
+    val isDark = LocalOtiumColors.current.isDark
+    val thumbBg = if (isDark) Color.White else Color(0xFF101217)
+    val coreBg = if (isDark) Color(0xFF14141A) else Color.White
+    val rimColor = if (isDark) Color(0x28000000) else Color(0x28FFFFFF)
+
     Box(
         modifier = modifier
             .size(currentSize)
@@ -104,15 +110,15 @@ fun PlayerScrubberThumb(
                 ambientColor = Color(0x40000000)
             )
             .clip(CircleShape)
-            .background(Color.White)
-            .border(1.dp, Color(0x28000000), CircleShape),
+            .background(thumbBg)
+            .border(1.dp, rimColor, CircleShape),
         contentAlignment = Alignment.Center
     ) {
         // Specular outer ring highlight
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .border(0.75.dp, Color.White.copy(alpha = haloAlpha), CircleShape)
+                .border(0.75.dp, thumbBg.copy(alpha = haloAlpha), CircleShape)
         )
 
         // Precision studio core dot (Tactile hardware detent indicator)
@@ -120,7 +126,7 @@ fun PlayerScrubberThumb(
             modifier = Modifier
                 .size(coreSize)
                 .clip(CircleShape)
-                .background(Color(0xFF14141A))
+                .background(coreBg)
         )
     }
 }
@@ -273,13 +279,17 @@ fun TrackSlider(
                     }
                 }
 
+                val isDark = LocalOtiumColors.current.isDark
+                val playedBarColor = if (isDark) Color.White else Color(0xFF101217)
+                val unplayedBarColor = if (isDark) Color(0x38FFFFFF) else Color(0x30101217)
+
                 // 1. Subtle hairline baseline track
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(2.dp)
                         .align(Alignment.Center)
-                        .background(Color(0x1AFFFFFF))
+                        .background(if (isDark) Color(0x1AFFFFFF) else Color(0x18000000))
                 )
 
                 // 2. Interactive Waveform Bars
@@ -302,7 +312,7 @@ fun TrackSlider(
                         val top = centerY - barH / 2f
 
                         val isPlayed = barCenter <= thumbCenterPx
-                        val barColor = if (isPlayed) Color.White else Color(0x38FFFFFF)
+                        val barColor = if (isPlayed) playedBarColor else unplayedBarColor
 
                         drawRoundRect(
                             color = barColor,

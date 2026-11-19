@@ -57,7 +57,8 @@ class MusicViewModel(
         MusicUiState(
             selectedTab = initialTab,
             sortOrder = initialSortOrder,
-            minDurationSeconds = repository.getMinDurationSeconds()
+            minDurationSeconds = repository.getMinDurationSeconds(),
+            isDarkMode = repository.isDarkMode()
         )
     )
     val uiState: StateFlow<MusicUiState> = _uiState.asStateFlow()
@@ -492,6 +493,17 @@ class MusicViewModel(
 
     fun toggleLoudnessNormalization(enabled: Boolean) {
         _uiState.update { it.copy(isLoudnessNormalizationEnabled = enabled) }
+    }
+
+    fun toggleDarkMode() {
+        val newMode = !_uiState.value.isDarkMode
+        _uiState.update { it.copy(isDarkMode = newMode) }
+        repository.setDarkMode(newMode)
+    }
+
+    fun setDarkMode(enabled: Boolean) {
+        _uiState.update { it.copy(isDarkMode = enabled) }
+        repository.setDarkMode(enabled)
     }
 
     fun exportBackup(onResult: (String?) -> Unit) {

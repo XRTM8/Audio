@@ -24,9 +24,9 @@ import java.util.concurrent.ConcurrentHashMap
 
 @Immutable
 data class TrackColors(
-    val dominant: Color = DarkSurface,
-    val vibrant: Color = AccentGold,
-    val darkVibrant: Color = DarkSurfaceVariant
+    val dominant: Color = Color(0xFF000000),
+    val vibrant: Color = Color(0xFFFFFFFF),
+    val darkVibrant: Color = Color(0xFF111116)
 )
 
 object PaletteManager {

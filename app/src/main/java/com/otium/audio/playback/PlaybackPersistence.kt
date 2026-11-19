@@ -81,6 +81,12 @@ class PlaybackPersistence(private val context: Context) {
 
     fun isResumeOnHeadsetConnectEnabled(): Boolean = prefs.getBoolean(KEY_RESUME_HEADSET, false)
 
+    fun saveDarkMode(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_DARK_MODE, enabled).apply()
+    }
+
+    fun isDarkMode(): Boolean = prefs.getBoolean(KEY_DARK_MODE, true)
+
     fun clearQueue() {
         prefs.edit().remove(KEY_IDS).remove(KEY_INDEX).remove(KEY_POSITION).apply()
     }
@@ -109,5 +115,6 @@ class PlaybackPersistence(private val context: Context) {
         const val KEY_SORT_ORDER = "sort_order"
         const val KEY_CROSSFADE_SECONDS = "crossfade_seconds"
         const val KEY_RESUME_HEADSET = "resume_on_headset"
+        const val KEY_DARK_MODE = "dark_mode"
     }
 }

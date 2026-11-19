@@ -157,6 +157,7 @@ import com.otium.audio.ui.theme.DarkSheetBackground
 import com.otium.audio.ui.theme.DarkSheetScrim
 import com.otium.audio.ui.theme.DarkSurfaceElevated
 import com.otium.audio.ui.theme.DarkSurfaceVariant
+import com.otium.audio.ui.theme.LocalOtiumColors
 import com.otium.audio.ui.theme.ErrorRed
 import com.otium.audio.ui.theme.TextPrimary
 import com.otium.audio.ui.theme.TextSecondary
@@ -514,13 +515,14 @@ fun NowPlayingScreen(
                     .navigationBarsPadding(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                val isDark = LocalOtiumColors.current.isDark
                 // Centered tactile swipe-down pull bar
                 Box(
                     modifier = Modifier
                         .padding(top = 10.dp, bottom = 6.dp)
                         .size(width = 44.dp, height = 4.5.dp)
                         .clip(CircleShape)
-                        .background(Color(0x44FFFFFF))
+                        .background(if (isDark) Color(0x44FFFFFF) else Color(0x30000000))
                         .clickable { triggerDismiss() }
                 )
 

@@ -133,12 +133,12 @@ fun MiniPlayer(
             .background(DarkSurface) // Pure AMOLED Black (#000000)
             .clickable { onPlayerClick() }
     ) {
-        // Specular hairline divider to cleanly separate from song list on pure AMOLED
+        // Specular hairline divider to cleanly separate from song list
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(0.6.dp)
-                .background(Color(0x1FFFFFFF))
+                .background(DarkCardBorder)
         )
 
         // Precision progress bar with tactile thumb ("العتلة الاحترافية")
@@ -162,7 +162,7 @@ fun MiniPlayer(
                     .size(52.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(DarkSurfaceVariant)
-                    .border(0.6.dp, Color(0x22FFFFFF), RoundedCornerShape(12.dp)),
+                    .border(0.6.dp, DarkCardBorder, RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -237,7 +237,8 @@ fun MiniPlayer(
                         )
                     }
 
-                    // Tactile Titanium White Play/Pause Circle
+                    val isDark = LocalOtiumColors.current.isDark
+                    // Tactile Play/Pause Circle
                     Box(
                         modifier = Modifier
                             .size(46.dp)
@@ -245,9 +246,13 @@ fun MiniPlayer(
                                 scaleX = btnScale
                                 scaleY = btnScale
                             }
-                            .shadow(elevation = 6.dp, shape = CircleShape, spotColor = Color(0x66FFFFFF))
+                            .shadow(
+                                elevation = 6.dp,
+                                shape = CircleShape,
+                                spotColor = if (isDark) Color(0x66FFFFFF) else Color(0x33000000)
+                            )
                             .clip(CircleShape)
-                            .background(Color.White),
+                            .background(if (isDark) Color.White else Color(0xFF101217)),
                         contentAlignment = Alignment.Center
                     ) {
                         IconButton(
@@ -260,7 +265,7 @@ fun MiniPlayer(
                             Icon(
                                 imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                                 contentDescription = if (isPlaying) "Pause" else "Play",
-                                tint = Color.Black,
+                                tint = if (isDark) Color.Black else Color.White,
                                 modifier = Modifier.size(26.dp)
                             )
                         }
@@ -383,17 +388,19 @@ private fun MiniPlayerProgressBar(
             val thumbCenterPx = thumbBaseRadiusPx + currentFraction * usableWidth
             val currentThumbSizePx = with(density) { currentThumbSize.toPx() }
 
-            // 1. Inactive Track (Clean translucent titanium obsidian)
+            val isDark = LocalOtiumColors.current.isDark
+
+            // 1. Inactive Track (Clean translucent titanium obsidian or subtle slate)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(barHeight)
                     .align(Alignment.Center)
                     .clip(RoundedCornerShape(barHeight / 2f))
-                    .background(Color(0x22FFFFFF))
+                    .background(if (isDark) Color(0x22FFFFFF) else Color(0xFFDDE1E8))
             )
 
-            // 2. Active Played Track (Pure Titanium White)
+            // 2. Active Played Track
             val activeEndPx = if (currentFraction >= 0.999f) totalWidthPx else thumbCenterPx
             val activeTrackWidth = with(density) { activeEndPx.toDp() }
             if (currentFraction > 0.0001f) {
@@ -403,7 +410,7 @@ private fun MiniPlayerProgressBar(
                         .height(barHeight)
                         .align(Alignment.CenterStart)
                         .clip(RoundedCornerShape(barHeight / 2f))
-                        .background(Color.White)
+                        .background(if (isDark) Color.White else Color(0xFF101217))
                 )
             }
 

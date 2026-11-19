@@ -162,6 +162,13 @@ fun SongListItem(
             }
         } else null
     }
+    val isDark = LocalOtiumColors.current.isDark
+    val currentSongBg = if (isDark) Color(0x66181822) else Color(0x14000000)
+    val dividerColor = DarkCardBorder
+    val goldColor = AccentGold
+    val activeIndicatorColor = AccentTitaniumWhite
+    val highlightColor = SearchHighlightAmber
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -170,20 +177,20 @@ fun SongListItem(
                 if (isSelectionMode && isSelected) {
                     drawRect(Color(0x33FFB300))
                     drawRect(
-                        color = AccentGold,
+                        color = goldColor,
                         topLeft = Offset.Zero,
                         size = Size(3.5.dp.toPx(), size.height)
                     )
                 } else if (isCurrentSong) {
-                    drawRect(Color(0x66181822))
+                    drawRect(currentSongBg)
                     drawRect(
-                        color = AccentTitaniumWhite,
+                        color = activeIndicatorColor,
                         topLeft = Offset.Zero,
                         size = Size(3.dp.toPx(), size.height)
                     )
                 }
                 drawLine(
-                    color = DarkCardBorder,
+                    color = dividerColor,
                     start = Offset(0f, size.height),
                     end = Offset(size.width, size.height),
                     strokeWidth = 0.5.dp.toPx()
@@ -245,12 +252,12 @@ fun SongListItem(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.Center
         ) {
-            val titleAnnotated = remember(song.displayTitle, searchQuery, isCurrentSong) {
+            val titleAnnotated = remember(song.displayTitle, searchQuery, isCurrentSong, highlightColor) {
                 buildHighlightedText(
                     text = song.displayTitle,
                     query = searchQuery,
                     defaultColor = if (isCurrentSong) AccentTitaniumWhite else TextPrimary,
-                    highlightColor = SearchHighlightAmber
+                    highlightColor = highlightColor
                 )
             }
             Text(
@@ -279,12 +286,12 @@ fun SongListItem(
 
                 Spacer(modifier = Modifier.width(6.dp))
 
-                val subtitleAnnotated = remember(song.subtitle, searchQuery) {
+                val subtitleAnnotated = remember(song.subtitle, searchQuery, highlightColor) {
                     buildHighlightedText(
                         text = song.subtitle,
                         query = searchQuery,
                         defaultColor = TextSecondary,
-                        highlightColor = SearchHighlightAmber
+                        highlightColor = highlightColor
                     )
                 }
 

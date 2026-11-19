@@ -55,6 +55,7 @@ import com.otium.audio.ui.theme.DarkSheetCard
 import com.otium.audio.ui.theme.DarkSheetCardBorder
 import com.otium.audio.ui.theme.DarkSheetScrim
 import com.otium.audio.ui.theme.DarkSurface
+import com.otium.audio.ui.theme.LocalOtiumColors
 import com.otium.audio.ui.theme.SuccessGreen
 import com.otium.audio.ui.theme.TextPrimary
 import com.otium.audio.ui.theme.TextSecondary
@@ -99,6 +100,10 @@ fun EqualizerSheet(
         },
         modifier = modifier.padding(top = notchInset + 6.dp)
     ) {
+        val isDark = LocalOtiumColors.current.isDark
+        val switchCheckedTrack = if (isDark) Color(0xFF2E2E3C) else Color(0xFFD1D5DB)
+        val switchUncheckedTrack = if (isDark) Color(0xFF1B1B24) else Color(0xFFE2E8F0)
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -170,9 +175,9 @@ fun EqualizerSheet(
                         onCheckedChange = onToggleEnabled,
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = AccentTitaniumWhite,
-                            checkedTrackColor = Color(0xFF2E2E3C),
+                            checkedTrackColor = switchCheckedTrack,
                             uncheckedThumbColor = TextSecondary,
-                            uncheckedTrackColor = Color(0xFF1B1B24)
+                            uncheckedTrackColor = switchUncheckedTrack
                         )
                     )
                     Spacer(modifier = Modifier.width(4.dp))
@@ -196,8 +201,8 @@ fun EqualizerSheet(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0x18FFFFFF))
-                        .border(1.dp, Color(0x28FFFFFF), RoundedCornerShape(12.dp))
+                        .background(DarkSheetCard)
+                        .border(1.dp, DarkSheetCardBorder, RoundedCornerShape(12.dp))
                         .clickable { onPresetSelected("Flat") }
                         .padding(horizontal = 10.dp, vertical = 7.dp),
                     contentAlignment = Alignment.Center
@@ -466,9 +471,9 @@ fun EqualizerSheet(
                         onCheckedChange = onAutoPreAmpToggle,
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = AccentTitaniumWhite,
-                            checkedTrackColor = Color(0xFF2E2E3C),
+                            checkedTrackColor = switchCheckedTrack,
                             uncheckedThumbColor = TextSecondary,
-                            uncheckedTrackColor = Color(0xFF1B1B24)
+                            uncheckedTrackColor = switchUncheckedTrack
                         )
                     )
                 }
@@ -621,7 +626,7 @@ fun EqualizerSheet(
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = AccentTitaniumWhite,
                                 selectedLabelColor = DarkSurface,
-                                containerColor = Color(0x18FFFFFF),
+                                containerColor = if (isDark) Color(0x18FFFFFF) else Color(0xFFEBEEF2),
                                 labelColor = TextSecondary
                             ),
                             shape = RoundedCornerShape(8.dp)
@@ -739,9 +744,9 @@ fun EqualizerSheet(
                         },
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = AccentTitaniumWhite,
-                            checkedTrackColor = Color(0xFF2E2E3C),
+                            checkedTrackColor = switchCheckedTrack,
                             uncheckedThumbColor = TextSecondary,
-                            uncheckedTrackColor = Color(0xFF1B1B24)
+                            uncheckedTrackColor = switchUncheckedTrack
                         )
                     )
                 }

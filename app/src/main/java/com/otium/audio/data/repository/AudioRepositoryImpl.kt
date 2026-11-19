@@ -439,6 +439,13 @@ class AudioRepositoryImpl(
         refresh()
     }
 
+    override fun isDarkMode(): Boolean =
+        com.otium.audio.playback.PlaybackPersistence(context).isDarkMode()
+
+    override fun setDarkMode(enabled: Boolean) {
+        com.otium.audio.playback.PlaybackPersistence(context).saveDarkMode(enabled)
+    }
+
     override suspend fun exportBackupJson(): String = withContext(io) {
         val playlists = audioDao.getAllPlaylists()
         val playlistSongs = audioDao.getAllPlaylistSongs()

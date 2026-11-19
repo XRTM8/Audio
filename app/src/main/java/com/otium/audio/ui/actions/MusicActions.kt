@@ -100,6 +100,7 @@ data class LibraryActions(
     val onAddBatchToQueue: (List<Song>) -> Unit = {},
     val onPlayBatchNext: (List<Song>) -> Unit = {},
     val onSetMinDurationSeconds: (Int) -> Unit = {},
+    val onToggleDarkMode: () -> Unit = {},
     val onExportBackup: ((String?) -> Unit) -> Unit = {},
     val onImportBackup: (String, (Boolean) -> Unit) -> Unit = { _, _ -> }
 )

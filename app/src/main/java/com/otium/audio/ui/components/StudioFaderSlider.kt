@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import com.otium.audio.ui.theme.AccentTitaniumWhite
+import com.otium.audio.ui.theme.LocalOtiumColors
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -124,13 +125,23 @@ fun StudioFaderSlider(
         val centerY = heightPx / 2f
         val currentThumbX = thumbPadPx + fraction * trackWidthPx
 
+        val isDark = LocalOtiumColors.current.isDark
+        val grooveColor = if (isDark) Color(0xFF242430) else Color(0xFFE2E6EC)
+        val tickColor = if (enabled) {
+            if (isDark) Color(0x66FFFFFF) else Color(0x66000000)
+        } else {
+            if (isDark) Color(0x22FFFFFF) else Color(0x22000000)
+        }
+        val defaultThumbColor = AccentTitaniumWhite
+        val innerCoreColor = if (isDark) Color(0xFF14141A) else Color.White
+
         Canvas(modifier = Modifier.fillMaxSize()) {
             val trackHeightPx = 3.5.dp.toPx()
             val trackCornerRadius = CornerRadius(trackHeightPx / 2f, trackHeightPx / 2f)
 
             // 1. Recessed groove background
             drawRoundRect(
-                color = Color(0xFF242430),
+                color = grooveColor,
                 topLeft = Offset(thumbPadPx, centerY - trackHeightPx / 2f),
                 size = Size(trackWidthPx, trackHeightPx),
                 cornerRadius = trackCornerRadius
@@ -169,7 +180,7 @@ fun StudioFaderSlider(
                 val tickX = thumbPadPx + centerFraction * trackWidthPx
                 val tickHeightPx = 8.dp.toPx()
                 drawLine(
-                    color = if (enabled) Color(0x66FFFFFF) else Color(0x22FFFFFF),
+                    color = tickColor,
                     start = Offset(tickX, centerY - tickHeightPx / 2f),
                     end = Offset(tickX, centerY + tickHeightPx / 2f),
                     strokeWidth = 1.5.dp.toPx(),
@@ -179,7 +190,7 @@ fun StudioFaderSlider(
 
             // 4. Studio Fader Thumb
             val currentRadiusPx = thumbRadius.toPx()
-            val thumbColor = if (enabled) AccentTitaniumWhite else Color(0xFF555562)
+            val thumbColor = if (enabled) defaultThumbColor else (if (isDark) Color(0xFF555562) else Color(0xFF94A3B8))
 
             // Subtle drop shadow
             drawCircle(
@@ -188,17 +199,17 @@ fun StudioFaderSlider(
                 center = Offset(currentThumbX, centerY + 1.dp.toPx())
             )
 
-            // Outer Titanium Circle
+            // Outer Circle
             drawCircle(
                 color = thumbColor,
                 radius = currentRadiusPx,
                 center = Offset(currentThumbX, centerY)
             )
 
-            // Inner dark core for tactile feel
+            // Inner core for tactile feel
             if (enabled) {
                 drawCircle(
-                    color = Color(0xFF14141A),
+                    color = innerCoreColor,
                     radius = currentRadiusPx * 0.42f,
                     center = Offset(currentThumbX, centerY)
                 )
