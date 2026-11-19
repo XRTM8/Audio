@@ -321,6 +321,7 @@ class MainActivity : ComponentActivity() {
                                 onVirtualizerChange = equalizerActions.onVirtualizerChange,
                                 onPresetSelected = equalizerActions.onPresetSelected,
                                 onPreAmpChange = equalizerActions.onPreAmpChange,
+                                onAutoPreAmpToggle = equalizerActions.onToggleAutoPreAmp,
                                 onReverbChange = equalizerActions.onReverbChange,
                                 onReverbPresetChange = equalizerActions.onReverbPresetChange,
                                 onChorusChange = equalizerActions.onChorusChange,
