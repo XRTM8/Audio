@@ -28,8 +28,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.otium.audio.data.model.Song
@@ -46,6 +48,8 @@ fun FastAlphabetScroller(
     if (songs.size < 25) return // Only for long libraries
 
     val haptic = LocalHapticFeedback.current
+    val layoutDir = LocalLayoutDirection.current
+    val isRtl = layoutDir == LayoutDirection.Rtl
 
     // Dynamically generate alphabet strictly matching what is in the library with zero temporary set allocations
     val (alphabet, letterIndexMap) = remember(songs.size, songs.firstOrNull()?.id, songs.lastOrNull()?.id) {
@@ -124,7 +128,7 @@ fun FastAlphabetScroller(
                 .align(Alignment.TopEnd)
                 .offset {
                     IntOffset(
-                        x = (-44).dp.roundToPx(),
+                        x = (if (isRtl) 48.dp else (-48).dp).roundToPx(),
                         y = (currentTouchY - 24.dp.toPx()).coerceAtLeast(0f).roundToInt()
                     )
                 }

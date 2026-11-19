@@ -285,6 +285,7 @@ class AudioRepositoryImpl(
 
     private fun fallbackSearch(list: List<Song>, query: String): List<Song> {
         val normalizedQuery = Song.normalizeForSearchFast(query)
+        val queryNoSpaces = normalizedQuery.replace(" ", "")
         val tokens = ArrayList<String>(4)
         var start = -1
         val len = normalizedQuery.length
@@ -307,9 +308,18 @@ class AudioRepositoryImpl(
         for (i in list.indices) {
             val song = list[i]
             val target = song.normalizedSearchTarget
+            val targetNoSpaces = target.replace(" ", "")
+
+            // Direct match with or without spaces (e.g. "عبدالبديع" matches "عبد البديع")
+            if (queryNoSpaces.isNotEmpty() && targetNoSpaces.contains(queryNoSpaces)) {
+                result.add(song)
+                continue
+            }
+
             var matchesAll = true
             for (t in 0 until tokenCount) {
-                if (!target.contains(tokens[t])) {
+                val tok = tokens[t]
+                if (!target.contains(tok) && !targetNoSpaces.contains(tok)) {
                     matchesAll = false
                     break
                 }

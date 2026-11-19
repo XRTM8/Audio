@@ -453,17 +453,27 @@ fun NowPlayingScreen(
             .fillMaxSize()
             .graphicsLayer {
                 translationY = dragY.value
-                val progress = (dragY.value / (screenHeightPx * 0.45f)).coerceIn(0f, 1f)
+                val progress = (dragY.value / screenHeightPx).coerceIn(0f, 1f)
                 scaleX = 1f - progress * 0.08f
                 scaleY = 1f - progress * 0.08f
-                alpha = 1f - progress * 0.5f
+                alpha = 1f - progress * 0.65f
             }
             .draggable(
                 state = verticalDraggableState,
                 orientation = Orientation.Vertical,
                 onDragStopped = { velocity ->
-                    if (dragY.value > dismissThreshold || velocity > 800f) {
-                        triggerDismiss()
+                    if (dragY.value > dismissThreshold || velocity > 750f) {
+                        scope.launch {
+                            dragY.animateTo(
+                                targetValue = screenHeightPx,
+                                animationSpec = spring(
+                                    stiffness = Spring.StiffnessMediumLow,
+                                    dampingRatio = Spring.DampingRatioNoBouncy
+                                )
+                            )
+                            triggerDismiss()
+                            dragY.snapTo(0f)
+                        }
                     } else {
                         scope.launch {
                             dragY.animateTo(
@@ -505,10 +515,10 @@ fun NowPlayingScreen(
                 // Centered tactile swipe-down pull bar
                 Box(
                     modifier = Modifier
-                        .padding(top = 8.dp, bottom = 4.dp)
+                        .padding(top = 10.dp, bottom = 6.dp)
                         .size(width = 44.dp, height = 4.5.dp)
                         .clip(CircleShape)
-                        .background(TextSecondary.copy(alpha = 0.5f))
+                        .background(Color(0x44FFFFFF))
                         .clickable { triggerDismiss() }
                 )
 

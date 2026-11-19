@@ -96,7 +96,7 @@ fun LyricsSheet(
 
     LaunchedEffect(activeIndex) {
         if (activeIndex >= 0 && !listState.isScrollInProgress) {
-            val targetScroll = (activeIndex - 2).coerceAtLeast(0)
+            val targetScroll = (activeIndex - 1).coerceAtLeast(0)
             listState.animateScrollToItem(targetScroll)
         }
     }
@@ -107,10 +107,10 @@ fun LyricsSheet(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            item { Spacer(modifier = Modifier.height(32.dp)) }
+            item { Spacer(modifier = Modifier.height(64.dp)) }
 
             itemsIndexed(
                 items = lyrics.lines,
@@ -119,17 +119,23 @@ fun LyricsSheet(
                 val isActive = index == activeIndex
                 val textColor by animateColorAsState(
                     targetValue = when {
-                        isActive -> activeColor
-                        index < activeIndex -> TextSecondary.copy(alpha = 0.6f)
-                        else -> TextTertiary
+                        isActive -> Color.White
+                        index < activeIndex -> TextTertiary.copy(alpha = 0.35f)
+                        else -> TextSecondary.copy(alpha = 0.55f)
                     },
-                    animationSpec = tween(250),
+                    animationSpec = tween(220),
                     label = "lyric_color"
+                )
+
+                val lineBgColor by animateColorAsState(
+                    targetValue = if (isActive) Color(0x16FFFFFF) else Color.Transparent,
+                    animationSpec = tween(220),
+                    label = "lyric_bg"
                 )
 
                 val haptic = LocalHapticFeedback.current
                 val lineScale by animateFloatAsState(
-                    targetValue = if (isActive) 1.05f else 1.0f,
+                    targetValue = if (isActive) 1.04f else 1.0f,
                     animationSpec = spring(
                         dampingRatio = Spring.DampingRatioMediumBouncy,
                         stiffness = Spring.StiffnessMediumLow
@@ -137,32 +143,37 @@ fun LyricsSheet(
                     label = "lyric_scale"
                 )
 
-                val fontSize = if (isActive) 23.sp else 17.5.sp
-                val fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium
+                val fontSize = if (isActive) 23.5.sp else 17.5.sp
+                val fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Medium
 
-                Text(
-                    text = line.text,
-                    fontSize = fontSize,
-                    fontWeight = fontWeight,
-                    color = textColor,
-                    textAlign = TextAlign.Center,
-                    lineHeight = 32.sp,
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .graphicsLayer {
                             scaleX = lineScale
                             scaleY = lineScale
                         }
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(lineBgColor)
                         .clickable {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             onSeekTo(line.timeMs)
                         }
-                        .padding(vertical = 4.dp, horizontal = 8.dp)
-                )
+                        .padding(vertical = 10.dp, horizontal = 14.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = line.text,
+                        fontSize = fontSize,
+                        fontWeight = fontWeight,
+                        color = textColor,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 34.sp
+                    )
+                }
             }
 
-            item { Spacer(modifier = Modifier.height(80.dp)) }
+            item { Spacer(modifier = Modifier.height(100.dp)) }
         }
 
         // Floating Lyrics Sync Tuning Offset Pill (±0.5s)

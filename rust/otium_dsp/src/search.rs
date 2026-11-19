@@ -4,17 +4,18 @@ pub fn normalize_arabic(input: &str) -> String {
     let mut out = String::with_capacity(input.len());
     for c in input.chars() {
         match c {
-            // Remove Tashkeel / Harakat and Tatweel
-            '\u{064B}'..='\u{065F}' | '\u{0670}' | '\u{0640}' => continue,
+            // Remove Tashkeel / Harakat, Dagger Alif, Maddah/Hamzas, Tatweel, and Quranic annotations
+            '\u{064B}'..='\u{065F}' | '\u{0670}' | '\u{0640}' | '\u{0653}'..='\u{0655}' |
+            '\u{0610}'..='\u{061A}' | '\u{06D6}'..='\u{06ED}' => continue,
             // Normalize Alif forms (آ, أ, إ, ٱ -> ا)
             '\u{0622}' | '\u{0623}' | '\u{0625}' | '\u{0671}' => out.push('ا'),
             // Normalize Ta Marbuta (ة -> ه)
             'ة' => out.push('ه'),
-            // Normalize Alif Maqsura (ى -> ي)
-            'ى' => out.push('ي'),
-            // Normalize Persian/Urdu forms (ک -> ك, ی -> ي)
+            // Normalize Alif Maqsura (ى -> ي) and Ya/Waw forms
+            'ى' | 'ئ' | '\u{06CC}' => out.push('ي'),
+            'ؤ' => out.push('و'),
+            // Normalize Persian/Urdu forms (ک -> ك)
             '\u{06A9}' => out.push('ك'),
-            '\u{06CC}' => out.push('ي'),
             // Punctuation and delimiters become spaces
             '-' | '_' | '|' | '.' | '/' | '\\' | ',' | ':' | ';' | '(' | ')' | '[' | ']' | '{' | '}' => out.push(' '),
             _ => {
@@ -88,6 +89,7 @@ impl SearchEngine {
             return self.items.iter().take(limit).map(|it| it.id).collect();
         }
 
+        let q_no_spaces: String = norm_q.chars().filter(|c| !c.is_whitespace()).collect();
         let q_tokens: Vec<&str> = norm_q.split_whitespace().collect();
         let mut scored: Vec<(i64, i32)> = Vec::with_capacity(limit * 2);
 
@@ -98,9 +100,19 @@ impl SearchEngine {
             // Direct full phrase matches
             if item.norm_title.contains(&norm_q) {
                 total_score += 1500;
+            } else if !q_no_spaces.is_empty() {
+                let title_no_spaces: String = item.norm_title.chars().filter(|c| !c.is_whitespace()).collect();
+                if title_no_spaces.contains(&q_no_spaces) {
+                    total_score += 1200;
+                }
             }
             if item.norm_artist.contains(&norm_q) {
                 total_score += 800;
+            } else if !q_no_spaces.is_empty() {
+                let artist_no_spaces: String = item.norm_artist.chars().filter(|c| !c.is_whitespace()).collect();
+                if artist_no_spaces.contains(&q_no_spaces) {
+                    total_score += 600;
+                }
             }
 
             // Token-based matching

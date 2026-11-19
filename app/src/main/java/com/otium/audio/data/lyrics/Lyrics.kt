@@ -121,12 +121,35 @@ object LrcParser {
                 synchronized(lyricsCache) { lyricsCache.put(audioPath, TrackLyrics()) }
                 return null
             }
-            val lrcPath = audioPath.substring(0, dot) + ".lrc"
-            val lrcFile = File(lrcPath)
-            if (lrcFile.exists() && lrcFile.canRead()) {
-                val parsed = parse(lrcFile.readText())
-                synchronized(lyricsCache) { lyricsCache.put(audioPath, parsed) }
-                return parsed
+            val basePath = audioPath.substring(0, dot)
+            val candidateExtensions = listOf(".lrc", ".LRC", ".txt", ".TXT")
+            for (ext in candidateExtensions) {
+                val candidateFile = File(basePath + ext)
+                if (candidateFile.exists() && candidateFile.canRead()) {
+                    val parsed = parse(candidateFile.readText())
+                    if (parsed.lines.isNotEmpty()) {
+                        synchronized(lyricsCache) { lyricsCache.put(audioPath, parsed) }
+                        return parsed
+                    }
+                }
+            }
+
+            // Also check parent directory for case-insensitive basename match
+            val audioFile = File(audioPath)
+            val parentDir = audioFile.parentFile
+            if (parentDir != null && parentDir.isDirectory) {
+                val baseName = audioFile.nameWithoutExtension.lowercase()
+                val matchedLrc = parentDir.listFiles { f ->
+                    f.isFile && (f.name.endsWith(".lrc", ignoreCase = true) || f.name.endsWith(".txt", ignoreCase = true)) &&
+                    f.nameWithoutExtension.equals(baseName, ignoreCase = true)
+                }?.firstOrNull()
+                if (matchedLrc != null && matchedLrc.canRead()) {
+                    val parsed = parse(matchedLrc.readText())
+                    if (parsed.lines.isNotEmpty()) {
+                        synchronized(lyricsCache) { lyricsCache.put(audioPath, parsed) }
+                        return parsed
+                    }
+                }
             }
 
             // Fallback: extract embedded lyrics from file tags via Rust

@@ -34,15 +34,18 @@ data class Song(
             var lastWasSpace = false
             for (i in 0 until input.length) {
                 val c = input[i]
-                // 1. Skip Arabic Tashkeel / Harakat (\u064B..\u065F, \u0670)
-                if ((c in '\u064B'..'\u065F') || c == '\u0670') {
+                // 1. Skip Arabic Tashkeel / Harakat (\u064B..\u065F), Dagger Alif (\u0670), Maddah/Hamzas (\u0653..\u0655), Tatweel (\u0640), and Quranic pause marks
+                if ((c in '\u064B'..'\u065F') || c == '\u0670' || c == '\u0640' || (c in '\u0653'..'\u0655') ||
+                    (c in '\u0610'..'\u061A') || (c in '\u06D6'..'\u06ED')) {
                     continue
                 }
-                // 2. Normalize Alif variants (آ, أ, إ, ٱ -> ا), Ta Marbuta -> Ha, Alif Maqsura -> Ya
+                // 2. Normalize Alif variants (آ, أ, إ, ٱ -> ا), Ta Marbuta -> Ha, Alif Maqsura -> Ya, Hamza on Waw/Ya
                 val normalized = when (c) {
                     '\u0622', '\u0623', '\u0625', '\u0671' -> 'ا'
                     'ة' -> 'ه'
-                    'ى' -> 'ي'
+                    'ى', 'ئ', '\u06CC' -> 'ي'
+                    'ؤ' -> 'و'
+                    '\u06A9' -> 'ك'
                     else -> c.lowercaseChar()
                 }
                 // 3. Normalize symbols & whitespace into single space
