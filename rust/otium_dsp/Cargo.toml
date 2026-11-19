@@ -14,5 +14,5 @@ lofty = "0.21"
 opt-level = 3
 lto = "fat"
 codegen-units = 1
-panic = "abort"
+panic = "unwind"
 strip = true

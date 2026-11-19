@@ -320,17 +320,19 @@ class OtiumAudioProcessor(
                 }
                 g
             }
-            NativeAudioDsp.setParameters(
-                enginePtr = nativeEnginePtr,
-                preAmpDb = state.effectivePreAmpDb,
-                bandGainsDb = gains,
-                virtualizerStrength = if (state.isEnabled) state.virtualizerStrength else 0,
-                reverbStrength = if (state.isEnabled) state.reverbStrength else 0,
-                reverbPreset = presetIdx,
-                chorusStrength = if (state.isEnabled) state.chorusStrength else 0,
-                clarityStrength = if (state.isEnabled) state.clarityStrength else 0,
-                isEnabled = state.isEnabled
-            )
+            runCatching {
+                NativeAudioDsp.setParameters(
+                    enginePtr = nativeEnginePtr,
+                    preAmpDb = state.effectivePreAmpDb,
+                    bandGainsDb = gains,
+                    virtualizerStrength = if (state.isEnabled) state.virtualizerStrength else 0,
+                    reverbStrength = if (state.isEnabled) state.reverbStrength else 0,
+                    reverbPreset = presetIdx,
+                    chorusStrength = if (state.isEnabled) state.chorusStrength else 0,
+                    clarityStrength = if (state.isEnabled) state.clarityStrength else 0,
+                    isEnabled = state.isEnabled
+                )
+            }
         }
     }
 

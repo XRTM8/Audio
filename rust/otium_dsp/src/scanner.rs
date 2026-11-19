@@ -84,7 +84,11 @@ pub fn write_tags(file_path: &str, title: &str, artist: &str, album: &str) -> bo
                 } else {
                     let tag_type = tagged_file.primary_tag_type();
                     tagged_file.insert_tag(lofty::tag::Tag::new(tag_type));
-                    tagged_file.primary_tag_mut().unwrap()
+                    if let Some(tag) = tagged_file.primary_tag_mut() {
+                        tag
+                    } else {
+                        return false;
+                    }
                 }
             }
         };

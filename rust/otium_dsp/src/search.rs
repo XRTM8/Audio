@@ -223,14 +223,20 @@ macro_rules! lazy_static_search_engine {
         static SEARCH_ENGINE: RwLock<Option<SearchEngine>> = RwLock::new(None);
 
         pub fn global_search_init(items: Vec<SearchItem>) {
-            let mut engine = SEARCH_ENGINE.write().unwrap();
+            let mut engine = match SEARCH_ENGINE.write() {
+                Ok(guard) => guard,
+                Err(poisoned) => poisoned.into_inner(),
+            };
             let mut inst = SearchEngine::new();
             inst.set_items(items);
             *engine = Some(inst);
         }
 
         pub fn global_search_query(q: &str, limit: usize) -> Vec<i64> {
-            let engine = SEARCH_ENGINE.read().unwrap();
+            let engine = match SEARCH_ENGINE.read() {
+                Ok(guard) => guard,
+                Err(poisoned) => poisoned.into_inner(),
+            };
             if let Some(inst) = engine.as_ref() {
                 inst.query(q, limit)
             } else {
@@ -239,14 +245,20 @@ macro_rules! lazy_static_search_engine {
         }
 
         pub fn global_search_add_or_update(item: SearchItem) {
-            let mut engine = SEARCH_ENGINE.write().unwrap();
+            let mut engine = match SEARCH_ENGINE.write() {
+                Ok(guard) => guard,
+                Err(poisoned) => poisoned.into_inner(),
+            };
             if let Some(inst) = engine.as_mut() {
                 inst.add_or_update(item);
             }
         }
 
         pub fn global_search_remove(id: i64) {
-            let mut engine = SEARCH_ENGINE.write().unwrap();
+            let mut engine = match SEARCH_ENGINE.write() {
+                Ok(guard) => guard,
+                Err(poisoned) => poisoned.into_inner(),
+            };
             if let Some(inst) = engine.as_mut() {
                 inst.remove(id);
             }

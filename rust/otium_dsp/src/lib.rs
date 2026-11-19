@@ -14,6 +14,15 @@ use jni::objects::{JByteArray, JByteBuffer, JClass, JFloatArray, JLongArray, JOb
 use jni::sys::{jboolean, jfloat, jint, jlong};
 use jni::JNIEnv;
 
+macro_rules! catch_panic_or {
+    ($default:expr, $body:expr) => {
+        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| $body)) {
+            Ok(val) => val,
+            Err(_) => $default,
+        }
+    };
+}
+
 // ============================================================================
 // 1. Real-time Audio DSP Engine (Equalizer, Reverb, Chorus, Clarity, Limiter)
 // ============================================================================
@@ -24,8 +33,11 @@ pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_createEngin
     _class: JClass,
     sample_rate: jint,
 ) -> jlong {
-    let engine = Box::new(OtiumDspEngine::new(sample_rate as f32));
-    Box::into_raw(engine) as jlong
+    if sample_rate <= 0 { return 0; }
+    catch_panic_or!(0, {
+        let engine = Box::new(OtiumDspEngine::new(sample_rate as f32));
+        Box::into_raw(engine) as jlong
+    })
 }
 
 #[no_mangle]
@@ -34,11 +46,12 @@ pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_destroyEngi
     _class: JClass,
     engine_ptr: jlong,
 ) {
-    if engine_ptr != 0 {
+    if engine_ptr == 0 { return; }
+    catch_panic_or!((), {
         unsafe {
             let _ = Box::from_raw(engine_ptr as *mut OtiumDspEngine);
         }
-    }
+    });
 }
 
 #[no_mangle]
@@ -47,10 +60,11 @@ pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_resetEngine
     _class: JClass,
     engine_ptr: jlong,
 ) {
-    if engine_ptr != 0 {
+    if engine_ptr == 0 { return; }
+    catch_panic_or!((), {
         let engine = unsafe { &mut *(engine_ptr as *mut OtiumDspEngine) };
         engine.reset();
-    }
+    });
 }
 
 #[no_mangle]
@@ -68,23 +82,25 @@ pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_setParamete
     is_enabled: jboolean,
 ) {
     if engine_ptr == 0 { return; }
-    let engine = unsafe { &mut *(engine_ptr as *mut OtiumDspEngine) };
+    catch_panic_or!((), {
+        let engine = unsafe { &mut *(engine_ptr as *mut OtiumDspEngine) };
 
-    let mut gains = [0.0_f32; 10];
-    if !band_gains_db.is_null() {
-        let _ = env.get_float_array_region(&band_gains_db, 0, &mut gains);
-    }
+        let mut gains = [0.0_f32; 10];
+        if !band_gains_db.is_null() {
+            let _ = env.get_float_array_region(&band_gains_db, 0, &mut gains);
+        }
 
-    engine.set_parameters(
-        pre_amp_db,
-        &gains,
-        virtualizer_strength,
-        reverb_strength,
-        reverb_preset,
-        chorus_strength,
-        clarity_strength,
-        is_enabled != 0,
-    );
+        engine.set_parameters(
+            pre_amp_db,
+            &gains,
+            virtualizer_strength,
+            reverb_strength,
+            reverb_preset,
+            chorus_strength,
+            clarity_strength,
+            is_enabled != 0,
+        );
+    });
 }
 
 #[no_mangle]
@@ -97,28 +113,44 @@ pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_processDire
     byte_length: jint,
     is_float: jboolean,
 ) {
-    if engine_ptr == 0 || buffer_obj.is_null() || byte_length <= 0 { return; }
-    let engine = unsafe { &mut *(engine_ptr as *mut OtiumDspEngine) };
+    if engine_ptr == 0 || buffer_obj.is_null() || byte_length <= 0 || byte_offset < 0 { return; }
+    catch_panic_or!((), {
+        let capacity = match env.get_direct_buffer_capacity(&buffer_obj) {
+            Ok(c) => c,
+            Err(_) => return,
+        };
 
-    let buffer_address = match env.get_direct_buffer_address(&buffer_obj) {
-        Ok(addr) => addr,
-        Err(_) => return,
-    };
+        let offset = byte_offset as usize;
+        let length = byte_length as usize;
 
-    if buffer_address.is_null() { return; }
+        if offset + length > capacity { return; }
 
-    unsafe {
-        let ptr = buffer_address.add(byte_offset.max(0) as usize);
-        if is_float != 0 {
-            let float_samples = (byte_length as usize) / 4;
-            let slice = std::slice::from_raw_parts_mut(ptr as *mut f32, float_samples);
-            engine.process_interleaved_float(slice);
-        } else {
-            let pcm16_samples = (byte_length as usize) / 2;
-            let slice = std::slice::from_raw_parts_mut(ptr as *mut i16, pcm16_samples);
-            engine.process_interleaved_pcm16(slice);
+        let buffer_address = match env.get_direct_buffer_address(&buffer_obj) {
+            Ok(addr) => addr,
+            Err(_) => return,
+        };
+
+        if buffer_address.is_null() { return; }
+
+        let engine = unsafe { &mut *(engine_ptr as *mut OtiumDspEngine) };
+
+        unsafe {
+            let ptr = buffer_address.add(offset);
+            if is_float != 0 {
+                let float_samples = length / 4;
+                if float_samples > 0 {
+                    let slice = std::slice::from_raw_parts_mut(ptr as *mut f32, float_samples);
+                    engine.process_interleaved_float(slice);
+                }
+            } else {
+                let pcm16_samples = length / 2;
+                if pcm16_samples > 0 {
+                    let slice = std::slice::from_raw_parts_mut(ptr as *mut i16, pcm16_samples);
+                    engine.process_interleaved_pcm16(slice);
+                }
+            }
         }
-    }
+    });
 }
 
 #[no_mangle]
@@ -128,16 +160,18 @@ pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_getEnginePe
     engine_ptr: jlong,
 ) -> jni::sys::jfloatArray {
     if engine_ptr == 0 { return std::ptr::null_mut(); }
-    let engine = unsafe { &*(engine_ptr as *const OtiumDspEngine) };
-    let levels = engine.get_levels();
+    catch_panic_or!(std::ptr::null_mut(), {
+        let engine = unsafe { &*(engine_ptr as *const OtiumDspEngine) };
+        let levels = engine.get_levels();
 
-    match env.new_float_array(4) {
-        Ok(arr) => {
-            let _ = env.set_float_array_region(&arr, 0, &levels);
-            arr.into_raw()
+        match env.new_float_array(4) {
+            Ok(arr) => {
+                let _ = env.set_float_array_region(&arr, 0, &levels);
+                arr.into_raw()
+            }
+            Err(_) => std::ptr::null_mut(),
         }
-        Err(_) => std::ptr::null_mut(),
-    }
+    })
 }
 
 #[no_mangle]
@@ -148,13 +182,15 @@ pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_getEnginePe
     out_array: JFloatArray,
 ) -> jboolean {
     if engine_ptr == 0 || out_array.is_null() { return 0; }
-    let engine = unsafe { &*(engine_ptr as *const OtiumDspEngine) };
-    let levels = engine.get_levels();
-    if env.set_float_array_region(&out_array, 0, &levels).is_ok() {
-        1
-    } else {
-        0
-    }
+    catch_panic_or!(0, {
+        let engine = unsafe { &*(engine_ptr as *const OtiumDspEngine) };
+        let levels = engine.get_levels();
+        if env.set_float_array_region(&out_array, 0, &levels).is_ok() {
+            1
+        } else {
+            0
+        }
+    })
 }
 
 // ============================================================================
@@ -167,30 +203,33 @@ pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_scanAudioFi
     _class: JClass,
     path: JString,
 ) -> jni::sys::jstring {
-    let path_str: String = match env.get_string(&path) {
-        Ok(js) => js.into(),
-        Err(_) => return std::ptr::null_mut(),
-    };
+    if path.is_null() { return std::ptr::null_mut(); }
+    catch_panic_or!(std::ptr::null_mut(), {
+        let path_str: String = match env.get_string(&path) {
+            Ok(js) => js.into(),
+            Err(_) => return std::ptr::null_mut(),
+        };
 
-    if let Some(meta) = scanner::scan_file(&path_str) {
-        let json = format!(
-            "{{\"title\":{},\"artist\":{},\"album\":{},\"durationMs\":{},\"bitrate\":{},\"sampleRate\":{},\"format\":{},\"hasArtwork\":{}}}",
-            escape_json(&meta.title),
-            escape_json(&meta.artist),
-            escape_json(&meta.album),
-            meta.duration_ms,
-            meta.bitrate,
-            meta.sample_rate,
-            escape_json(&meta.format),
-            meta.has_artwork
-        );
-        match env.new_string(json) {
-            Ok(js) => js.into_raw(),
-            Err(_) => std::ptr::null_mut(),
+        if let Some(meta) = scanner::scan_file(&path_str) {
+            let json = format!(
+                "{{\"title\":{},\"artist\":{},\"album\":{},\"durationMs\":{},\"bitrate\":{},\"sampleRate\":{},\"format\":{},\"hasArtwork\":{}}}",
+                escape_json(&meta.title),
+                escape_json(&meta.artist),
+                escape_json(&meta.album),
+                meta.duration_ms,
+                meta.bitrate,
+                meta.sample_rate,
+                escape_json(&meta.format),
+                meta.has_artwork
+            );
+            match env.new_string(json) {
+                Ok(js) => js.into_raw(),
+                Err(_) => std::ptr::null_mut(),
+            }
+        } else {
+            std::ptr::null_mut()
         }
-    } else {
-        std::ptr::null_mut()
-    }
+    })
 }
 
 #[no_mangle]
@@ -199,25 +238,28 @@ pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_extractArtw
     _class: JClass,
     path: JString,
 ) -> jni::sys::jbyteArray {
-    let path_str: String = match env.get_string(&path) {
-        Ok(js) => js.into(),
-        Err(_) => return std::ptr::null_mut(),
-    };
+    if path.is_null() { return std::ptr::null_mut(); }
+    catch_panic_or!(std::ptr::null_mut(), {
+        let path_str: String = match env.get_string(&path) {
+            Ok(js) => js.into(),
+            Err(_) => return std::ptr::null_mut(),
+        };
 
-    if let Some(art_bytes) = scanner::extract_artwork(&path_str) {
-        match env.new_byte_array(art_bytes.len() as i32) {
-            Ok(byte_arr) => {
-                let slice: &[i8] = unsafe {
-                    std::slice::from_raw_parts(art_bytes.as_ptr() as *const i8, art_bytes.len())
-                };
-                let _ = env.set_byte_array_region(&byte_arr, 0, slice);
-                byte_arr.into_raw()
+        if let Some(art_bytes) = scanner::extract_artwork(&path_str) {
+            match env.new_byte_array(art_bytes.len() as i32) {
+                Ok(byte_arr) => {
+                    let slice: &[i8] = unsafe {
+                        std::slice::from_raw_parts(art_bytes.as_ptr() as *const i8, art_bytes.len())
+                    };
+                    let _ = env.set_byte_array_region(&byte_arr, 0, slice);
+                    byte_arr.into_raw()
+                }
+                Err(_) => std::ptr::null_mut(),
             }
-            Err(_) => std::ptr::null_mut(),
+        } else {
+            std::ptr::null_mut()
         }
-    } else {
-        std::ptr::null_mut()
-    }
+    })
 }
 
 #[no_mangle]
@@ -226,19 +268,22 @@ pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_extractLyri
     _class: JClass,
     path: JString,
 ) -> jni::sys::jstring {
-    let path_str: String = match env.get_string(&path) {
-        Ok(js) => js.into(),
-        Err(_) => return std::ptr::null_mut(),
-    };
+    if path.is_null() { return std::ptr::null_mut(); }
+    catch_panic_or!(std::ptr::null_mut(), {
+        let path_str: String = match env.get_string(&path) {
+            Ok(js) => js.into(),
+            Err(_) => return std::ptr::null_mut(),
+        };
 
-    if let Some(lyrics_str) = scanner::extract_lyrics(&path_str) {
-        match env.new_string(lyrics_str) {
-            Ok(js) => js.into_raw(),
-            Err(_) => std::ptr::null_mut(),
+        if let Some(lyrics_str) = scanner::extract_lyrics(&path_str) {
+            match env.new_string(lyrics_str) {
+                Ok(js) => js.into_raw(),
+                Err(_) => std::ptr::null_mut(),
+            }
+        } else {
+            std::ptr::null_mut()
         }
-    } else {
-        std::ptr::null_mut()
-    }
+    })
 }
 
 #[no_mangle]
@@ -250,12 +295,15 @@ pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_writeAudioT
     artist: JString,
     album: JString,
 ) -> jboolean {
-    let path_str: String = match env.get_string(&path) { Ok(s) => s.into(), Err(_) => return 0 };
-    let title_str: String = match env.get_string(&title) { Ok(s) => s.into(), Err(_) => String::new() };
-    let artist_str: String = match env.get_string(&artist) { Ok(s) => s.into(), Err(_) => String::new() };
-    let album_str: String = match env.get_string(&album) { Ok(s) => s.into(), Err(_) => String::new() };
+    if path.is_null() { return 0; }
+    catch_panic_or!(0, {
+        let path_str: String = match env.get_string(&path) { Ok(s) => s.into(), Err(_) => return 0 };
+        let title_str: String = match env.get_string(&title) { Ok(s) => s.into(), Err(_) => String::new() };
+        let artist_str: String = match env.get_string(&artist) { Ok(s) => s.into(), Err(_) => String::new() };
+        let album_str: String = match env.get_string(&album) { Ok(s) => s.into(), Err(_) => String::new() };
 
-    if scanner::write_tags(&path_str, &title_str, &artist_str, &album_str) { 1 } else { 0 }
+        if scanner::write_tags(&path_str, &title_str, &artist_str, &album_str) { 1 } else { 0 }
+    })
 }
 
 fn escape_json(s: &str) -> String {
@@ -288,49 +336,52 @@ pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_searchIndex
     artists: JObjectArray,
     albums: JObjectArray,
 ) {
-    let count = match env.get_array_length(&ids) {
-        Ok(c) => c as usize,
-        Err(_) => return,
-    };
-
-    let mut id_buf = vec![0i64; count];
-    if env.get_long_array_region(&ids, 0, &mut id_buf).is_err() {
-        return;
-    }
-
-    let mut items = Vec::with_capacity(count);
-
-    for i in 0..count {
-        let id = id_buf[i];
-
-        let title = match env.get_object_array_element(&titles, i as i32) {
-            Ok(o) if !o.is_null() => {
-                let js = JString::from(o);
-                env.get_string(&js).map(|s| s.into()).unwrap_or_default()
-            }
-            _ => String::new(),
+    if ids.is_null() || titles.is_null() || artists.is_null() || albums.is_null() { return; }
+    catch_panic_or!((), {
+        let count = match env.get_array_length(&ids) {
+            Ok(c) => c as usize,
+            Err(_) => return,
         };
 
-        let artist = match env.get_object_array_element(&artists, i as i32) {
-            Ok(o) if !o.is_null() => {
-                let js = JString::from(o);
-                env.get_string(&js).map(|s| s.into()).unwrap_or_default()
-            }
-            _ => String::new(),
-        };
+        let mut id_buf = vec![0i64; count];
+        if env.get_long_array_region(&ids, 0, &mut id_buf).is_err() {
+            return;
+        }
 
-        let album = match env.get_object_array_element(&albums, i as i32) {
-            Ok(o) if !o.is_null() => {
-                let js = JString::from(o);
-                env.get_string(&js).map(|s| s.into()).unwrap_or_default()
-            }
-            _ => String::new(),
-        };
+        let mut items = Vec::with_capacity(count);
 
-        items.push(search::SearchItem::new(id, &title, &artist, &album));
-    }
+        for i in 0..count {
+            let id = id_buf[i];
 
-    search::global_search_init(items);
+            let title = match env.get_object_array_element(&titles, i as i32) {
+                Ok(o) if !o.is_null() => {
+                    let js = JString::from(o);
+                    env.get_string(&js).map(|s| s.into()).unwrap_or_default()
+                }
+                _ => String::new(),
+            };
+
+            let artist = match env.get_object_array_element(&artists, i as i32) {
+                Ok(o) if !o.is_null() => {
+                    let js = JString::from(o);
+                    env.get_string(&js).map(|s| s.into()).unwrap_or_default()
+                }
+                _ => String::new(),
+            };
+
+            let album = match env.get_object_array_element(&albums, i as i32) {
+                Ok(o) if !o.is_null() => {
+                    let js = JString::from(o);
+                    env.get_string(&js).map(|s| s.into()).unwrap_or_default()
+                }
+                _ => String::new(),
+            };
+
+            items.push(search::SearchItem::new(id, &title, &artist, &album));
+        }
+
+        search::global_search_init(items);
+    });
 }
 
 #[no_mangle]
@@ -344,20 +395,24 @@ pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_searchIndex
         env.new_long_array(0).map(|a| a.into_raw()).unwrap_or(std::ptr::null_mut())
     };
 
-    let q_str: String = match env.get_string(&query) {
-        Ok(s) => s.into(),
-        Err(_) => return empty_array(&mut env),
-    };
+    if query.is_null() { return empty_array(&mut env); }
 
-    let results = search::global_search_query(&q_str, limit.max(1) as usize);
+    catch_panic_or!(empty_array(&mut env), {
+        let q_str: String = match env.get_string(&query) {
+            Ok(s) => s.into(),
+            Err(_) => return empty_array(&mut env),
+        };
 
-    match env.new_long_array(results.len() as i32) {
-        Ok(arr) => {
-            let _ = env.set_long_array_region(&arr, 0, &results);
-            arr.into_raw()
+        let results = search::global_search_query(&q_str, limit.max(1) as usize);
+
+        match env.new_long_array(results.len() as i32) {
+            Ok(arr) => {
+                let _ = env.set_long_array_region(&arr, 0, &results);
+                arr.into_raw()
+            }
+            Err(_) => empty_array(&mut env),
         }
-        Err(_) => empty_array(&mut env),
-    }
+    })
 }
 
 #[no_mangle]
@@ -369,12 +424,14 @@ pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_searchIndex
     artist: JString,
     album: JString,
 ) {
-    let title_str: String = match env.get_string(&title) { Ok(s) => s.into(), Err(_) => String::new() };
-    let artist_str: String = match env.get_string(&artist) { Ok(s) => s.into(), Err(_) => String::new() };
-    let album_str: String = match env.get_string(&album) { Ok(s) => s.into(), Err(_) => String::new() };
+    catch_panic_or!((), {
+        let title_str: String = match env.get_string(&title) { Ok(s) => s.into(), Err(_) => String::new() };
+        let artist_str: String = match env.get_string(&artist) { Ok(s) => s.into(), Err(_) => String::new() };
+        let album_str: String = match env.get_string(&album) { Ok(s) => s.into(), Err(_) => String::new() };
 
-    let item = search::SearchItem::new(id, &title_str, &artist_str, &album_str);
-    search::global_search_add_or_update(item);
+        let item = search::SearchItem::new(id, &title_str, &artist_str, &album_str);
+        search::global_search_add_or_update(item);
+    });
 }
 
 #[no_mangle]
@@ -383,7 +440,9 @@ pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_searchIndex
     _class: JClass,
     id: jlong,
 ) {
-    search::global_search_remove(id);
+    catch_panic_or!((), {
+        search::global_search_remove(id);
+    });
 }
 
 // ============================================================================
@@ -397,25 +456,28 @@ pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_computeSpec
     samples: JFloatArray,
     band_count: jint,
 ) -> jni::sys::jfloatArray {
-    let len = match env.get_array_length(&samples) {
-        Ok(l) => l as usize,
-        Err(_) => return std::ptr::null_mut(),
-    };
+    if samples.is_null() || band_count <= 0 { return std::ptr::null_mut(); }
+    catch_panic_or!(std::ptr::null_mut(), {
+        let len = match env.get_array_length(&samples) {
+            Ok(l) => l as usize,
+            Err(_) => return std::ptr::null_mut(),
+        };
 
-    let mut buf = vec![0.0f32; len];
-    if env.get_float_array_region(&samples, 0, &mut buf).is_err() {
-        return std::ptr::null_mut();
-    }
-
-    let bands = waveform::compute_spectrum(&buf, band_count.max(1) as usize);
-
-    match env.new_float_array(bands.len() as i32) {
-        Ok(arr) => {
-            let _ = env.set_float_array_region(&arr, 0, &bands);
-            arr.into_raw()
+        let mut buf = vec![0.0f32; len];
+        if env.get_float_array_region(&samples, 0, &mut buf).is_err() {
+            return std::ptr::null_mut();
         }
-        Err(_) => std::ptr::null_mut(),
-    }
+
+        let bands = waveform::compute_spectrum(&buf, band_count.max(1) as usize);
+
+        match env.new_float_array(bands.len() as i32) {
+            Ok(arr) => {
+                let _ = env.set_float_array_region(&arr, 0, &bands);
+                arr.into_raw()
+            }
+            Err(_) => std::ptr::null_mut(),
+        }
+    })
 }
 
 #[no_mangle]
@@ -428,34 +490,48 @@ pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_computeSpec
     is_float: jboolean,
     band_count: jint,
 ) -> jni::sys::jfloatArray {
-    if buffer_obj.is_null() || byte_length <= 0 {
+    if buffer_obj.is_null() || byte_length <= 0 || byte_offset < 0 || band_count <= 0 {
         return std::ptr::null_mut();
     }
 
-    let buffer_address = match env.get_direct_buffer_address(&buffer_obj) {
-        Ok(addr) => addr,
-        Err(_) => return std::ptr::null_mut(),
-    };
+    catch_panic_or!(std::ptr::null_mut(), {
+        let capacity = match env.get_direct_buffer_capacity(&buffer_obj) {
+            Ok(c) => c,
+            Err(_) => return std::ptr::null_mut(),
+        };
 
-    if buffer_address.is_null() {
-        return std::ptr::null_mut();
-    }
+        let offset = byte_offset as usize;
+        let length = byte_length as usize;
 
-    let bands = waveform::compute_spectrum_direct(
-        buffer_address,
-        byte_offset.max(0) as usize,
-        byte_length as usize,
-        is_float != 0,
-        band_count.max(1) as usize,
-    );
-
-    match env.new_float_array(bands.len() as i32) {
-        Ok(arr) => {
-            let _ = env.set_float_array_region(&arr, 0, &bands);
-            arr.into_raw()
+        if offset + length > capacity {
+            return std::ptr::null_mut();
         }
-        Err(_) => std::ptr::null_mut(),
-    }
+
+        let buffer_address = match env.get_direct_buffer_address(&buffer_obj) {
+            Ok(addr) => addr,
+            Err(_) => return std::ptr::null_mut(),
+        };
+
+        if buffer_address.is_null() {
+            return std::ptr::null_mut();
+        }
+
+        let bands = waveform::compute_spectrum_direct(
+            buffer_address,
+            offset,
+            length,
+            is_float != 0,
+            band_count as usize,
+        );
+
+        match env.new_float_array(bands.len() as i32) {
+            Ok(arr) => {
+                let _ = env.set_float_array_region(&arr, 0, &bands);
+                arr.into_raw()
+            }
+            Err(_) => std::ptr::null_mut(),
+        }
+    })
 }
 
 #[no_mangle]
@@ -466,29 +542,32 @@ pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_computeWave
     is_float: jboolean,
     points: jint,
 ) -> jni::sys::jfloatArray {
-    let len = match env.get_array_length(&pcm_data) {
-        Ok(l) => l as usize,
-        Err(_) => return std::ptr::null_mut(),
-    };
+    if pcm_data.is_null() || points <= 0 { return std::ptr::null_mut(); }
+    catch_panic_or!(std::ptr::null_mut(), {
+        let len = match env.get_array_length(&pcm_data) {
+            Ok(l) => l as usize,
+            Err(_) => return std::ptr::null_mut(),
+        };
 
-    let mut byte_buf = vec![0i8; len];
-    if env.get_byte_array_region(&pcm_data, 0, &mut byte_buf).is_err() {
-        return std::ptr::null_mut();
-    }
-
-    let u8_slice: &[u8] = unsafe {
-        std::slice::from_raw_parts(byte_buf.as_ptr() as *const u8, len)
-    };
-
-    let peaks = waveform::compute_waveform_peaks(u8_slice, is_float != 0, points.max(10) as usize);
-
-    match env.new_float_array(peaks.len() as i32) {
-        Ok(arr) => {
-            let _ = env.set_float_array_region(&arr, 0, &peaks);
-            arr.into_raw()
+        let mut byte_buf = vec![0i8; len];
+        if env.get_byte_array_region(&pcm_data, 0, &mut byte_buf).is_err() {
+            return std::ptr::null_mut();
         }
-        Err(_) => std::ptr::null_mut(),
-    }
+
+        let u8_slice: &[u8] = unsafe {
+            std::slice::from_raw_parts(byte_buf.as_ptr() as *const u8, len)
+        };
+
+        let peaks = waveform::compute_waveform_peaks(u8_slice, is_float != 0, points.max(10) as usize);
+
+        match env.new_float_array(peaks.len() as i32) {
+            Ok(arr) => {
+                let _ = env.set_float_array_region(&arr, 0, &peaks);
+                arr.into_raw()
+            }
+            Err(_) => std::ptr::null_mut(),
+        }
+    })
 }
 
 // ============================================================================
@@ -501,25 +580,28 @@ pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_parseLrc(
     _class: JClass,
     lrc_text: JString,
 ) -> jni::sys::jstring {
-    let text_str: String = match env.get_string(&lrc_text) {
-        Ok(s) => s.into(),
-        Err(_) => return std::ptr::null_mut(),
-    };
+    if lrc_text.is_null() { return std::ptr::null_mut(); }
+    catch_panic_or!(std::ptr::null_mut(), {
+        let text_str: String = match env.get_string(&lrc_text) {
+            Ok(s) => s.into(),
+            Err(_) => return std::ptr::null_mut(),
+        };
 
-    let (timestamps, lines) = lyrics::parse_lrc(&text_str);
+        let (timestamps, lines) = lyrics::parse_lrc(&text_str);
 
-    let mut out = String::with_capacity(text_str.len() + 100);
-    for i in 0..timestamps.len() {
-        out.push_str(&timestamps[i].to_string());
-        out.push('\t');
-        out.push_str(&lines[i]);
-        out.push('\n');
-    }
+        let mut out = String::with_capacity(text_str.len() + 100);
+        for i in 0..timestamps.len() {
+            out.push_str(&timestamps[i].to_string());
+            out.push('\t');
+            out.push_str(&lines[i]);
+            out.push('\n');
+        }
 
-    match env.new_string(out) {
-        Ok(s) => s.into_raw(),
-        Err(_) => std::ptr::null_mut(),
-    }
+        match env.new_string(out) {
+            Ok(s) => s.into_raw(),
+            Err(_) => std::ptr::null_mut(),
+        }
+    })
 }
 
 #[no_mangle]
@@ -529,15 +611,18 @@ pub extern "system" fn Java_com_otium_audio_audio_dsp_NativeAudioDsp_findActiveL
     timestamps: JLongArray,
     position_ms: jlong,
 ) -> jint {
-    let len = match env.get_array_length(&timestamps) {
-        Ok(l) => l as usize,
-        Err(_) => return -1,
-    };
+    if timestamps.is_null() { return -1; }
+    catch_panic_or!(-1, {
+        let len = match env.get_array_length(&timestamps) {
+            Ok(l) => l as usize,
+            Err(_) => return -1,
+        };
 
-    let mut ts_buf = vec![0i64; len];
-    if env.get_long_array_region(&timestamps, 0, &mut ts_buf).is_err() {
-        return -1;
-    }
+        let mut ts_buf = vec![0i64; len];
+        if env.get_long_array_region(&timestamps, 0, &mut ts_buf).is_err() {
+            return -1;
+        }
 
-    lyrics::find_active_line(&ts_buf, position_ms)
+        lyrics::find_active_line(&ts_buf, position_ms)
+    })
 }

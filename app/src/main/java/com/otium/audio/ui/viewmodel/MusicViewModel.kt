@@ -113,41 +113,45 @@ class MusicViewModel(
     // derived flow re-opened its own MediaStore observer upstream. One combine, one write.
     private fun loadLibrary() {
         viewModelScope.launch(Dispatchers.Default) {
-            combine(
-                repository.getAllSongsFlow(),
-                repository.getFavoritesFlow(),
-                repository.getFoldersFlow(),
-                repository.getPlaylistsFlow()
-            ) { songs, favorites, folders, playlists ->
-                Library(songs, favorites, folders, playlists)
-            }
-                .combine(repository.getRecentlyPlayedFlow()) { lib, played ->
-                    lib.copy(recentlyPlayed = played)
+            runCatching {
+                combine(
+                    repository.getAllSongsFlow(),
+                    repository.getFavoritesFlow(),
+                    repository.getFoldersFlow(),
+                    repository.getPlaylistsFlow()
+                ) { songs, favorites, folders, playlists ->
+                    Library(songs, favorites, folders, playlists)
                 }
-                .combine(repository.getMostPlayedFlow(MOST_PLAYED_LIMIT)) { lib, top ->
-                    lib.copy(mostPlayed = top)
-                }
-                .combine(repository.getRecentlyAddedFlow()) { lib, added ->
-                    lib.copy(recentlyAdded = added)
-                }
-                .conflate()
-                .collect { lib ->
-                    val extractedArtists = AudioArtist.extractArtistsFromSongs(lib.songs)
-                    val extractedAlbums = AudioAlbum.extractAlbumsFromSongs(lib.songs)
-                    _uiState.update {
-                        it.copy(
-                            songs = lib.songs,
-                            artists = extractedArtists,
-                            albums = extractedAlbums,
-                            favorites = lib.favorites,
-                            folders = lib.folders,
-                            playlists = lib.playlists,
-                            history = lib.recentlyPlayed,
-                            mostPlayed = lib.mostPlayed,
-                            recentlyAdded = lib.recentlyAdded
-                        )
+                    .combine(repository.getRecentlyPlayedFlow()) { lib, played ->
+                        lib.copy(recentlyPlayed = played)
                     }
-                }
+                    .combine(repository.getMostPlayedFlow(MOST_PLAYED_LIMIT)) { lib, top ->
+                        lib.copy(mostPlayed = top)
+                    }
+                    .combine(repository.getRecentlyAddedFlow()) { lib, added ->
+                        lib.copy(recentlyAdded = added)
+                    }
+                    .conflate()
+                    .collect { lib ->
+                        val extractedArtists = AudioArtist.extractArtistsFromSongs(lib.songs)
+                        val extractedAlbums = AudioAlbum.extractAlbumsFromSongs(lib.songs)
+                        _uiState.update {
+                            it.copy(
+                                songs = lib.songs,
+                                artists = extractedArtists,
+                                albums = extractedAlbums,
+                                favorites = lib.favorites,
+                                folders = lib.folders,
+                                playlists = lib.playlists,
+                                history = lib.recentlyPlayed,
+                                mostPlayed = lib.mostPlayed,
+                                recentlyAdded = lib.recentlyAdded
+                            )
+                        }
+                    }
+            }.onFailure { e ->
+                android.util.Log.e("MusicViewModel", "Error collecting library flows", e)
+            }
         }
     }
 
@@ -160,29 +164,37 @@ class MusicViewModel(
     private fun restoreSession() {
         if (!musicController.hasSavedSession()) return
         viewModelScope.launch {
-            combine(
-                repository.getAllSongsFlow(),
-                musicController.playbackState.map { it.isConnected }.distinctUntilChanged()
-            ) { songs, connected -> songs to connected }
-                .collect { (songs, connected) ->
-                    if (sessionRestored || !connected || songs.isEmpty()) return@collect
-                    sessionRestored = musicController.restoreQueue(songs)
-                }
+            runCatching {
+                combine(
+                    repository.getAllSongsFlow(),
+                    musicController.playbackState.map { it.isConnected }.distinctUntilChanged()
+                ) { songs, connected -> songs to connected }
+                    .collect { (songs, connected) ->
+                        if (sessionRestored || !connected || songs.isEmpty()) return@collect
+                        sessionRestored = musicController.restoreQueue(songs)
+                    }
+            }.onFailure { e ->
+                android.util.Log.e("MusicViewModel", "Error restoring session", e)
+            }
         }
     }
 
     private fun observePlaybackState() {
         viewModelScope.launch {
-            musicController.playbackState.collectLatest { playback ->
-                _uiState.update { it.copy(playbackState = playback) }
+            runCatching {
+                musicController.playbackState.collectLatest { playback ->
+                    _uiState.update { it.copy(playbackState = playback) }
 
-                // This used to run on every position tick — four history rows per second,
-                // colliding with the media scanner. Record once per track instead.
-                val songId = playback.currentSong?.id ?: return@collectLatest
-                if (songId != lastRecordedSongId) {
-                    lastRecordedSongId = songId
-                    repository.recordHistory(songId)
+                    // This used to run on every position tick — four history rows per second,
+                    // colliding with the media scanner. Record once per track instead.
+                    val songId = playback.currentSong?.id ?: return@collectLatest
+                    if (songId != lastRecordedSongId) {
+                        lastRecordedSongId = songId
+                        runCatching { repository.recordHistory(songId) }
+                    }
                 }
+            }.onFailure { e ->
+                android.util.Log.e("MusicViewModel", "Error observing playback state", e)
             }
         }
     }

@@ -32,6 +32,7 @@ import com.otium.audio.audio.dsp.VisualizerBridge
 import com.otium.audio.OtiumApplication
 import com.otium.audio.R
 import com.otium.audio.ui.MainActivity
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -43,7 +44,10 @@ import kotlinx.coroutines.launch
 
 class PlaybackService : MediaSessionService() {
 
-    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val serviceExceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        Log.e(TAG, "Unhandled coroutine error in PlaybackService", throwable)
+    }
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default + serviceExceptionHandler)
     private var mediaSession: MediaSession? = null
     private lateinit var player: ExoPlayer
     private var activeAudioSessionId: Int = C.AUDIO_SESSION_ID_UNSET
@@ -270,7 +274,7 @@ class PlaybackService : MediaSessionService() {
     override fun onTaskRemoved(rootIntent: Intent?) {
         savePlaybackSession(sync = true)
         val activePlayer = mediaSession?.player
-        if (activePlayer == null || !activePlayer.playWhenReady || activePlayer.mediaItemCount == 0) {
+        if (activePlayer == null || !activePlayer.isPlaying || !activePlayer.playWhenReady || activePlayer.mediaItemCount == 0) {
             stopSelf()
         }
     }
@@ -396,6 +400,20 @@ class PlaybackService : MediaSessionService() {
         override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
             super.onPlayerError(error)
             Log.e(TAG, "playback failed: ${error.errorCodeName}", error)
+
+            // AudioTrack init fallback: If 32-bit float output failed on this device, disable and recover
+            val persistence = PlaybackPersistence(this@PlaybackService)
+            if (persistence.isHiResFloatOutputEnabled() &&
+                (error.errorCode == androidx.media3.common.PlaybackException.ERROR_CODE_AUDIO_TRACK_INIT_FAILED ||
+                 error.errorCodeName.contains("AUDIO_TRACK", ignoreCase = true))
+            ) {
+                Log.w(TAG, "Disabling Hi-Res Float output due to AudioTrack initialization failure")
+                persistence.saveHiResFloatOutput(false)
+                player.prepare()
+                player.play()
+                return
+            }
+
             consecutiveErrors++
             if (consecutiveErrors < 2 && player.hasNextMediaItem()) {
                 player.seekToNextMediaItem()

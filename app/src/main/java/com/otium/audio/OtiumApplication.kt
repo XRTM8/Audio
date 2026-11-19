@@ -11,6 +11,7 @@ import com.otium.audio.data.repository.AudioRepositoryImpl
 import com.otium.audio.playback.EqualizerController
 import com.otium.audio.playback.MusicController
 import com.otium.audio.playback.SleepTimerController
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -38,7 +39,11 @@ class OtiumApplication : Application(), ImageLoaderFactory {
             .build()
     }
 
-    val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val appExceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        android.util.Log.e("OtiumApplication", "Unhandled coroutine error in applicationScope", throwable)
+    }
+
+    val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main + appExceptionHandler)
 
     val database: OtiumDatabase by lazy {
         OtiumDatabase.getInstance(this)

@@ -27,6 +27,7 @@ class MusicController(
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var mediaController: MediaController? = null
     private var progressTrackingJob: Job? = null
+    private var reconnectJob: Job? = null
 
     private val _playbackState = MutableStateFlow(MusicPlaybackState())
     val playbackState: StateFlow<MusicPlaybackState> = _playbackState.asStateFlow()
@@ -56,14 +57,32 @@ class MusicController(
         initializeController()
     }
 
+    private fun scheduleReconnect() {
+        reconnectJob?.cancel()
+        reconnectJob = coroutineScope.launch(Dispatchers.Main) {
+            delay(1200L)
+            if (mediaController == null && !_playbackState.value.isConnected) {
+                initializeController()
+            }
+        }
+    }
+
     private fun initializeController() {
         try {
             val sessionToken = SessionToken(
                 context,
                 ComponentName(context, PlaybackService::class.java)
             )
+            val controllerListener = object : MediaController.Listener {
+                override fun onDisconnected(controller: MediaController) {
+                    _playbackState.update { it.copy(isConnected = false) }
+                    mediaController = null
+                    scheduleReconnect()
+                }
+            }
             controllerFuture = MediaController.Builder(context, sessionToken)
                 .setApplicationLooper(android.os.Looper.getMainLooper())
+                .setListener(controllerListener)
                 .buildAsync()
 
             controllerFuture?.addListener({
@@ -75,10 +94,12 @@ class MusicController(
                     _playbackState.update { it.copy(isConnected = true) }
                 } catch (e: Throwable) {
                     _playbackState.update { it.copy(isConnected = false) }
+                    scheduleReconnect()
                 }
             }, androidx.core.content.ContextCompat.getMainExecutor(context))
         } catch (_: Throwable) {
             _playbackState.update { it.copy(isConnected = false) }
+            scheduleReconnect()
         }
     }
 
@@ -591,6 +612,8 @@ class MusicController(
     }
 
     fun release() {
+        reconnectJob?.cancel()
+        reconnectJob = null
         stopProgressTracker()
         controllerFuture?.let {
             MediaController.releaseFuture(it)
