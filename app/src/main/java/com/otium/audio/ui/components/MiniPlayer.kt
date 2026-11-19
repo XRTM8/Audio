@@ -130,30 +130,39 @@ fun MiniPlayer(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(DarkSurfaceContainer)
+            .background(DarkSurface) // Pure AMOLED Black (#000000)
             .clickable { onPlayerClick() }
     ) {
-        // Enlarged studio progress bar with tactile thumb ("العتلة الاحترافية")
+        // Specular hairline divider to cleanly separate from song list on pure AMOLED
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(0.6.dp)
+                .background(Color(0x1FFFFFFF))
+        )
+
+        // Precision progress bar with tactile thumb ("العتلة الاحترافية")
         MiniPlayerProgressBar(
             positionFlow = positionFlow,
             durationMs = durationMs,
             onSeekTo = onSeekTo
         )
 
-        // Enlarged console row (72dp height, 54dp album art, full playback controls)
+        // Console row (70dp height, 52dp album art, full playback controls)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(72.dp)
-                .padding(horizontal = 12.dp),
+                .height(70.dp)
+                .padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Enlarged Album Art
+            // Album Art
             Box(
                 modifier = Modifier
-                    .size(54.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(DarkSurfaceVariant),
+                    .size(52.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(DarkSurfaceVariant)
+                    .border(0.6.dp, Color(0x22FFFFFF), RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -305,16 +314,16 @@ private fun MiniPlayerProgressBar(
         0f
     }
 
-    val restingBarHeight = 5.dp
-    val draggingBarHeight = 7.dp
+    val restingBarHeight = 2.5.dp
+    val draggingBarHeight = 5.dp
     val barHeight by animateDpAsState(
         targetValue = if (isDragging) draggingBarHeight else restingBarHeight,
         animationSpec = tween(120),
         label = "mini_bar_height"
     )
 
-    val restingThumbSize = 12.5.dp
-    val draggingThumbSize = 16.5.dp
+    val restingThumbSize = 8.dp
+    val draggingThumbSize = 15.dp
     val currentThumbSize by animateDpAsState(
         targetValue = if (isDragging) draggingThumbSize else restingThumbSize,
         animationSpec = spring(
@@ -328,7 +337,7 @@ private fun MiniPlayerProgressBar(
         BoxWithConstraints(
             modifier = modifier
                 .fillMaxWidth()
-                .height(20.dp)
+                .height(18.dp)
                 .pointerInput(safeDuration) {
                     awaitPointerEventScope {
                         while (true) {
@@ -381,7 +390,7 @@ private fun MiniPlayerProgressBar(
                     .height(barHeight)
                     .align(Alignment.Center)
                     .clip(RoundedCornerShape(barHeight / 2f))
-                    .background(Color(0x33FFFFFF))
+                    .background(Color(0x22FFFFFF))
             )
 
             // 2. Active Played Track (Pure Titanium White)

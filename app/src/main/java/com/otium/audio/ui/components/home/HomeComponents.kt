@@ -1,5 +1,7 @@
 package com.otium.audio.ui.components.home
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -11,10 +13,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -38,12 +42,14 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.text.font.FontWeight
@@ -60,6 +66,54 @@ import com.otium.audio.ui.theme.TextSecondary
 import com.otium.audio.ui.theme.TextTertiary
 import com.otium.audio.ui.viewmodel.LibraryTab
 
+/**
+ * Sleek circular action button for the top navigation bar.
+ * Replaces loose, cluttered icon buttons with calibrated studio glass controls.
+ */
+@Composable
+private fun TopBarActionButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    tint: Color = TextSecondary,
+    isActive: Boolean = false,
+    showIndicatorDot: Boolean = false,
+    indicatorColor: Color = Color.White
+) {
+    Box(
+        modifier = modifier
+            .size(38.dp)
+            .clip(CircleShape)
+            .background(if (isActive) Color(0x24FFFFFF) else Color(0x0EFFFFFF))
+            .border(
+                width = 0.75.dp,
+                color = if (isActive) Color(0x40FFFFFF) else Color(0x14FFFFFF),
+                shape = CircleShape
+            )
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = if (isActive) Color.White else tint,
+            modifier = Modifier.size(19.dp)
+        )
+
+        if (showIndicatorDot) {
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .align(Alignment.TopEnd)
+                    .offset(x = (-3).dp, y = 3.dp)
+                    .clip(CircleShape)
+                    .background(indicatorColor)
+            )
+        }
+    }
+}
+
 @Composable
 fun HomeTopBar(
     songCount: Int,
@@ -74,71 +128,72 @@ fun HomeTopBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = 20.dp, end = 12.dp, top = 10.dp, bottom = 6.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        // Balanced typographic hierarchy: Section title on top, track count subtitle
+        Column(
+            modifier = Modifier.weight(1f, fill = false),
+            verticalArrangement = Arrangement.Center
+        ) {
             Text(
                 text = "مكتبتك",
-                style = MaterialTheme.typography.labelMedium,
-                color = TextTertiary
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = "$songCount أغنية",
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 22.sp,
+                    letterSpacing = (-0.3).sp
+                ),
                 color = TextPrimary
+            )
+            Spacer(modifier = Modifier.height(1.dp))
+            Text(
+                text = "$songCount مقطع صوتي",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 12.sp
+                ),
+                color = TextSecondary
             )
         }
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onStartSelection) {
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = "Selection Mode",
-                    tint = TextSecondary,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
+        // Clutter-free unified studio control cluster
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            // 1. Batch selection mode
+            TopBarActionButton(
+                icon = Icons.Default.Check,
+                contentDescription = "Selection Mode",
+                onClick = onStartSelection
+            )
 
-            IconButton(onClick = onOpenSort) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Sort,
-                    contentDescription = "Sort",
-                    tint = TextSecondary,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
+            // 2. Sort order sheet
+            TopBarActionButton(
+                icon = Icons.AutoMirrored.Filled.Sort,
+                contentDescription = "Sort",
+                onClick = onOpenSort
+            )
 
-            if (availableUpdate != null) {
-                IconButton(onClick = onOpenSettings) {
-                    Icon(
-                        imageVector = Icons.Default.SystemUpdate,
-                        contentDescription = "Update Available",
-                        tint = AccentGold,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
+            // 3. Audio Equalizer (with active glow detent)
+            TopBarActionButton(
+                icon = Icons.Default.Equalizer,
+                contentDescription = "Equalizer",
+                onClick = onOpenEqualizer,
+                isActive = isEqualizerEnabled,
+                showIndicatorDot = isEqualizerEnabled,
+                indicatorColor = AccentGold
+            )
 
-            IconButton(onClick = onOpenEqualizer) {
-                Icon(
-                    imageVector = Icons.Default.Equalizer,
-                    contentDescription = "Equalizer",
-                    tint = if (isEqualizerEnabled) AccentGold else TextSecondary,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-
-            IconButton(onClick = onOpenSettings) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = "Settings",
-                    tint = TextSecondary,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
+            // 4. Application settings (shows indicator dot if update is ready)
+            TopBarActionButton(
+                icon = Icons.Default.Settings,
+                contentDescription = "Settings",
+                onClick = onOpenSettings,
+                showIndicatorDot = availableUpdate != null,
+                indicatorColor = AccentGold
+            )
         }
     }
 }
@@ -274,13 +329,13 @@ fun HomeSearchBar(
         onValueChange = onQueryChanged,
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 14.dp, vertical = 2.dp)
-            .height(48.dp),
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .height(46.dp),
         placeholder = {
             Text(
                 text = "بحث في $songCount مقطعاً، فناناً، ألبوماً...",
                 style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
+                color = TextSecondary.copy(alpha = 0.65f),
                 fontSize = 12.5.sp
             )
         },
@@ -304,15 +359,15 @@ fun HomeSearchBar(
                 }
             }
         },
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(23.dp),
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = DarkSurfaceContainer,
-            unfocusedContainerColor = DarkSurfaceContainer,
-            focusedBorderColor = AccentGold.copy(alpha = 0.5f),
-            unfocusedBorderColor = DarkCardBorder,
-            cursorColor = AccentGold,
+            focusedContainerColor = Color(0xFF0C0C10),
+            unfocusedContainerColor = Color(0xFF0C0C10),
+            focusedBorderColor = Color(0x38FFFFFF),
+            unfocusedBorderColor = Color(0x14FFFFFF),
+            cursorColor = Color.White,
             focusedTextColor = TextPrimary,
             unfocusedTextColor = TextPrimary
         ),
@@ -333,8 +388,8 @@ fun HomeFilterPills(
         modifier = modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 14.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         val filterPills = remember(counts) {
@@ -355,24 +410,44 @@ fun HomeFilterPills(
 
         filterPills.forEach { (tab, label, _) ->
             val isSelected = selectedTab == tab
+
+            val pillBg by animateColorAsState(
+                targetValue = if (isSelected) Color.White else Color(0x0EFFFFFF),
+                animationSpec = tween(140),
+                label = "pill_bg"
+            )
+
+            val pillBorderColor by animateColorAsState(
+                targetValue = if (isSelected) Color.White else Color(0x14FFFFFF),
+                animationSpec = tween(140),
+                label = "pill_border"
+            )
+
+            val textColor by animateColorAsState(
+                targetValue = if (isSelected) Color.Black else TextSecondary,
+                animationSpec = tween(140),
+                label = "pill_text"
+            )
+
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(if (isSelected) Color(0xFF242430) else DarkSurfaceContainer)
-                    .border(1.dp, if (isSelected) Color(0x33FFFFFF) else Color.Transparent, RoundedCornerShape(16.dp))
+                    .clip(CircleShape)
+                    .background(pillBg)
+                    .border(0.75.dp, pillBorderColor, CircleShape)
                     .clickable {
                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         onTabSelected(tab)
                     }
-                    .padding(horizontal = 14.dp, vertical = 6.dp)
+                    .padding(horizontal = 14.dp, vertical = 7.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                        fontSize = 11.5.sp
+                        fontSize = 12.sp
                     ),
-                    color = if (isSelected) Color.White else TextSecondary
+                    color = textColor
                 )
             }
         }

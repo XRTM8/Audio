@@ -2,6 +2,7 @@ package com.otium.audio.ui.components
 
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -60,11 +62,10 @@ import kotlin.math.roundToInt
 /**
  * Tactile Studio Scrubber Thumb ("العتلة الاحترافية").
  * عتلة نقية ومصقولة بتصميم تيتانيوم فاخر (Titanium White & Obsidian Glass):
- * - قرص أبيض تيتانيوم نقي ومصقول بدقة متناهية
- * - ظل محيطي وبؤري دقيق (Ambient & Spot Drop Shadow) يمنح العتلة عمقاً طبيعياً فاخراً
- * - إطار مجهري خفيف (Hairline rim) يحفظ تباينها وتحديدها المتقن
- * - حركة نابضية مرنة (Spring physics) تتوسع بنعومة فائقة عند السحب أو اللمس
- * - مؤشر دقيق داخلي يظهر أثناء السحب النشط للتحكم المتقن
+ * - قرص أبيض تيتانيوم نقي مع حافة خارجية دقيقة مضادة للتداخل
+ * - ظل محيطي وبؤري دقيق يمنح العتلة عمقاً طبيعياً فاخراً
+ * - نواة معدنية داكنة دقيقة (Center Detent Core) مستوحاة من أجهزة الاستوديو الاحترافية
+ * - استجابة حركية ونبضية فورية أثناء اللمس والسحب
  */
 @Composable
 fun PlayerScrubberThumb(
@@ -73,9 +74,24 @@ fun PlayerScrubberThumb(
     modifier: Modifier = Modifier
 ) {
     val shadowElevation by animateDpAsState(
-        targetValue = if (isDragging) 6.dp else 2.5.dp,
+        targetValue = if (isDragging) 8.dp else 2.5.dp,
         animationSpec = tween(120),
         label = "thumb_shadow"
+    )
+
+    val coreSize by animateDpAsState(
+        targetValue = if (isDragging) 4.5.dp else 2.5.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "thumb_core_size"
+    )
+
+    val haloAlpha by animateFloatAsState(
+        targetValue = if (isDragging) 0.35f else 0.12f,
+        animationSpec = tween(120),
+        label = "thumb_halo_alpha"
     )
 
     Box(
@@ -89,17 +105,23 @@ fun PlayerScrubberThumb(
             )
             .clip(CircleShape)
             .background(Color.White)
-            .border(1.dp, Color(0x22000000), CircleShape),
+            .border(1.dp, Color(0x28000000), CircleShape),
         contentAlignment = Alignment.Center
     ) {
-        if (isDragging) {
-            Box(
-                modifier = Modifier
-                    .size(4.5.dp)
-                    .clip(CircleShape)
-                    .background(Color(0x22000000))
-            )
-        }
+        // Specular outer ring highlight
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .border(0.75.dp, Color.White.copy(alpha = haloAlpha), CircleShape)
+        )
+
+        // Precision studio core dot (Tactile hardware detent indicator)
+        Box(
+            modifier = Modifier
+                .size(coreSize)
+                .clip(CircleShape)
+                .background(Color(0xFF14141A))
+        )
     }
 }
 
