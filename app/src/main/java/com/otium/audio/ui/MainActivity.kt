@@ -362,28 +362,30 @@ class MainActivity : ComponentActivity() {
                             ) + fadeOut(animationSpec = tween(durationMillis = 150))
                         ) {
                             if (currentSong != null) {
-                                BackHandler {
-                                    viewModel.setNowPlayingExpanded(false)
-                                }
+                                key(uiState.isNowPlayingExpanded) {
+                                    BackHandler {
+                                        viewModel.setNowPlayingExpanded(false)
+                                    }
 
-                                NowPlayingScreen(
-                                    song = currentSong,
-                                    isPlaying = uiState.playbackState.isPlaying,
-                                    positionFlow = viewModel.position,
-                                    durationMs = uiState.playbackState.durationMs,
-                                    repeatMode = uiState.playbackState.repeatMode,
-                                    isShuffleEnabled = uiState.playbackState.isShuffleEnabled,
-                                    playbackSpeed = uiState.playbackState.playbackSpeed,
-                                    equalizerState = uiState.equalizerState,
-                                    queue = if (uiState.playbackState.queue.isNotEmpty()) uiState.playbackState.queue else uiState.songs,
-                                    sleepTimerState = uiState.sleepTimerState,
-                                    playbackActions = playbackActions,
-                                    equalizerActions = equalizerActions,
-                                    queueActions = queueActions,
-                                    sleepTimerActions = sleepTimerActions,
-                                    onCollapse = { viewModel.setNowPlayingExpanded(false) },
-                                    onEditTagClick = { viewModel.openTagEditor(currentSong) }
-                                )
+                                    NowPlayingScreen(
+                                        song = currentSong,
+                                        isPlaying = uiState.playbackState.isPlaying,
+                                        positionFlow = viewModel.position,
+                                        durationMs = uiState.playbackState.durationMs,
+                                        repeatMode = uiState.playbackState.repeatMode,
+                                        isShuffleEnabled = uiState.playbackState.isShuffleEnabled,
+                                        playbackSpeed = uiState.playbackState.playbackSpeed,
+                                        equalizerState = uiState.equalizerState,
+                                        queue = if (uiState.playbackState.queue.isNotEmpty()) uiState.playbackState.queue else uiState.songs,
+                                        sleepTimerState = uiState.sleepTimerState,
+                                        playbackActions = playbackActions,
+                                        equalizerActions = equalizerActions,
+                                        queueActions = queueActions,
+                                        sleepTimerActions = sleepTimerActions,
+                                        onCollapse = { viewModel.setNowPlayingExpanded(false) },
+                                        onEditTagClick = { viewModel.openTagEditor(currentSong) }
+                                    )
+                                }
                             }
                         }
                     }

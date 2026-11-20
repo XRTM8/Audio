@@ -368,6 +368,7 @@ private fun MiniPlayerProgressBar(
         BoxWithConstraints(
             modifier = modifier
                 .fillMaxWidth()
+                .padding(horizontal = 8.dp)
                 .height(18.dp)
                 .pointerInput(safeDuration) {
                     awaitPointerEventScope {

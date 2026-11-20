@@ -78,6 +78,7 @@ import com.otium.audio.playback.BatteryOptimizationHelper
 import com.otium.audio.ui.theme.SuccessGreen
 import com.otium.audio.ui.theme.AccentCyan
 import com.otium.audio.ui.theme.AccentGold
+import com.otium.audio.ui.theme.LocalOtiumColors
 import com.otium.audio.ui.theme.DarkCardBorder
 import com.otium.audio.ui.theme.DarkSurface
 import com.otium.audio.ui.theme.DarkSurfaceContainer
@@ -171,6 +172,15 @@ fun SettingsSheet(
         },
         modifier = modifier
     ) {
+        val isDark = LocalOtiumColors.current.isDark
+        val studioSwitchColors = SwitchDefaults.colors(
+            checkedThumbColor = if (isDark) AccentTitaniumWhite else Color.White,
+            checkedTrackColor = if (isDark) Color(0xFF3E3E50) else Color(0xFF0F1115),
+            uncheckedThumbColor = if (isDark) TextSecondary else Color.White,
+            uncheckedTrackColor = if (isDark) Color(0xFF1B1B24) else Color(0xFFD6DBE4),
+            uncheckedBorderColor = if (isDark) Color.Transparent else Color(0xFFCDD3DE)
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -537,16 +547,27 @@ fun SettingsSheet(
                     ) {
                         durationOptions.forEach { (sec, label) ->
                             val isSelected = minDurationSeconds == sec
+                            val pillBg = if (isSelected) {
+                                if (isDark) AccentTitaniumWhite else Color(0xFF0F1115)
+                            } else {
+                                if (isDark) DarkSurfaceContainer else Color(0xFFF1F4F8)
+                            }
+                            val pillBorder = if (isSelected) {
+                                if (isDark) AccentTitaniumWhite else Color(0xFF0F1115)
+                            } else {
+                                DarkSheetCardBorder
+                            }
+                            val pillTextColor = if (isSelected) {
+                                if (isDark) Color.Black else Color.White
+                            } else {
+                                TextSecondary
+                            }
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(if (isSelected) AccentGold.copy(alpha = 0.2f) else DarkSurfaceContainer)
-                                    .border(
-                                        1.dp,
-                                        if (isSelected) AccentGold else DarkSheetCardBorder,
-                                        RoundedCornerShape(10.dp)
-                                    )
+                                    .background(pillBg)
+                                    .border(1.dp, pillBorder, RoundedCornerShape(10.dp))
                                     .clickable {
                                         onSetMinDurationSeconds(sec)
                                     }
@@ -556,7 +577,7 @@ fun SettingsSheet(
                                 Text(
                                     text = label,
                                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = if (isSelected) AccentGold else TextSecondary
+                                    color = pillTextColor
                                 )
                             }
                         }
@@ -696,11 +717,22 @@ fun SettingsSheet(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                            Text(
-                                text = "الحماية التلقائية من التشويه (Auto-Preamp)",
-                                fontWeight = FontWeight.SemiBold,
-                                color = TextPrimary
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "الحماية التلقائية من التشويه",
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TextPrimary
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(if (isDark) Color(0x22FFFFFF) else Color(0xFFE8EDF5))
+                                        .padding(horizontal = 5.dp, vertical = 1.dp)
+                                ) {
+                                    Text(text = "Auto-Preamp", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
+                                }
+                            }
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "خفض الـ Pre-Amp تلقائياً عند رفع المعادل لحماية سقف 0 dBFS ومنع الكبت الديناميكي",
@@ -711,12 +743,7 @@ fun SettingsSheet(
                         Switch(
                             checked = isAutoPreAmpEnabled,
                             onCheckedChange = onToggleAutoPreAmp,
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = AccentTitaniumWhite,
-                                checkedTrackColor = Color(0xFF2E2E3C),
-                                uncheckedThumbColor = TextSecondary,
-                                uncheckedTrackColor = Color(0xFF1B1B24)
-                            )
+                            colors = studioSwitchColors
                         )
                     }
 
@@ -733,11 +760,22 @@ fun SettingsSheet(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                            Text(
-                                text = "تخطي الصمت التلقائي (Skip Silence)",
-                                fontWeight = FontWeight.SemiBold,
-                                color = TextPrimary
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "تخطي الصمت التلقائي",
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TextPrimary
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(if (isDark) Color(0x22FFFFFF) else Color(0xFFE8EDF5))
+                                        .padding(horizontal = 5.dp, vertical = 1.dp)
+                                ) {
+                                    Text(text = "Skip Silence", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
+                                }
+                            }
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "تجاوز فترات الصمت الرقمي في بدايات ونهايات المسارات دون تقطيع",
@@ -748,12 +786,7 @@ fun SettingsSheet(
                         Switch(
                             checked = isSkipSilenceEnabled,
                             onCheckedChange = onToggleSkipSilence,
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = AccentTitaniumWhite,
-                                checkedTrackColor = Color(0xFF2E2E3C),
-                                uncheckedThumbColor = TextSecondary,
-                                uncheckedTrackColor = Color(0xFF1B1B24)
-                            )
+                            colors = studioSwitchColors
                         )
                     }
 
@@ -770,11 +803,22 @@ fun SettingsSheet(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                            Text(
-                                text = "إخراج صوت عالي الدقة (32-Bit Float)",
-                                fontWeight = FontWeight.SemiBold,
-                                color = TextPrimary
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "إخراج صوت عالي الدقة",
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TextPrimary
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(if (isDark) Color(0x22FFFFFF) else Color(0xFFE8EDF5))
+                                        .padding(horizontal = 5.dp, vertical = 1.dp)
+                                ) {
+                                    Text(text = "32-Bit Float", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
+                                }
+                            }
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "إرسال تيار الصوت بصيغة Float نقية لمنع تشويه التكميم وتفادي تقليص عينات 24-bit إلى 16-bit",
@@ -785,12 +829,7 @@ fun SettingsSheet(
                         Switch(
                             checked = isHiResFloatEnabled,
                             onCheckedChange = onToggleHiResFloat,
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = AccentTitaniumWhite,
-                                checkedTrackColor = Color(0xFF2E2E3C),
-                                uncheckedThumbColor = TextSecondary,
-                                uncheckedTrackColor = Color(0xFF1B1B24)
-                            )
+                            colors = studioSwitchColors
                         )
                     }
 
@@ -807,11 +846,22 @@ fun SettingsSheet(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                            Text(
-                                text = "تسوية علو الصوت (Loudness Normalization)",
-                                fontWeight = FontWeight.SemiBold,
-                                color = TextPrimary
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "تسوية علو الصوت",
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TextPrimary
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(if (isDark) Color(0x22FFFFFF) else Color(0xFFE8EDF5))
+                                        .padding(horizontal = 5.dp, vertical = 1.dp)
+                                ) {
+                                    Text(text = "Normalization", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
+                                }
+                            }
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "موازنة ديناميكية لحجم الصوت لتجنب الارتفاع أو الانخفاض المفاجئ بين المسارات المختلفة",
@@ -822,12 +872,7 @@ fun SettingsSheet(
                         Switch(
                             checked = isLoudnessNormalizationEnabled,
                             onCheckedChange = onToggleLoudnessNormalization,
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = AccentTitaniumWhite,
-                                checkedTrackColor = Color(0xFF2E2E3C),
-                                uncheckedThumbColor = TextSecondary,
-                                uncheckedTrackColor = Color(0xFF1B1B24)
-                            )
+                            colors = studioSwitchColors
                         )
                     }
 
@@ -844,11 +889,22 @@ fun SettingsSheet(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                            Text(
-                                text = "المسرح الصوتي للسماعات (Acoustic Crossfeed)",
-                                fontWeight = FontWeight.SemiBold,
-                                color = TextPrimary
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "المسرح الصوتي للسماعات",
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TextPrimary
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(if (isDark) Color(0x22FFFFFF) else Color(0xFFE8EDF5))
+                                        .padding(horizontal = 5.dp, vertical = 1.dp)
+                                ) {
+                                    Text(text = "Crossfeed", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
+                                }
+                            }
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "محاكاة مكبرات الصوت الطبيعية للحد من إرهاق السمع وتوسيع المسرح الصوتي عند استخدام السماعات",
@@ -859,12 +915,7 @@ fun SettingsSheet(
                         Switch(
                             checked = isCrossfeedEnabled,
                             onCheckedChange = onToggleCrossfeed,
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = AccentTitaniumWhite,
-                                checkedTrackColor = Color(0xFF2E2E3C),
-                                uncheckedThumbColor = TextSecondary,
-                                uncheckedTrackColor = Color(0xFF1B1B24)
-                            )
+                            colors = studioSwitchColors
                         )
                     }
 
@@ -872,11 +923,22 @@ fun SettingsSheet(
                     HorizontalDivider(color = DarkCardBorder.copy(alpha = 0.5f))
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    Text(
-                        text = "التلاشي المتقاطع بين المقاطع (Crossfade)",
-                        fontWeight = FontWeight.SemiBold,
-                        color = TextPrimary
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "التلاشي المتقاطع بين المقاطع",
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextPrimary
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(if (isDark) Color(0x22FFFFFF) else Color(0xFFE8EDF5))
+                                .padding(horizontal = 5.dp, vertical = 1.dp)
+                        ) {
+                            Text(text = "Crossfade", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
+                        }
+                    }
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = "انتقال متداخل ناعم ومتلاشٍ بين المسارات لتفادي الانقطاع المفاجئ للصوت",
@@ -896,16 +958,27 @@ fun SettingsSheet(
                     ) {
                         crossfadeOptions.forEach { (sec, label) ->
                             val isSelected = crossfadeSeconds == sec
+                            val pillBg = if (isSelected) {
+                                if (isDark) AccentTitaniumWhite else Color(0xFF0F1115)
+                            } else {
+                                if (isDark) DarkSurfaceContainer else Color(0xFFF1F4F8)
+                            }
+                            val pillBorder = if (isSelected) {
+                                if (isDark) AccentTitaniumWhite else Color(0xFF0F1115)
+                            } else {
+                                DarkSheetCardBorder
+                            }
+                            val pillTextColor = if (isSelected) {
+                                if (isDark) Color.Black else Color.White
+                            } else {
+                                TextSecondary
+                            }
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(if (isSelected) AccentGold.copy(alpha = 0.2f) else DarkSurfaceContainer)
-                                    .border(
-                                        1.dp,
-                                        if (isSelected) AccentGold else DarkSheetCardBorder,
-                                        RoundedCornerShape(10.dp)
-                                    )
+                                    .background(pillBg)
+                                    .border(1.dp, pillBorder, RoundedCornerShape(10.dp))
                                     .clickable {
                                         onSetCrossfadeSeconds(sec)
                                     }
@@ -915,7 +988,7 @@ fun SettingsSheet(
                                 Text(
                                     text = label,
                                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = if (isSelected) AccentGold else TextSecondary
+                                    color = pillTextColor
                                 )
                             }
                         }
@@ -949,12 +1022,7 @@ fun SettingsSheet(
                         Switch(
                             checked = isResumeOnHeadsetConnect,
                             onCheckedChange = onToggleResumeOnHeadsetConnect,
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = AccentTitaniumWhite,
-                                checkedTrackColor = Color(0xFF2E2E3C),
-                                uncheckedThumbColor = TextSecondary,
-                                uncheckedTrackColor = Color(0xFF1B1B24)
-                            )
+                            colors = studioSwitchColors
                         )
                     }
                 }

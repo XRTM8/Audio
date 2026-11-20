@@ -101,8 +101,8 @@ fun EqualizerSheet(
         modifier = modifier.padding(top = notchInset + 6.dp)
     ) {
         val isDark = LocalOtiumColors.current.isDark
-        val switchCheckedTrack = if (isDark) Color(0xFF2E2E3C) else Color(0xFFD1D5DB)
-        val switchUncheckedTrack = if (isDark) Color(0xFF1B1B24) else Color(0xFFE2E8F0)
+        val switchCheckedTrack = if (isDark) Color(0xFF3E3E50) else Color(0xFF0F1115)
+        val switchUncheckedTrack = if (isDark) Color(0xFF1B1B24) else Color(0xFFD6DBE4)
 
         Column(
             modifier = Modifier

@@ -86,14 +86,19 @@ private fun TopBarActionButton(
 ) {
     val isDark = LocalOtiumColors.current.isDark
     val bg = if (isActive) {
-        if (isDark) Color(0x24FFFFFF) else Color(0x18000000)
+        if (isDark) Color(0x24FFFFFF) else Color(0xFF0F1115)
     } else {
-        if (isDark) Color(0x0EFFFFFF) else Color(0xFFEFF2F7)
+        if (isDark) Color(0x0EFFFFFF) else Color.White
     }
     val border = if (isActive) {
-        if (isDark) Color(0x40FFFFFF) else Color(0x28000000)
+        if (isDark) Color(0x40FFFFFF) else Color(0xFF0F1115)
     } else {
         DarkCardBorder
+    }
+    val iconTint = if (isActive) {
+        if (isDark) TextPrimary else Color.White
+    } else {
+        if (isDark) tint else TextPrimary
     }
 
     Box(
@@ -112,7 +117,7 @@ private fun TopBarActionButton(
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = if (isActive) TextPrimary else tint,
+            tint = iconTint,
             modifier = Modifier.size(19.dp)
         )
 

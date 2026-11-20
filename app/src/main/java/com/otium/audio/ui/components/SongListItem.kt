@@ -43,6 +43,8 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
@@ -172,24 +174,29 @@ fun SongListItem(
     val titleDefaultColor = if (isCurrentSong) AccentTitaniumWhite else TextPrimary
     val subtitleDefaultColor = TextSecondary
 
+    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+
     Row(
         modifier = modifier
             .fillMaxWidth()
             .height(66.dp)
             .drawBehind {
+                val barWidth = 3.2.dp.toPx()
+                val barLeft = if (isRtl) size.width - barWidth else 0f
+
                 if (isSelectionMode && isSelected) {
                     drawRect(Color(0x33FFB300))
                     drawRect(
                         color = goldColor,
-                        topLeft = Offset.Zero,
-                        size = Size(3.5.dp.toPx(), size.height)
+                        topLeft = Offset(barLeft, 0f),
+                        size = Size(barWidth, size.height)
                     )
                 } else if (isCurrentSong) {
                     drawRect(currentSongBg)
                     drawRect(
                         color = activeIndicatorColor,
-                        topLeft = Offset.Zero,
-                        size = Size(3.dp.toPx(), size.height)
+                        topLeft = Offset(barLeft, 0f),
+                        size = Size(barWidth, size.height)
                     )
                 }
                 drawLine(

@@ -434,6 +434,16 @@ fun NowPlayingScreen(
     val dismissThreshold = with(density) { 68.dp.toPx() }
 
     // Always reset drag offset clean to 0 when entering composition or when song changes
+    LaunchedEffect(Unit) {
+        dragY.snapTo(0f)
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            runCatching { dragY.snapTo(0f) }
+        }
+    }
+
     LaunchedEffect(song.id) {
         runCatching { dragY.snapTo(0f) }
         if (currentTrackIndex in playlist.indices && pagerState.currentPage != currentTrackIndex) {
