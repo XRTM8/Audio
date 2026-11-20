@@ -35,6 +35,11 @@ object OtiumMotion {
         stiffness = Spring.StiffnessMedium
     )
 
+    val ButtonSpringDp = spring<androidx.compose.ui.unit.Dp>(
+        dampingRatio = Spring.DampingRatioMediumBouncy,
+        stiffness = Spring.StiffnessMedium
+    )
+
     /**
      * Snappy micro-interaction spring for pills and chips.
      */

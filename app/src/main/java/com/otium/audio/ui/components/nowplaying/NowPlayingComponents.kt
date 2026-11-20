@@ -1,8 +1,10 @@
 package com.otium.audio.ui.components.nowplaying
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -186,7 +188,10 @@ fun NowPlayingControls(
     )
     val playElevation by animateDpAsState(
         targetValue = if (isPlayPressed) 4.dp else (if (isPlaying) 18.dp else 8.dp),
-        animationSpec = OtiumMotion.ButtonSpring,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
         label = "play_elevation"
     )
 
