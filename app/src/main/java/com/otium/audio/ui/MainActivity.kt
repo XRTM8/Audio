@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,15 +62,14 @@ class MainActivity : ComponentActivity() {
             repository = app.repository,
             musicController = app.musicController,
             equalizerController = app.equalizerController,
-            sleepTimerController = app.sleepTimerController
+            sleepTimerController = app.sleepTimerController,
+            initialHasPermission = hasRequiredAudioPermission(this)
         )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        enableHighRefreshRate()
-        window.decorView.post { enableHighRefreshRate() }
 
         setContent {
             val uiState by viewModel.uiState.collectAsState()
@@ -366,7 +366,8 @@ class MainActivity : ComponentActivity() {
                                     viewModel.setNowPlayingExpanded(false)
                                 }
 
-                                NowPlayingScreen(
+                                key(currentSong.id) {
+                                    NowPlayingScreen(
                                         song = currentSong,
                                         isPlaying = uiState.playbackState.isPlaying,
                                         positionFlow = viewModel.position,
@@ -384,6 +385,7 @@ class MainActivity : ComponentActivity() {
                                         onCollapse = { viewModel.setNowPlayingExpanded(false) },
                                         onEditTagClick = { viewModel.openTagEditor(currentSong) }
                                     )
+                                }
                             }
                         }
                     }

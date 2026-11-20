@@ -11,7 +11,8 @@ import androidx.compose.animation.scaleOut
 import com.otium.audio.ui.theme.OtiumMotion
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.offset
@@ -99,40 +100,39 @@ fun FastAlphabetScroller(
     Box(
         modifier = modifier
             .pointerInput(alphabet, letterIndexMap) {
-                val totalH = size.height.toFloat().coerceAtLeast(1f)
-                detectVerticalDragGestures(
-                    onDragStart = { offset ->
-                        isDragging = true
-                        currentTouchY = offset.y
-                        val fraction = (offset.y / totalH).coerceIn(0f, 0.999f)
-                        val letterIndex = (fraction * alphabet.size).toInt()
-                        val letter = alphabet.getOrElse(letterIndex) { "#" }
-                        if (letter != selectedLetter) {
-                            selectedLetter = letter
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            letterIndexMap[letter]?.let { onIndexSelected(it) }
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    val totalH = size.height.toFloat().coerceAtLeast(1f)
+                    val fraction = (down.position.y / totalH).coerceIn(0f, 0.999f)
+                    val letterIndex = (fraction * alphabet.size).toInt()
+                    val letter = alphabet.getOrElse(letterIndex) { "#" }
+                    isDragging = true
+                    currentTouchY = down.position.y
+                    if (letter != selectedLetter) {
+                        selectedLetter = letter
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        letterIndexMap[letter]?.let { onIndexSelected(it) }
+                    }
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                        if (!change.pressed) {
+                            isDragging = false
+                            selectedLetter = ""
+                            break
                         }
-                    },
-                    onDragEnd = {
-                        isDragging = false
-                        selectedLetter = ""
-                    },
-                    onDragCancel = {
-                        isDragging = false
-                        selectedLetter = ""
-                    },
-                    onVerticalDrag = { change, _ ->
+                        change.consume()
                         currentTouchY = change.position.y
-                        val fraction = (change.position.y / totalH).coerceIn(0f, 0.999f)
-                        val letterIndex = (fraction * alphabet.size).toInt()
-                        val letter = alphabet.getOrElse(letterIndex) { "#" }
-                        if (letter != selectedLetter) {
-                            selectedLetter = letter
+                        val currentFraction = (change.position.y / totalH).coerceIn(0f, 0.999f)
+                        val currentIdx = (currentFraction * alphabet.size).toInt()
+                        val currentLetter = alphabet.getOrElse(currentIdx) { "#" }
+                        if (currentLetter != selectedLetter) {
+                            selectedLetter = currentLetter
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            letterIndexMap[letter]?.let { onIndexSelected(it) }
+                            letterIndexMap[currentLetter]?.let { onIndexSelected(it) }
                         }
                     }
-                )
+                }
             }
     ) {
         // Floating Letter Bubble in center-start during drag with spring pop

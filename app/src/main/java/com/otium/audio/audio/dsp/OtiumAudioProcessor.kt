@@ -213,6 +213,7 @@ class OtiumAudioProcessor(
                 }
             }
             output.flip()
+            sampleSpectrumIfNeeded(output, encoding == C.ENCODING_PCM_FLOAT, remaining)
         } catch (_: Throwable) {
             inputBuffer.position(startPos)
             output.clear()

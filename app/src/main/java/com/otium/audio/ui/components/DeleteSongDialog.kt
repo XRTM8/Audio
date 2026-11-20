@@ -46,6 +46,7 @@ fun DeleteSongsDialog(
         if (result.resultCode == android.app.Activity.RESULT_OK) {
             onSongsDeleted?.invoke(songs)
         }
+        onDismiss()
     }
 
     val isSingle = songs.size == 1
@@ -67,10 +68,13 @@ fun DeleteSongsDialog(
             TextButton(onClick = {
                 val uris = songs.map { it.contentUri }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    runCatching {
-                        val pending: IntentSender =
-                            MediaStore.createDeleteRequest(context.contentResolver, uris).intentSender
+                    val pending: IntentSender? = runCatching {
+                        MediaStore.createDeleteRequest(context.contentResolver, uris).intentSender
+                    }.getOrNull()
+                    if (pending != null) {
                         launcher.launch(IntentSenderRequest.Builder(pending).build())
+                    } else {
+                        onDismiss()
                     }
                 } else {
                     scope.launch {
@@ -81,8 +85,8 @@ fun DeleteSongsDialog(
                         }
                     }
                     onSongsDeleted?.invoke(songs)
+                    onDismiss()
                 }
-                onDismiss()
             }) {
                 Text("حذف", color = ErrorRed)
             }

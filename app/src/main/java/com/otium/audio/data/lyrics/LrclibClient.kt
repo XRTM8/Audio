@@ -68,6 +68,7 @@ object LrclibClient {
         if (negativeCache.get(songId) == true) return@withContext null
 
         // 4. Online Fetch from LRCLIB
+        var connection: HttpURLConnection? = null
         try {
             val cleanTitle = cleanTrackName(title)
             val cleanArtist = cleanArtistName(artist)
@@ -82,7 +83,7 @@ object LrclibClient {
                 urlBuilder.append("&duration=").append(durationSec)
             }
 
-            val connection = (URL(urlBuilder.toString()).openConnection() as HttpURLConnection).apply {
+            connection = (URL(urlBuilder.toString()).openConnection() as HttpURLConnection).apply {
                 requestMethod = "GET"
                 connectTimeout = CONNECT_TIMEOUT_MS
                 readTimeout = READ_TIMEOUT_MS
@@ -94,7 +95,6 @@ object LrclibClient {
             if (responseCode == 200) {
                 val reader = BufferedReader(InputStreamReader(connection.inputStream))
                 val response = reader.use { it.readText() }
-                connection.disconnect()
 
                 val json = JSONObject(response)
                 val synced = json.optString("syncedLyrics", "").trim()
@@ -109,11 +109,11 @@ object LrclibClient {
                     val lines = plain.lines().filter { it.isNotBlank() }.map { LyricLine(0L, it.trim()) }
                     if (lines.isNotEmpty()) return@withContext TrackLyrics(lines = lines, isSynced = false)
                 }
-            } else {
-                connection.disconnect()
             }
         } catch (_: Exception) {
             // Graceful handling of offline/network issues
+        } finally {
+            connection?.disconnect()
         }
 
         negativeCache.put(songId, true)

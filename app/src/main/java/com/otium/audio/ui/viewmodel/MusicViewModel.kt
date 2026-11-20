@@ -42,6 +42,7 @@ class MusicViewModel(
     private val musicController: MusicController,
     private val equalizerController: EqualizerController,
     private val sleepTimerController: SleepTimerController,
+    private val initialHasPermission: Boolean = false,
     private val savedStateHandle: SavedStateHandle? = null
 ) : ViewModel() {
 
@@ -58,7 +59,8 @@ class MusicViewModel(
             selectedTab = initialTab,
             sortOrder = initialSortOrder,
             minDurationSeconds = repository.getMinDurationSeconds(),
-            isDarkMode = repository.isDarkMode()
+            isDarkMode = repository.isDarkMode(),
+            hasStoragePermission = initialHasPermission
         )
     )
     val uiState: StateFlow<MusicUiState> = _uiState.asStateFlow()
@@ -89,6 +91,10 @@ class MusicViewModel(
     private var playlistSongsJob: Job? = null
 
     init {
+        if (initialHasPermission) {
+            libraryLoaded = true
+            loadLibrary()
+        }
         restoreSession()
         observePlaybackState()
         observeEqualizer()
@@ -539,7 +545,8 @@ class MusicViewModel(
         private val repository: AudioRepository,
         private val musicController: MusicController,
         private val equalizerController: EqualizerController,
-        private val sleepTimerController: SleepTimerController
+        private val sleepTimerController: SleepTimerController,
+        private val initialHasPermission: Boolean = false
     ) : ViewModelProvider.Factory {
 
         @Suppress("UNCHECKED_CAST")
@@ -552,13 +559,14 @@ class MusicViewModel(
                 musicController,
                 equalizerController,
                 sleepTimerController,
+                initialHasPermission,
                 extras.createSavedStateHandle()
             ) as T
         }
 
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            MusicViewModel(repository, musicController, equalizerController, sleepTimerController) as T
+            MusicViewModel(repository, musicController, equalizerController, sleepTimerController, initialHasPermission) as T
     }
 
     private companion object {

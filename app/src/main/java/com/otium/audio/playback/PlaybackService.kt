@@ -97,16 +97,31 @@ class PlaybackService : MediaSessionService() {
         initializeMediaSession()
         setupNotificationProvider()
 
-        val filter = android.content.IntentFilter().apply {
-            addAction(Intent.ACTION_HEADSET_PLUG)
-            addAction(android.bluetooth.BluetoothDevice.ACTION_ACL_CONNECTED)
+        runCatching {
+            val filter = android.content.IntentFilter().apply {
+                addAction(Intent.ACTION_HEADSET_PLUG)
+                try {
+                    addAction(android.bluetooth.BluetoothDevice.ACTION_ACL_CONNECTED)
+                } catch (_: Throwable) {}
+            }
+            androidx.core.content.ContextCompat.registerReceiver(
+                this,
+                headsetReceiver,
+                filter,
+                androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+        }.onFailure {
+            // Fallback for system broadcasts on devices requiring EXPORTED or without Bluetooth permission
+            runCatching {
+                val fallbackFilter = android.content.IntentFilter(Intent.ACTION_HEADSET_PLUG)
+                androidx.core.content.ContextCompat.registerReceiver(
+                    this,
+                    headsetReceiver,
+                    fallbackFilter,
+                    androidx.core.content.ContextCompat.RECEIVER_EXPORTED
+                )
+            }
         }
-        androidx.core.content.ContextCompat.registerReceiver(
-            this,
-            headsetReceiver,
-            filter,
-            androidx.core.content.ContextCompat.RECEIVER_EXPORTED
-        )
     }
 
     @OptIn(UnstableApi::class)

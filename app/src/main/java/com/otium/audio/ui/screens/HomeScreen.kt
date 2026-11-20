@@ -4,8 +4,10 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
@@ -114,6 +116,7 @@ import com.otium.audio.ui.components.SettingsSheet
 import com.otium.audio.ui.components.SongListItem
 import com.otium.audio.ui.components.SortBottomSheet
 import com.otium.audio.ui.components.TagEditorSheet
+import com.otium.audio.ui.components.UpdateNotificationBanner
 import com.otium.audio.ui.theme.AccentGold
 import com.otium.audio.ui.theme.AccentTitaniumWhite
 import com.otium.audio.ui.theme.DarkCardBorder
@@ -373,6 +376,23 @@ fun HomeScreen(
                     )
                 }
 
+                // ── Non-Intrusive Update Notification Banner ────────────
+                AnimatedVisibility(
+                    visible = uiState.availableUpdate != null,
+                    enter = expandVertically(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + fadeIn(),
+                    exit = shrinkVertically(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + fadeOut()
+                ) {
+                    uiState.availableUpdate?.let { update ->
+                        UpdateNotificationBanner(
+                            update = update,
+                            onDismiss = onDismissUpdate,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 6.dp)
+                        )
+                    }
+                }
+
                 // ── Breadcrumb headers for Folders, Playlists, Artists or Albums ──
                 if (uiState.selectedArtist != null) {
                     Row(
@@ -621,9 +641,12 @@ fun HomeScreen(
                         val handleSongClick = remember(displayedSongs, uiState.playbackState, onSongSelected, onOpenNowPlaying) {
                             { song: Song ->
                                 val now = android.os.SystemClock.uptimeMillis()
-                                val isThisSongPlaying = uiState.playbackState.isPlaying && uiState.playbackState.currentSong?.id == song.id
-                                if (isThisSongPlaying) {
-                                    // إذا الأغنية مشتغلة: ضغطة وحدة تفتحها كنافذة كبيرة فوراً
+                                val isCurrentSong = uiState.playbackState.currentSong?.id == song.id
+                                if (isCurrentSong) {
+                                    // إذا تم النقر على الأغنية الحالية (سواء كانت مشغلة أو متوقفة): فتح النافذة الكبيرة فوراً
+                                    if (!uiState.playbackState.isPlaying) {
+                                        onSongSelected(song, displayedSongs)
+                                    }
                                     onOpenNowPlaying()
                                 } else {
                                     val isQuickDoubleClick = (song.id == lastSongClickId) && (now - lastSongClickTime < 450L)

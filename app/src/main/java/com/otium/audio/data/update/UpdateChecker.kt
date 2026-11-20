@@ -23,9 +23,10 @@ object UpdateChecker {
     private const val GITHUB_API_URL = "https://api.github.com/repos/XRTM8/Audio/releases/latest"
 
     suspend fun checkLatestRelease(currentVersion: String): UpdateInfo? = withContext(Dispatchers.IO) {
+        var connection: HttpURLConnection? = null
         try {
             val url = URL(GITHUB_API_URL)
-            val connection = (url.openConnection() as HttpURLConnection).apply {
+            connection = (url.openConnection() as HttpURLConnection).apply {
                 requestMethod = "GET"
                 connectTimeout = 8_000
                 readTimeout = 8_000
@@ -74,6 +75,8 @@ object UpdateChecker {
             }
         } catch (_: Exception) {
             // Silently fail if offline or network unavailable
+        } finally {
+            runCatching { connection?.disconnect() }
         }
         null
     }

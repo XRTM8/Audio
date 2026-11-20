@@ -41,7 +41,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
@@ -482,16 +481,9 @@ fun NowPlayingScreen(
                 orientation = Orientation.Vertical,
                 onDragStopped = { velocity ->
                     if (dragY.value > dismissThreshold || velocity > 750f) {
+                        triggerDismiss()
                         scope.launch {
-                            dragY.animateTo(
-                                targetValue = screenHeightPx,
-                                initialVelocity = velocity.coerceAtLeast(0f),
-                                animationSpec = spring(
-                                    stiffness = Spring.StiffnessMediumLow,
-                                    dampingRatio = Spring.DampingRatioNoBouncy
-                                )
-                            )
-                            triggerDismiss()
+                            dragY.snapTo(0f)
                         }
                     } else {
                         scope.launch {
@@ -694,27 +686,7 @@ fun NowPlayingScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 24.dp)
-                            .pointerInput(playlist.size) {
-                                var totalX = 0f
-                                detectHorizontalDragGestures(
-                                    onDragStart = { totalX = 0f },
-                                    onHorizontalDrag = { change, dragAmount ->
-                                        change.consume()
-                                        totalX += dragAmount
-                                    },
-                                    onDragEnd = {
-                                        val swipeThreshold = 45.dp.toPx()
-                                        if (totalX < -swipeThreshold) {
-                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                            onSkipNext()
-                                        } else if (totalX > swipeThreshold) {
-                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                            onSkipPrevious()
-                                        }
-                                    }
-                                )
-                            },
+                            .padding(horizontal = 24.dp),
                         horizontalAlignment = Alignment.Start
                     ) {
                         Text(

@@ -44,6 +44,7 @@ class MusicController(
 
     private val persistence = PlaybackPersistence(context)
     private var fadeJob: Job? = null
+    private var queueLoadingJob: Job? = null
 
     init {
         _playbackState.update {
@@ -220,7 +221,31 @@ class MusicController(
         val index = session.index.coerceIn(0, queue.lastIndex)
         val validPosition = session.positionMs.coerceAtLeast(0L)
         currentPlaylistSongs = queue
-        controller.setMediaItems(queue.map { it.toMediaItem() }, index, validPosition)
+        queueLoadingJob?.cancel()
+
+        if (queue.size <= IPC_BATCH_SIZE) {
+            controller.setMediaItems(queue.map { it.toMediaItem() }, index, validPosition)
+        } else {
+            val chunks = queue.chunked(IPC_BATCH_SIZE)
+            val targetChunk = index / IPC_BATCH_SIZE
+            if (targetChunk == 0) {
+                controller.setMediaItems(chunks[0].map { it.toMediaItem() }, index, validPosition)
+            } else {
+                controller.setMediaItems(chunks[0].map { it.toMediaItem() }, 0, 0L)
+                for (i in 1..targetChunk) {
+                    controller.addMediaItems(chunks[i].map { it.toMediaItem() })
+                }
+                controller.seekTo(index, validPosition)
+            }
+            if (targetChunk < chunks.lastIndex) {
+                queueLoadingJob = coroutineScope.launch(Dispatchers.Main) {
+                    for (i in (targetChunk + 1)..chunks.lastIndex) {
+                        if (currentPlaylistSongs !== queue) break
+                        controller.addMediaItems(chunks[i].map { it.toMediaItem() })
+                    }
+                }
+            }
+        }
         controller.prepare()
         _position.value = validPosition
         _playbackState.update {
@@ -306,8 +331,33 @@ class MusicController(
         }
 
         currentPlaylistSongs = playlist
-        val mediaItems = playlist.map { it.toMediaItem() }
-        controller.setMediaItems(mediaItems, songIndex, 0L)
+        queueLoadingJob?.cancel()
+
+        if (playlist.size <= IPC_BATCH_SIZE) {
+            val mediaItems = playlist.map { it.toMediaItem() }
+            controller.setMediaItems(mediaItems, songIndex, 0L)
+        } else {
+            val chunks = playlist.chunked(IPC_BATCH_SIZE)
+            val targetChunk = songIndex / IPC_BATCH_SIZE
+            if (targetChunk == 0) {
+                controller.setMediaItems(chunks[0].map { it.toMediaItem() }, songIndex, 0L)
+            } else {
+                controller.setMediaItems(chunks[0].map { it.toMediaItem() }, 0, 0L)
+                for (i in 1..targetChunk) {
+                    controller.addMediaItems(chunks[i].map { it.toMediaItem() })
+                }
+                controller.seekTo(songIndex, 0L)
+            }
+            if (targetChunk < chunks.lastIndex) {
+                queueLoadingJob = coroutineScope.launch(Dispatchers.Main) {
+                    for (i in (targetChunk + 1)..chunks.lastIndex) {
+                        if (currentPlaylistSongs !== playlist) break
+                        controller.addMediaItems(chunks[i].map { it.toMediaItem() })
+                    }
+                }
+            }
+        }
+
         controller.prepare()
         controller.play()
 
@@ -432,6 +482,7 @@ class MusicController(
     }
 
     fun clearQueue() {
+        queueLoadingJob?.cancel()
         val controller = mediaController ?: return
         currentPlaylistSongs = emptyList()
         persistence.clearQueue()
@@ -554,7 +605,16 @@ class MusicController(
         updated.addAll(songs)
         currentPlaylistSongs = updated
 
-        controller.addMediaItems(songs.map { it.toMediaItem() })
+        if (songs.size <= IPC_BATCH_SIZE) {
+            controller.addMediaItems(songs.map { it.toMediaItem() })
+        } else {
+            coroutineScope.launch(Dispatchers.Main) {
+                songs.chunked(IPC_BATCH_SIZE).forEach { chunk ->
+                    if (currentPlaylistSongs !== updated) return@launch
+                    controller.addMediaItems(chunk.map { it.toMediaItem() })
+                }
+            }
+        }
         _playbackState.update { it.copy(queue = updated) }
         persistQueue()
     }
@@ -568,7 +628,15 @@ class MusicController(
         updated.addAll(targetIndex, songs)
         currentPlaylistSongs = updated
 
-        controller.addMediaItems(targetIndex, songs.map { it.toMediaItem() })
+        if (songs.size <= IPC_BATCH_SIZE) {
+            controller.addMediaItems(targetIndex, songs.map { it.toMediaItem() })
+        } else {
+            var insertPos = targetIndex
+            songs.chunked(IPC_BATCH_SIZE).forEach { chunk ->
+                controller.addMediaItems(insertPos, chunk.map { it.toMediaItem() })
+                insertPos += chunk.size
+            }
+        }
         _playbackState.update { it.copy(queue = updated) }
         persistQueue()
     }
@@ -607,11 +675,14 @@ class MusicController(
     }
 
     private companion object {
+        const val IPC_BATCH_SIZE = 60
         /** 250 ms per tick (4 ticks/sec), so 40 ticks is exactly 10 seconds of continuous playback before saving to disk. */
         const val POSITION_SAVE_TICKS = 40
     }
 
     fun release() {
+        queueLoadingJob?.cancel()
+        queueLoadingJob = null
         reconnectJob?.cancel()
         reconnectJob = null
         stopProgressTracker()

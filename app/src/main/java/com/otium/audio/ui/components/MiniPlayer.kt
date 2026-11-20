@@ -21,7 +21,6 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import com.otium.audio.ui.theme.OtiumMotion
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -169,7 +168,11 @@ fun MiniPlayer(
         modifier = modifier
             .fillMaxWidth()
             .background(miniPlayerBg) // Pure AMOLED Black (#000000) in Dark Mode, Pure Crisp White (#FFFFFF) in Light Mode
-            .clickable { onPlayerClick() }
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = { onPlayerClick() }
+            )
     ) {
         // Specular hairline divider to cleanly separate from song list
         Box(
@@ -191,107 +194,103 @@ fun MiniPlayer(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(70.dp)
-                .padding(horizontal = 14.dp),
+                .padding(start = 14.dp, end = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Album Art with subtle playback breathe
-            Box(
+            // Track Info Clickable Zone (Artwork + Title + Artist) - Opens large window instantly with zero latency
+            Row(
                 modifier = Modifier
-                    .graphicsLayer {
-                        scaleX = artScale
-                        scaleY = artScale
-                    }
-                    .size(52.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(DarkSurfaceVariant)
-                    .border(0.6.dp, DarkCardBorder, RoundedCornerShape(12.dp)),
-                contentAlignment = Alignment.Center
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onPlayerClick()
+                        }
+                    ),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.MusicNote,
-                    contentDescription = null,
-                    tint = TextTertiary,
-                    modifier = Modifier.size(24.dp)
-                )
+                // Album Art with subtle playback breathe
+                Box(
+                    modifier = Modifier
+                        .graphicsLayer {
+                            scaleX = artScale
+                            scaleY = artScale
+                        }
+                        .size(52.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(DarkSurfaceVariant)
+                        .border(0.6.dp, DarkCardBorder, RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MusicNote,
+                        contentDescription = null,
+                        tint = TextTertiary,
+                        modifier = Modifier.size(24.dp)
+                    )
 
-                if (thumbReq != null) {
-                    AsyncImage(
-                        model = thumbReq,
-                        contentDescription = currentSong.displayTitle,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.matchParentSize()
+                    if (thumbReq != null) {
+                        AsyncImage(
+                            model = thumbReq,
+                            contentDescription = currentSong.displayTitle,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.matchParentSize()
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                // Title & Artist - Direct tap to expand large window, no gestures to prevent click stealing
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = currentSong.displayTitle,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            textDirection = TextDirection.ContentOrLtr
+                        ),
+                        color = TextPrimary,
+                        maxLines = 1,
+                        modifier = Modifier.basicMarquee()
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "${currentSong.artist}  ·  ${currentSong.audioFormatBadge}",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            textDirection = TextDirection.ContentOrLtr,
+                            fontSize = 12.sp
+                        ),
+                        color = TextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Title & Artist with intuitive horizontal swipe gesture to change tracks
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .pointerInput(currentSong.id) {
-                        var totalX = 0f
-                        detectHorizontalDragGestures(
-                            onDragStart = { totalX = 0f },
-                            onHorizontalDrag = { change, dragAmount ->
-                                change.consume()
-                                totalX += dragAmount
-                            },
-                            onDragEnd = {
-                                val swipeThreshold = 36.dp.toPx()
-                                if (totalX < -swipeThreshold) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    onSkipNextClick()
-                                } else if (totalX > swipeThreshold) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    onSkipPreviousClick()
-                                }
-                            }
-                        )
-                    },
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = currentSong.displayTitle,
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        textDirection = TextDirection.ContentOrLtr
-                    ),
-                    color = TextPrimary,
-                    maxLines = 1,
-                    modifier = Modifier.basicMarquee()
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "${currentSong.artist}  ·  ${currentSong.audioFormatBadge}",
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        textDirection = TextDirection.ContentOrLtr,
-                        fontSize = 12.sp
-                    ),
-                    color = TextSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
             Spacer(modifier = Modifier.width(6.dp))
 
-            // Playback controls cluster in fixed LTR order
+            // Playback controls cluster in fixed LTR order - High-reliability tactile buttons
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    // Skip Previous Flat Icon with tactile press
+                    // Skip Previous Button - Comfortable 44dp touch target
                     Box(
                         modifier = Modifier
-                            .size(38.dp)
+                            .size(44.dp)
                             .graphicsLayer {
                                 scaleX = prevScale
                                 scaleY = prevScale
                             }
+                            .clip(CircleShape)
                             .clickable(
                                 interactionSource = prevInteraction,
                                 indication = null,
@@ -306,15 +305,15 @@ fun MiniPlayer(
                             imageVector = Icons.Default.SkipPrevious,
                             contentDescription = "Previous",
                             tint = TextSecondary,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(26.dp)
                         )
                     }
 
                     val isDark = LocalOtiumColors.current.isDark
-                    // Tactile Play/Pause Circle with icon morph
+                    // Tactile Play/Pause Circle with icon morph - Premium 48dp touch target
                     Box(
                         modifier = Modifier
-                            .size(46.dp)
+                            .size(48.dp)
                             .graphicsLayer {
                                 scaleX = btnScale
                                 scaleY = btnScale
@@ -353,14 +352,15 @@ fun MiniPlayer(
                         }
                     }
 
-                    // Skip Next Flat Icon with tactile press
+                    // Skip Next Button - Comfortable 44dp touch target
                     Box(
                         modifier = Modifier
-                            .size(38.dp)
+                            .size(44.dp)
                             .graphicsLayer {
                                 scaleX = nextScale
                                 scaleY = nextScale
                             }
+                            .clip(CircleShape)
                             .clickable(
                                 interactionSource = nextInteraction,
                                 indication = null,
@@ -375,7 +375,7 @@ fun MiniPlayer(
                             imageVector = Icons.Default.SkipNext,
                             contentDescription = "Next",
                             tint = TextSecondary,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(26.dp)
                         )
                     }
                 }
@@ -435,7 +435,7 @@ private fun MiniPlayerProgressBar(
             modifier = modifier
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp)
-                .height(18.dp)
+                .height(14.dp)
                 .pointerInput(safeDuration) {
                     awaitPointerEventScope {
                         while (true) {
