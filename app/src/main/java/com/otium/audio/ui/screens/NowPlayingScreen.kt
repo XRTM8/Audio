@@ -438,12 +438,6 @@ fun NowPlayingScreen(
         dragY.snapTo(0f)
     }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            runCatching { dragY.snapTo(0f) }
-        }
-    }
-
     LaunchedEffect(song.id) {
         runCatching { dragY.snapTo(0f) }
         if (currentTrackIndex in playlist.indices && pagerState.currentPage != currentTrackIndex) {

@@ -362,12 +362,11 @@ class MainActivity : ComponentActivity() {
                             ) + fadeOut(animationSpec = tween(durationMillis = 150))
                         ) {
                             if (currentSong != null) {
-                                key(uiState.isNowPlayingExpanded) {
-                                    BackHandler {
-                                        viewModel.setNowPlayingExpanded(false)
-                                    }
+                                BackHandler {
+                                    viewModel.setNowPlayingExpanded(false)
+                                }
 
-                                    NowPlayingScreen(
+                                NowPlayingScreen(
                                         song = currentSong,
                                         isPlaying = uiState.playbackState.isPlaying,
                                         positionFlow = viewModel.position,
@@ -385,7 +384,6 @@ class MainActivity : ComponentActivity() {
                                         onCollapse = { viewModel.setNowPlayingExpanded(false) },
                                         onEditTagClick = { viewModel.openTagEditor(currentSong) }
                                     )
-                                }
                             }
                         }
                     }
