@@ -129,10 +129,13 @@ fun MiniPlayer(
         label = "mini_btn_scale"
     )
 
+    val isDark = LocalOtiumColors.current.isDark
+    val miniPlayerBg = if (isDark) DarkSurface else Color.White
+
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(DarkSurface) // Pure AMOLED Black (#000000)
+            .background(miniPlayerBg) // Pure AMOLED Black (#000000) in Dark Mode, Pure Crisp White (#FFFFFF) in Light Mode
             .clickable { onPlayerClick() }
     ) {
         // Specular hairline divider to cleanly separate from song list

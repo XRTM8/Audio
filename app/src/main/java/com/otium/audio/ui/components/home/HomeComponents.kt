@@ -86,12 +86,12 @@ private fun TopBarActionButton(
 ) {
     val isDark = LocalOtiumColors.current.isDark
     val bg = if (isActive) {
-        if (isDark) Color(0x24FFFFFF) else Color(0x20000000)
+        if (isDark) Color(0x24FFFFFF) else Color(0x18000000)
     } else {
-        if (isDark) Color(0x0EFFFFFF) else Color(0xFFEBEEF2)
+        if (isDark) Color(0x0EFFFFFF) else Color(0xFFEFF2F7)
     }
     val border = if (isActive) {
-        if (isDark) Color(0x40FFFFFF) else Color(0x35000000)
+        if (isDark) Color(0x40FFFFFF) else Color(0x28000000)
     } else {
         DarkCardBorder
     }
@@ -377,8 +377,8 @@ fun HomeSearchBar(
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = if (isDark) Color(0xFF0C0C10) else Color(0xFFEBEEF2),
-                unfocusedContainerColor = if (isDark) Color(0xFF0C0C10) else Color(0xFFEBEEF2),
+                focusedContainerColor = if (isDark) Color(0xFF0C0C10) else Color(0xFFFFFFFF),
+                unfocusedContainerColor = if (isDark) Color(0xFF0C0C10) else Color(0xFFFFFFFF),
                 focusedBorderColor = if (isDark) Color(0x38FFFFFF) else Color(0x35000000),
                 unfocusedBorderColor = DarkCardBorder,
                 cursorColor = TextPrimary,
@@ -429,9 +429,9 @@ fun HomeFilterPills(
 
             val pillBg by animateColorAsState(
                 targetValue = if (isSelected) {
-                    if (isDark) Color.White else Color(0xFF101217)
+                    if (isDark) Color.White else Color(0xFF0F1115)
                 } else {
-                    if (isDark) Color(0x0EFFFFFF) else Color(0xFFEBEEF2)
+                    if (isDark) Color(0x0EFFFFFF) else Color(0xFFEFF2F7)
                 },
                 animationSpec = tween(140),
                 label = "pill_bg"
@@ -439,7 +439,7 @@ fun HomeFilterPills(
 
             val pillBorderColor by animateColorAsState(
                 targetValue = if (isSelected) {
-                    if (isDark) Color.White else Color(0xFF101217)
+                    if (isDark) Color.White else Color(0xFF0F1115)
                 } else {
                     DarkCardBorder
                 },

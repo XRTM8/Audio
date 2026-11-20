@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import com.otium.audio.ui.theme.AccentGold
+import com.otium.audio.ui.theme.DarkCardBorder
 import com.otium.audio.ui.theme.DarkSurfaceContainer
 import com.otium.audio.ui.theme.DarkSurfaceElevated
 import com.otium.audio.ui.theme.ErrorRed
@@ -84,11 +86,13 @@ fun NowPlayingTopBar(
                 )
             }
 
+            val isDark = LocalOtiumColors.current.isDark
             // Lossless Audio Badge Pill
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(6.dp))
-                    .background(DarkSurfaceContainer.copy(alpha = 0.9f))
+                    .background(if (isDark) DarkSurfaceContainer.copy(alpha = 0.9f) else Color(0xFFEFF2F7))
+                    .border(0.6.dp, DarkCardBorder, RoundedCornerShape(6.dp))
                     .padding(horizontal = 8.dp, vertical = 3.dp)
             ) {
                 Text(
@@ -96,7 +100,7 @@ fun NowPlayingTopBar(
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp,
-                    color = AccentGold
+                    color = TextPrimary
                 )
             }
 

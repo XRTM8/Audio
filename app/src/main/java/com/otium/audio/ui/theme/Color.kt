@@ -65,27 +65,27 @@ val DarkOtiumColors = OtiumThemeColors(
 
 // ── Light Mode: Studio Porcelain & Sharp Slate Luxury Edition ────────────────
 val LightOtiumColors = OtiumThemeColors(
-    surface = Color(0xFFF7F8FA),             // Calibrated smooth porcelain (reduces glare & eye fatigue)
-    surfaceVariant = Color(0xFFEBEFF3),      // Soft architectural slate for badges & circles
-    surfaceContainer = Color(0xFFFFFFFF),    // Pure crisp white cards with hairline dividers
-    surfaceElevated = Color(0xFFFFFFFF),     // Elevated sheets & dialogs
-    sheetBackground = Color(0xFFF4F6F9),     // Studio porcelain sheet backdrop
-    sheetCard = Color(0xFFFFFFFF),           // Solid white cards in sheets
-    sheetCardBorder = Color(0xFFE2E6EC),     // Clean 1dp architectural slate hairline
-    sheetScrim = Color(0x52000000),          // 32% gentle background scrim
-    cardBorder = Color(0xFFE2E6EC),          // Subtle hairline border
-    textPrimary = Color(0xFF101217),         // Deep obsidian ink (sharp, ultra-legible, WCAG AAA)
-    textSecondary = Color(0xFF5A6170),       // Balanced slate gray for artists & metadata
-    textTertiary = Color(0xFF8B92A1),        // Muted architectural slate for hints
-    accentTitaniumWhite = Color(0xFF101217), // In Light Mode, contrasting hero element is Deep Obsidian Ink
-    accentTitaniumLight = Color(0xFF2A2E38),
+    surface = Color(0xFFF6F7FB),             // Calibrated smooth studio porcelain (reduces glare & eye fatigue)
+    surfaceVariant = Color(0xFFEDF0F5),      // Soft architectural slate for badges & wells
+    surfaceContainer = Color(0xFFF1F4F8),    // Balanced platinum container for icon wells & cards
+    surfaceElevated = Color(0xFFFFFFFF),     // Pure luminous white for elevated cards, sheets & dialogs
+    sheetBackground = Color(0xFFF2F4F8),     // Architectural porcelain sheet backdrop
+    sheetCard = Color(0xFFFFFFFF),           // Solid luminous white cards in sheets
+    sheetCardBorder = Color(0xFFE2E6EE),     // Clean architectural slate hairline (1dp)
+    sheetScrim = Color(0x45000000),          // Gentle studio background scrim
+    cardBorder = Color(0xFFE2E6EE),          // Subtle hairline border
+    textPrimary = Color(0xFF0F1115),         // Deep obsidian ink (sharp, ultra-legible, WCAG AAA)
+    textSecondary = Color(0xFF5B6271),       // Balanced studio slate for artists & metadata
+    textTertiary = Color(0xFF8F96A5),        // Muted architectural slate for hints
+    accentTitaniumWhite = Color(0xFF0F1115), // In Light Mode, contrasting hero element is Deep Obsidian Ink
+    accentTitaniumLight = Color(0xFF222630),
     accentTitaniumMuted = Color(0x18000000),
-    accentTitaniumDim = Color(0xFF687082),
-    accentCyan = Color(0xFF0F62FE),          // Studio cobalt cyan for faders & active switches
-    accentGold = Color(0xFF101217),
+    accentTitaniumDim = Color(0xFF6B7280),
+    accentCyan = Color(0xFF2563EB),          // Refined studio cobalt for faders & active switches
+    accentGold = Color(0xFF0F1115),
     searchHighlightAmber = Color(0xFFB45309), // Rich high-contrast amber for light background
-    glassSheen = Color(0x0A000000),
-    glassScrim = Color(0x52000000),
+    glassSheen = Color(0x08000000),
+    glassScrim = Color(0x45000000),
     isDark = false
 )
 

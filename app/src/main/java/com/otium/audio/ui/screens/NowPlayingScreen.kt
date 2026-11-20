@@ -456,10 +456,6 @@ fun NowPlayingScreen(
             .fillMaxSize()
             .graphicsLayer {
                 translationY = dragY.value
-                val progress = (dragY.value / screenHeightPx).coerceIn(0f, 1f)
-                scaleX = 1f - progress * 0.08f
-                scaleY = 1f - progress * 0.08f
-                alpha = 1f - progress * 0.65f
             }
             .draggable(
                 state = verticalDraggableState,
@@ -469,18 +465,19 @@ fun NowPlayingScreen(
                         scope.launch {
                             dragY.animateTo(
                                 targetValue = screenHeightPx,
+                                initialVelocity = velocity.coerceAtLeast(0f),
                                 animationSpec = spring(
                                     stiffness = Spring.StiffnessMediumLow,
                                     dampingRatio = Spring.DampingRatioNoBouncy
                                 )
                             )
                             triggerDismiss()
-                            dragY.snapTo(0f)
                         }
                     } else {
                         scope.launch {
                             dragY.animateTo(
                                 targetValue = 0f,
+                                initialVelocity = velocity,
                                 animationSpec = spring(
                                     stiffness = Spring.StiffnessMedium,
                                     dampingRatio = Spring.DampingRatioNoBouncy
@@ -805,11 +802,12 @@ fun NowPlayingScreen(
                                         )
                                     }
                                 } else if (isHqAudio) {
+                                    val isDark = LocalOtiumColors.current.isDark
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(3.dp))
-                                            .background(Color(0xFF2A2A38))
-                                            .border(0.5.dp, Color(0xFF4E4E68), RoundedCornerShape(3.dp))
+                                            .background(if (isDark) Color(0xFF2A2A38) else Color(0xFFEDF0F5))
+                                            .border(0.5.dp, if (isDark) Color(0xFF4E4E68) else Color(0xFFD0D5DD), RoundedCornerShape(3.dp))
                                             .padding(horizontal = 4.dp, vertical = 1.dp)
                                     ) {
                                         Text(
@@ -819,7 +817,7 @@ fun NowPlayingScreen(
                                                 fontWeight = FontWeight.Bold,
                                                 letterSpacing = 0.6.sp
                                             ),
-                                            color = Color(0xFFE2E2EC)
+                                            color = if (isDark) Color(0xFFE2E2EC) else TextSecondary
                                         )
                                     }
                                 }
