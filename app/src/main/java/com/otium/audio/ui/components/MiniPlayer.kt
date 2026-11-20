@@ -1,15 +1,24 @@
 package com.otium.audio.ui.components
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import com.otium.audio.ui.theme.OtiumMotion
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -123,10 +132,34 @@ fun MiniPlayer(
         }
     } else null
 
+    val playInteraction = remember { MutableInteractionSource() }
+    val isPlayPressed by playInteraction.collectIsPressedAsState()
     val btnScale by animateFloatAsState(
-        targetValue = if (isPlaying) 1.0f else 0.94f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        targetValue = if (isPlayPressed) 0.86f else (if (isPlaying) 1.0f else 0.94f),
+        animationSpec = OtiumMotion.ButtonSpring,
         label = "mini_btn_scale"
+    )
+
+    val artScale by animateFloatAsState(
+        targetValue = if (isPlaying) 1.0f else 0.93f,
+        animationSpec = OtiumMotion.ButtonSpring,
+        label = "mini_art_scale"
+    )
+
+    val prevInteraction = remember { MutableInteractionSource() }
+    val isPrevPressed by prevInteraction.collectIsPressedAsState()
+    val prevScale by animateFloatAsState(
+        targetValue = if (isPrevPressed) 0.82f else 1.0f,
+        animationSpec = OtiumMotion.ButtonSpring,
+        label = "mini_prev_scale"
+    )
+
+    val nextInteraction = remember { MutableInteractionSource() }
+    val isNextPressed by nextInteraction.collectIsPressedAsState()
+    val nextScale by animateFloatAsState(
+        targetValue = if (isNextPressed) 0.82f else 1.0f,
+        animationSpec = OtiumMotion.ButtonSpring,
+        label = "mini_next_scale"
     )
 
     val isDark = LocalOtiumColors.current.isDark
@@ -161,9 +194,13 @@ fun MiniPlayer(
                 .padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Album Art
+            // Album Art with subtle playback breathe
             Box(
                 modifier = Modifier
+                    .graphicsLayer {
+                        scaleX = artScale
+                        scaleY = artScale
+                    }
                     .size(52.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(DarkSurfaceVariant)
@@ -247,13 +284,23 @@ fun MiniPlayer(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
-                    // Skip Previous Flat Icon
-                    IconButton(
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            onSkipPreviousClick()
-                        },
-                        modifier = Modifier.size(38.dp)
+                    // Skip Previous Flat Icon with tactile press
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .graphicsLayer {
+                                scaleX = prevScale
+                                scaleY = prevScale
+                            }
+                            .clickable(
+                                interactionSource = prevInteraction,
+                                indication = null,
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onSkipPreviousClick()
+                                }
+                            ),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.SkipPrevious,
@@ -264,7 +311,7 @@ fun MiniPlayer(
                     }
 
                     val isDark = LocalOtiumColors.current.isDark
-                    // Tactile Play/Pause Circle
+                    // Tactile Play/Pause Circle with icon morph
                     Box(
                         modifier = Modifier
                             .size(46.dp)
@@ -273,37 +320,56 @@ fun MiniPlayer(
                                 scaleY = btnScale
                             }
                             .shadow(
-                                elevation = 6.dp,
+                                elevation = if (isPlayPressed) 2.dp else 6.dp,
                                 shape = CircleShape,
                                 spotColor = if (isDark) Color(0x66FFFFFF) else Color(0x33000000)
                             )
                             .clip(CircleShape)
-                            .background(if (isDark) Color.White else Color(0xFF101217)),
+                            .background(if (isDark) Color.White else Color(0xFF101217))
+                            .clickable(
+                                interactionSource = playInteraction,
+                                indication = null,
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onPlayPauseClick()
+                                }
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
-                        IconButton(
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onPlayPauseClick()
+                        AnimatedContent(
+                            targetState = isPlaying,
+                            transitionSpec = {
+                                (scaleIn(OtiumMotion.ButtonSpring) + fadeIn(tween(140))) togetherWith
+                                (scaleOut(tween(90)) + fadeOut(tween(90)))
                             },
-                            modifier = Modifier.size(46.dp)
-                        ) {
+                            label = "mini_play_icon"
+                        ) { playing ->
                             Icon(
-                                imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                                contentDescription = if (isPlaying) "Pause" else "Play",
+                                imageVector = if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                                contentDescription = if (playing) "Pause" else "Play",
                                 tint = if (isDark) Color.Black else Color.White,
                                 modifier = Modifier.size(26.dp)
                             )
                         }
                     }
 
-                    // Skip Next Flat Icon
-                    IconButton(
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            onSkipNextClick()
-                        },
-                        modifier = Modifier.size(38.dp)
+                    // Skip Next Flat Icon with tactile press
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .graphicsLayer {
+                                scaleX = nextScale
+                                scaleY = nextScale
+                            }
+                            .clickable(
+                                interactionSource = nextInteraction,
+                                indication = null,
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onSkipNextClick()
+                                }
+                            ),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.SkipNext,

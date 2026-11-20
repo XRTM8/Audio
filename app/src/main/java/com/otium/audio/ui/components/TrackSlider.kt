@@ -9,6 +9,10 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.graphics.graphicsLayer
+import com.otium.audio.ui.theme.OtiumMotion
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -364,24 +368,40 @@ fun TrackSlider(
                     color = if (isDragging) activeTimeColor else TextSecondary
                 )
 
-                // Quick Seek Jump Controls: [-10 ث] and [+10 ث]
+                // Quick Seek Jump Controls: [-10 ث] and [+10 ث] with tactile spring
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val back10Interaction = remember { MutableInteractionSource() }
+                    val isBack10Pressed by back10Interaction.collectIsPressedAsState()
+                    val back10Scale by animateFloatAsState(
+                        targetValue = if (isBack10Pressed) 0.88f else 1.0f,
+                        animationSpec = OtiumMotion.ButtonSpring,
+                        label = "back10_scale"
+                    )
+
                     Box(
                         modifier = Modifier
+                            .graphicsLayer {
+                                scaleX = back10Scale
+                                scaleY = back10Scale
+                            }
                             .clip(RoundedCornerShape(12.dp))
                             .background(jumpBtnBg)
                             .border(0.75.dp, jumpBtnBorder, RoundedCornerShape(12.dp))
-                            .clickable {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                if (onSeekBy != null) {
-                                    onSeekBy(-10_000L)
-                                } else {
-                                    onSeekTo((displayedPosition - 10_000L).coerceAtLeast(0L))
+                            .clickable(
+                                interactionSource = back10Interaction,
+                                indication = null,
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    if (onSeekBy != null) {
+                                        onSeekBy(-10_000L)
+                                    } else {
+                                        onSeekTo((displayedPosition - 10_000L).coerceAtLeast(0L))
+                                    }
                                 }
-                            }
+                            )
                             .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(
@@ -394,19 +414,35 @@ fun TrackSlider(
                         )
                     }
 
+                    val fwd10Interaction = remember { MutableInteractionSource() }
+                    val isFwd10Pressed by fwd10Interaction.collectIsPressedAsState()
+                    val fwd10Scale by animateFloatAsState(
+                        targetValue = if (isFwd10Pressed) 0.88f else 1.0f,
+                        animationSpec = OtiumMotion.ButtonSpring,
+                        label = "fwd10_scale"
+                    )
+
                     Box(
                         modifier = Modifier
+                            .graphicsLayer {
+                                scaleX = fwd10Scale
+                                scaleY = fwd10Scale
+                            }
                             .clip(RoundedCornerShape(12.dp))
                             .background(jumpBtnBg)
                             .border(0.75.dp, jumpBtnBorder, RoundedCornerShape(12.dp))
-                            .clickable {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                if (onSeekBy != null) {
-                                    onSeekBy(10_000L)
-                                } else {
-                                    onSeekTo((displayedPosition + 10_000L).coerceAtMost(durationMs))
+                            .clickable(
+                                interactionSource = fwd10Interaction,
+                                indication = null,
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    if (onSeekBy != null) {
+                                        onSeekBy(10_000L)
+                                    } else {
+                                        onSeekTo((displayedPosition + 10_000L).coerceAtMost(durationMs))
+                                    }
                                 }
-                            }
+                            )
                             .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(

@@ -5,6 +5,7 @@ import android.content.Intent
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.FastOutLinearInEasing
@@ -428,6 +429,21 @@ fun NowPlayingScreen(
         label = "play_scale"
     )
 
+    val playStateArtScale by animateFloatAsState(
+        targetValue = if (isPlaying) 1.0f else 0.88f,
+        animationSpec = com.otium.audio.ui.theme.OtiumMotion.ArtworkSpring,
+        label = "art_play_scale"
+    )
+
+    val artShadowElevation by animateDpAsState(
+        targetValue = if (isPlaying) 20.dp else 6.dp,
+        animationSpec = spring(
+            stiffness = Spring.StiffnessMediumLow,
+            dampingRatio = Spring.DampingRatioNoBouncy
+        ),
+        label = "art_shadow_elevation"
+    )
+
     val screenHeightPx = with(density) {
         context.resources.displayMetrics.heightPixels.toFloat()
     }
@@ -594,12 +610,13 @@ fun NowPlayingScreen(
                                         modifier = Modifier
                                             .fillMaxSize()
                                             .graphicsLayer {
-                                                // Dynamic carousel depth calculation strictly in Draw/Layout phase
+                                                // Dynamic carousel depth + playback state breathing spring
                                                 val rawOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
                                                 val pageOffset = rawOffset.absoluteValue
                                                 val pageScale = (1f - (pageOffset * 0.10f)).coerceIn(0.88f, 1f)
-                                                scaleX = pageScale
-                                                scaleY = pageScale
+                                                val activeArtScale = if (page == pagerState.currentPage) playStateArtScale else 0.88f
+                                                scaleX = pageScale * activeArtScale
+                                                scaleY = pageScale * activeArtScale
                                                 alpha = (1f - (pageOffset * 0.35f)).coerceIn(0.60f, 1f)
                                             },
                                         contentAlignment = Alignment.Center
@@ -614,8 +631,8 @@ fun NowPlayingScreen(
                                                     val rawOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
                                                     val pageOffset = rawOffset.absoluteValue
                                                     val proximity = (1f - pageOffset * 2.5f).coerceIn(0f, 1f)
-                                                    val h = if (isPlaying) haloState.value else 0.15f
-                                                    alpha = proximity * h * (if (isPlaying) 0.85f else 0.35f)
+                                                    val h = if (isPlaying) haloState.value else 0.12f
+                                                    alpha = proximity * h * (if (isPlaying) 0.85f else 0.20f)
                                                 }
                                                 .background(
                                                     brush = haloBrush,
@@ -628,7 +645,7 @@ fun NowPlayingScreen(
                                                 .fillMaxWidth(0.96f)
                                                 .aspectRatio(1f)
                                                 .shadow(
-                                                    elevation = 12.dp,
+                                                    elevation = if (page == pagerState.currentPage) artShadowElevation else 6.dp,
                                                     shape = RoundedCornerShape(20.dp),
                                                     ambientColor = Color.Black.copy(alpha = 0.45f),
                                                     spotColor = Color.Black.copy(alpha = 0.35f)

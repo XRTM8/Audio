@@ -1,6 +1,13 @@
 package com.otium.audio.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -667,23 +674,39 @@ fun HomeScreen(
                     }
                 }
 
-                // ── Poweramp Full-Width Bottom Console MiniPlayer ───────────
+                // ── Poweramp Full-Width Bottom Console MiniPlayer with Fluid Entrance ───────────
                 val currentSong = uiState.playbackState.currentSong
-                if (currentSong != null) {
-                    MiniPlayer(
-                        currentSong = currentSong,
-                        isPlaying = uiState.playbackState.isPlaying,
-                        positionFlow = positionFlow,
-                        durationMs = uiState.playbackState.durationMs,
-                        onPlayPauseClick = onPlayPause,
-                        onSkipNextClick = onSkipNext,
-                        onSkipPreviousClick = onSkipPrevious,
-                        onPlayerClick = onOpenNowPlaying,
-                        onSeekTo = onSeekTo,
-                        modifier = Modifier.navigationBarsPadding()
-                    )
-                } else {
-                    Spacer(modifier = Modifier.navigationBarsPadding())
+                AnimatedVisibility(
+                    visible = currentSong != null,
+                    enter = slideInVertically(
+                        initialOffsetY = { it },
+                        animationSpec = spring(
+                            stiffness = Spring.StiffnessMediumLow,
+                            dampingRatio = Spring.DampingRatioNoBouncy
+                        )
+                    ) + fadeIn(tween(180)),
+                    exit = slideOutVertically(
+                        targetOffsetY = { it },
+                        animationSpec = spring(
+                            stiffness = Spring.StiffnessMediumLow,
+                            dampingRatio = Spring.DampingRatioNoBouncy
+                        )
+                    ) + fadeOut(tween(140))
+                ) {
+                    if (currentSong != null) {
+                        MiniPlayer(
+                            currentSong = currentSong,
+                            isPlaying = uiState.playbackState.isPlaying,
+                            positionFlow = positionFlow,
+                            durationMs = uiState.playbackState.durationMs,
+                            onPlayPauseClick = onPlayPause,
+                            onSkipNextClick = onSkipNext,
+                            onSkipPreviousClick = onSkipPrevious,
+                            onPlayerClick = onOpenNowPlaying,
+                            onSeekTo = onSeekTo,
+                            modifier = Modifier.navigationBarsPadding()
+                        )
+                    }
                 }
             }
 
@@ -805,12 +828,13 @@ private fun MasterSongListView(
                 .fillMaxSize()
                 .padding(end = if (hasScroller) 14.dp else 0.dp)
         ) {
-            itemsIndexed(
+            items(
                 items = songs,
-                key = { index, song -> "${song.id}_$index" },
-                contentType = { _, _ -> "audiophile_song_row" }
-            ) { _, song ->
+                key = { song -> song.id },
+                contentType = { "audiophile_song_row" }
+            ) { song ->
                 SongListItem(
+                    modifier = Modifier.animateItem(),
                     song = song,
                     isCurrentSong = currentSong?.id == song.id,
                     onSongClick = onSongClick,

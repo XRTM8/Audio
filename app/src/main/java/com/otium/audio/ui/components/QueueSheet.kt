@@ -220,6 +220,7 @@ fun QueueSheet(
 
                         Row(
                             modifier = Modifier
+                                .animateItem()
                                 .fillMaxWidth()
                                 .zIndex(if (isBeingDragged) 10f else 1f)
                                 .graphicsLayer {

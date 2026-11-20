@@ -1,11 +1,19 @@
 package com.otium.audio.ui.components.nowplaying
 
-import androidx.compose.animation.core.Spring
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -33,12 +41,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -51,9 +60,9 @@ import androidx.media3.common.Player
 import com.otium.audio.ui.theme.AccentGold
 import com.otium.audio.ui.theme.DarkCardBorder
 import com.otium.audio.ui.theme.DarkSurfaceContainer
-import com.otium.audio.ui.theme.DarkSurfaceElevated
 import com.otium.audio.ui.theme.ErrorRed
 import com.otium.audio.ui.theme.LocalOtiumColors
+import com.otium.audio.ui.theme.OtiumMotion
 import com.otium.audio.ui.theme.TextPrimary
 import com.otium.audio.ui.theme.TextSecondary
 
@@ -69,6 +78,12 @@ fun NowPlayingTopBar(
     haptic: HapticFeedback,
     modifier: Modifier = Modifier
 ) {
+    val favScale by animateFloatAsState(
+        targetValue = if (isFavorite) 1.15f else 1.0f,
+        animationSpec = OtiumMotion.ButtonSpring,
+        label = "fav_pop"
+    )
+
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Row(
             modifier = modifier
@@ -113,7 +128,12 @@ fun NowPlayingTopBar(
                         imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                         contentDescription = "Favorite",
                         tint = if (isFavorite) ErrorRed else TextSecondary,
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier
+                            .graphicsLayer {
+                                scaleX = favScale
+                                scaleY = favScale
+                            }
+                            .size(22.dp)
                     )
                 }
 
@@ -156,10 +176,52 @@ fun NowPlayingControls(
     val isDark = LocalOtiumColors.current.isDark
     val effectiveAccent = if (!isDark && activeAccent.luminance() > 0.75f) Color(0xFF101217) else activeAccent
 
+    // Play/Pause tactile press physics
+    val playInteraction = remember { MutableInteractionSource() }
+    val isPlayPressed by playInteraction.collectIsPressedAsState()
     val playBtnScale by animateFloatAsState(
-        targetValue = if (isPlaying) 1.0f else 0.93f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        targetValue = if (isPlayPressed) 0.88f else (if (isPlaying) 1.0f else 0.94f),
+        animationSpec = OtiumMotion.ButtonSpring,
         label = "play_scale"
+    )
+    val playElevation by animateDpAsState(
+        targetValue = if (isPlayPressed) 4.dp else (if (isPlaying) 18.dp else 8.dp),
+        animationSpec = OtiumMotion.ButtonSpring,
+        label = "play_elevation"
+    )
+
+    // Previous & Next tactile springs
+    val prevInteraction = remember { MutableInteractionSource() }
+    val isPrevPressed by prevInteraction.collectIsPressedAsState()
+    val prevScale by animateFloatAsState(
+        targetValue = if (isPrevPressed) 0.82f else 1.0f,
+        animationSpec = OtiumMotion.ButtonSpring,
+        label = "prev_scale"
+    )
+
+    val nextInteraction = remember { MutableInteractionSource() }
+    val isNextPressed by nextInteraction.collectIsPressedAsState()
+    val nextScale by animateFloatAsState(
+        targetValue = if (isNextPressed) 0.82f else 1.0f,
+        animationSpec = OtiumMotion.ButtonSpring,
+        label = "next_scale"
+    )
+
+    // Repeat & Shuffle tactile springs
+    val repeatInteraction = remember { MutableInteractionSource() }
+    val isRepeatPressed by repeatInteraction.collectIsPressedAsState()
+    val repeatScale by animateFloatAsState(
+        targetValue = if (isRepeatPressed) 0.82f else (if (repeatMode != Player.REPEAT_MODE_OFF) 1.08f else 1.0f),
+        animationSpec = OtiumMotion.ButtonSpring,
+        label = "repeat_scale"
+    )
+
+    val shuffleInteraction = remember { MutableInteractionSource() }
+    val isShufflePressed by shuffleInteraction.collectIsPressedAsState()
+    val shuffleScale by animateFloatAsState(
+        targetValue = if (isShufflePressed) 0.82f else (if (isShuffleEnabled) 1.08f else 1.0f),
+        animationSpec = OtiumMotion.ButtonSpring,
+        label = "shuffle_scale"
     )
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
@@ -170,10 +232,24 @@ fun NowPlayingControls(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                onToggleRepeat()
-            }) {
+            // Repeat Button
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .graphicsLayer {
+                        scaleX = repeatScale
+                        scaleY = repeatScale
+                    }
+                    .clickable(
+                        interactionSource = repeatInteraction,
+                        indication = null,
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onToggleRepeat()
+                        }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
                 Icon(
                     imageVector = when (repeatMode) {
                         Player.REPEAT_MODE_ONE -> Icons.Default.RepeatOne
@@ -182,14 +258,28 @@ fun NowPlayingControls(
                     },
                     contentDescription = "Repeat",
                     tint = if (repeatMode != Player.REPEAT_MODE_OFF) effectiveAccent else TextSecondary.copy(alpha = 0.5f),
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(23.dp)
                 )
             }
 
-            IconButton(onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                onSkipPrevious()
-            }) {
+            // Skip Previous Button
+            Box(
+                modifier = Modifier
+                    .size(50.dp)
+                    .graphicsLayer {
+                        scaleX = prevScale
+                        scaleY = prevScale
+                    }
+                    .clickable(
+                        interactionSource = prevInteraction,
+                        indication = null,
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onSkipPrevious()
+                        }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
                 Icon(
                     imageVector = Icons.Default.SkipPrevious,
                     contentDescription = "Previous",
@@ -198,36 +288,66 @@ fun NowPlayingControls(
                 )
             }
 
-            // Play/Pause tactile circular capsule
+            // Play/Pause tactile circular capsule with dynamic depth and icon morph
             Box(
                 modifier = Modifier
-                    .scale(playBtnScale)
+                    .graphicsLayer {
+                        scaleX = playBtnScale
+                        scaleY = playBtnScale
+                    }
                     .size(68.dp)
                     .shadow(
-                        elevation = 16.dp,
+                        elevation = playElevation,
                         shape = CircleShape,
-                        spotColor = if (isDark) effectiveAccent.copy(alpha = 0.5f) else Color(0x33000000)
+                        spotColor = if (isDark) effectiveAccent.copy(alpha = 0.55f) else Color(0x33000000)
                     )
                     .clip(CircleShape)
                     .background(effectiveAccent)
-                    .clickable {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onPlayPause()
-                    },
+                    .clickable(
+                        interactionSource = playInteraction,
+                        indication = null,
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onPlayPause()
+                        }
+                    ),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = if (isPlaying) "Pause" else "Play",
-                    tint = if (effectiveAccent.luminance() > 0.5f) Color.Black else Color.White,
-                    modifier = Modifier.size(34.dp)
-                )
+                AnimatedContent(
+                    targetState = isPlaying,
+                    transitionSpec = {
+                        (scaleIn(OtiumMotion.ButtonSpring) + fadeIn(tween(140))) togetherWith
+                        (scaleOut(tween(90)) + fadeOut(tween(90)))
+                    },
+                    label = "play_pause_icon_morph"
+                ) { playing ->
+                    Icon(
+                        imageVector = if (playing) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = if (playing) "Pause" else "Play",
+                        tint = if (effectiveAccent.luminance() > 0.5f) Color.Black else Color.White,
+                        modifier = Modifier.size(34.dp)
+                    )
+                }
             }
 
-            IconButton(onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                onSkipNext()
-            }) {
+            // Skip Next Button
+            Box(
+                modifier = Modifier
+                    .size(50.dp)
+                    .graphicsLayer {
+                        scaleX = nextScale
+                        scaleY = nextScale
+                    }
+                    .clickable(
+                        interactionSource = nextInteraction,
+                        indication = null,
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onSkipNext()
+                        }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
                 Icon(
                     imageVector = Icons.Default.SkipNext,
                     contentDescription = "Next",
@@ -236,15 +356,29 @@ fun NowPlayingControls(
                 )
             }
 
-            IconButton(onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                onToggleShuffle()
-            }) {
+            // Shuffle Button
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .graphicsLayer {
+                        scaleX = shuffleScale
+                        scaleY = shuffleScale
+                    }
+                    .clickable(
+                        interactionSource = shuffleInteraction,
+                        indication = null,
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onToggleShuffle()
+                        }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
                 Icon(
                     imageVector = Icons.Default.Shuffle,
                     contentDescription = "Shuffle",
                     tint = if (isShuffleEnabled) effectiveAccent else TextSecondary.copy(alpha = 0.5f),
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(23.dp)
                 )
             }
         }

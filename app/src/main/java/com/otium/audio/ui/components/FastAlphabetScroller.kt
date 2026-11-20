@@ -1,8 +1,14 @@
 package com.otium.audio.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import com.otium.audio.ui.theme.OtiumMotion
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -129,11 +135,11 @@ fun FastAlphabetScroller(
                 )
             }
     ) {
-        // Floating Letter Bubble in center-start during drag
+        // Floating Letter Bubble in center-start during drag with spring pop
         AnimatedVisibility(
             visible = isDragging && selectedLetter.isNotEmpty(),
-            enter = fadeIn(),
-            exit = fadeOut(),
+            enter = fadeIn(tween(90)) + scaleIn(OtiumMotion.ButtonSpring),
+            exit = fadeOut(tween(90)) + scaleOut(spring(dampingRatio = Spring.DampingRatioNoBouncy)),
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .offset {

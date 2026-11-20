@@ -58,6 +58,7 @@ import com.otium.audio.ui.theme.DarkSheetCard
 import com.otium.audio.ui.theme.DarkSheetCardBorder
 import com.otium.audio.ui.theme.DarkSheetScrim
 import com.otium.audio.ui.theme.ErrorRed
+import com.otium.audio.ui.theme.tactilePress
 import com.otium.audio.ui.theme.TextPrimary
 import com.otium.audio.ui.theme.TextSecondary
 import com.otium.audio.ui.theme.TextTertiary
@@ -384,7 +385,7 @@ private fun QuickActionButton(
             .clip(RoundedCornerShape(14.dp))
             .background(DarkSheetCard)
             .border(1.dp, DarkSheetCardBorder, RoundedCornerShape(14.dp))
-            .clickable { onClick() }
+            .tactilePress(pressedScale = 0.92f, onClick = onClick)
             .padding(vertical = 12.dp, horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -428,7 +429,7 @@ private fun MenuRowItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
+            .tactilePress(pressedScale = 0.97f, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

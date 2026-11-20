@@ -1,10 +1,15 @@
 package com.otium.audio.ui.components.home
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.graphics.graphicsLayer
+import com.otium.audio.ui.theme.OtiumMotion
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -101,8 +106,20 @@ private fun TopBarActionButton(
         if (isDark) tint else TextPrimary
     }
 
+    val interaction = remember { MutableInteractionSource() }
+    val isPressed by interaction.collectIsPressedAsState()
+    val btnScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.88f else 1.0f,
+        animationSpec = OtiumMotion.ButtonSpring,
+        label = "top_btn_scale"
+    )
+
     Box(
         modifier = modifier
+            .graphicsLayer {
+                scaleX = btnScale
+                scaleY = btnScale
+            }
             .size(38.dp)
             .clip(CircleShape)
             .background(bg)
@@ -111,7 +128,11 @@ private fun TopBarActionButton(
                 color = border,
                 shape = CircleShape
             )
-            .clickable(onClick = onClick),
+            .clickable(
+                interactionSource = interaction,
+                indication = null,
+                onClick = onClick
+            ),
         contentAlignment = Alignment.Center
     ) {
         Icon(
@@ -460,15 +481,31 @@ fun HomeFilterPills(
                 label = "pill_text"
             )
 
+            val pillInteraction = remember { MutableInteractionSource() }
+            val isPillPressed by pillInteraction.collectIsPressedAsState()
+            val pillScale by animateFloatAsState(
+                targetValue = if (isPillPressed) 0.92f else (if (isSelected) 1.04f else 1.0f),
+                animationSpec = OtiumMotion.ButtonSpring,
+                label = "pill_scale"
+            )
+
             Box(
                 modifier = Modifier
+                    .graphicsLayer {
+                        scaleX = pillScale
+                        scaleY = pillScale
+                    }
                     .clip(CircleShape)
                     .background(pillBg)
                     .border(0.75.dp, pillBorderColor, CircleShape)
-                    .clickable {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        onTabSelected(tab)
-                    }
+                    .clickable(
+                        interactionSource = pillInteraction,
+                        indication = null,
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onTabSelected(tab)
+                        }
+                    )
                     .padding(horizontal = 14.dp, vertical = 7.dp),
                 contentAlignment = Alignment.Center
             ) {

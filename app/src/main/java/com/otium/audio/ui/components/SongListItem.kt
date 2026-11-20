@@ -1,6 +1,11 @@
 package com.otium.audio.ui.components
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.graphics.graphicsLayer
+import com.otium.audio.ui.theme.OtiumMotion
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -176,6 +181,28 @@ fun SongListItem(
 
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
 
+    // Tactile press & bounce state
+    val rowInteractionSource = remember { MutableInteractionSource() }
+    val isRowPressed by rowInteractionSource.collectIsPressedAsState()
+    val rowPressAlpha by animateFloatAsState(
+        targetValue = if (isRowPressed) (if (isDark) 0.12f else 0.08f) else 0f,
+        animationSpec = tween(if (isRowPressed) 30 else 220),
+        label = "row_press_alpha"
+    )
+    val artPressScale by animateFloatAsState(
+        targetValue = if (isRowPressed) 0.93f else 1.0f,
+        animationSpec = OtiumMotion.ButtonSpring,
+        label = "art_press_scale"
+    )
+
+    val favInteractionSource = remember { MutableInteractionSource() }
+    val isFavPressed by favInteractionSource.collectIsPressedAsState()
+    val favBtnScale by animateFloatAsState(
+        targetValue = if (isFavPressed) 0.78f else (if (song.isFavorite) 1.15f else 1.0f),
+        animationSpec = OtiumMotion.ButtonSpring,
+        label = "fav_btn_scale"
+    )
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -183,6 +210,10 @@ fun SongListItem(
             .drawBehind {
                 val barWidth = 3.2.dp.toPx()
                 val barLeft = if (isRtl) size.width - barWidth else 0f
+
+                if (rowPressAlpha > 0.001f) {
+                    drawRect(if (isDark) Color.White.copy(alpha = rowPressAlpha) else Color.Black.copy(alpha = rowPressAlpha))
+                }
 
                 if (isSelectionMode && isSelected) {
                     drawRect(Color(0x33FFB300))
@@ -207,7 +238,7 @@ fun SongListItem(
                 )
             }
             .combinedClickable(
-                interactionSource = remember { MutableInteractionSource() },
+                interactionSource = rowInteractionSource,
                 indication = null,
                 onClick = onRowClick,
                 onLongClick = onRowLongClick,
@@ -219,9 +250,13 @@ fun SongListItem(
             ),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Album Art (48dp, 8dp radius)
+        // Album Art (48dp, 8dp radius) with tactile press cushion
         Box(
             modifier = Modifier
+                .graphicsLayer {
+                    scaleX = artPressScale
+                    scaleY = artPressScale
+                }
                 .size(48.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(DarkSurfaceContainer),
@@ -365,12 +400,12 @@ fun SongListItem(
                 }
             }
         } else {
-            // Quick Favorite Icon
+            // Quick Favorite Icon with tactile pop
             Box(
                 modifier = Modifier
                     .size(38.dp)
                     .clickable(
-                        interactionSource = EmptyRowInteractionSource,
+                        interactionSource = favInteractionSource,
                         indication = null,
                         onClick = onFavClick
                     ),
@@ -380,7 +415,12 @@ fun SongListItem(
                     imageVector = if (song.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                     contentDescription = "Favorite",
                     tint = if (song.isFavorite) ErrorRed else TextTertiary.copy(alpha = 0.6f),
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier
+                        .graphicsLayer {
+                            scaleX = favBtnScale
+                            scaleY = favBtnScale
+                        }
+                        .size(18.dp)
                 )
             }
         }
