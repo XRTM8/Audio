@@ -22,6 +22,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.LazyColumn
@@ -34,6 +39,7 @@ import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Album
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Folder
@@ -856,47 +862,65 @@ private fun ArtistListView(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(DarkSurfaceVariant)
                     .clickable { onArtistClick(artist) }
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Circular artist avatar with subtle ring border
                 Box(
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(52.dp)
                         .clip(CircleShape)
-                        .background(DarkSurfaceContainer),
+                        .background(DarkSurfaceContainer)
+                        .border(1.dp, DarkCardBorder, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        tint = AccentGold,
-                        modifier = Modifier.size(22.dp)
+                    val initial = artist.name.trim().take(1).uppercase()
+                    Text(
+                        text = if (initial.isNotBlank()) initial else "♪",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
                     )
                 }
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(14.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = artist.name,
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold, fontSize = 14.sp),
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.5.sp
+                        ),
                         color = TextPrimary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "${artist.songCount} مقطع",
+                        text = "${artist.songCount} مقطع صوتي",
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
                         color = TextSecondary
                     )
                 }
+
+                IconButton(
+                    onClick = { onArtistClick(artist) },
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = "Play Artist",
+                        tint = TextSecondary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
-            HorizontalDivider(thickness = 0.5.dp, color = DarkCardBorder.copy(alpha = 0.25f))
+            HorizontalDivider(thickness = 0.5.dp, color = DarkCardBorder)
         }
     }
 }
 
-// ── Albums View ──────────────────────────────────────────────────────────────
+// ── Albums View (Studio 2-Column Gallery Grid) ──────────────────────────────
 @Composable
 private fun AlbumListView(
     albums: List<AudioAlbum>,
@@ -910,13 +934,20 @@ private fun AlbumListView(
         }
         return
     }
-    LazyColumn(modifier = modifier.fillMaxSize()) {
-        items(albums, key = { "${it.name}_${it.artist}" }, contentType = { "album_row" }) { album ->
+
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        items(albums, key = { "${it.name}_${it.artist}" }) { album ->
             val thumbReq = if (album.albumArtUri != android.net.Uri.EMPTY) {
                 remember(album.albumArtUri) {
                     ImageRequest.Builder(context)
                         .data(album.albumArtUri)
-                        .size(128, 128)
+                        .size(320, 320)
                         .bitmapConfig(android.graphics.Bitmap.Config.RGB_565)
                         .crossfade(false)
                         .memoryCachePolicy(CachePolicy.ENABLED)
@@ -925,26 +956,27 @@ private fun AlbumListView(
                 }
             } else null
 
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(DarkSurfaceVariant)
+                    .clip(RoundedCornerShape(14.dp))
                     .clickable { onAlbumClick(album) }
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
             ) {
+                // Large square album artwork card
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(DarkSurfaceContainer),
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(DarkSurfaceContainer)
+                        .border(0.75.dp, DarkCardBorder, RoundedCornerShape(14.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Album,
                         contentDescription = null,
-                        tint = TextTertiary,
-                        modifier = Modifier.size(24.dp)
+                        tint = TextTertiary.copy(alpha = 0.6f),
+                        modifier = Modifier.size(48.dp)
                     )
                     if (thumbReq != null) {
                         AsyncImage(
@@ -954,26 +986,46 @@ private fun AlbumListView(
                             modifier = Modifier.matchParentSize()
                         )
                     }
+
+                    // Track count pill in bottom-end
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(8.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Color(0xD9000000))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "${album.songCount} مقطع",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
                 }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = album.name,
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold, fontSize = 14.sp),
-                        color = TextPrimary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = "${album.artist}  •  ${album.songCount} مقطع",
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
-                        color = TextSecondary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = album.name,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.5.sp
+                    ),
+                    color = TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Text(
+                    text = album.artist,
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
+                    color = TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
-            HorizontalDivider(thickness = 0.5.dp, color = DarkCardBorder.copy(alpha = 0.25f))
         }
     }
 }
@@ -996,42 +1048,58 @@ private fun FolderListView(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(DarkSurfaceVariant)
                     .clickable { onFolderClick(folder) }
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     modifier = Modifier
-                        .size(44.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(DarkSurfaceContainer),
+                        .size(46.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(DarkSurfaceContainer)
+                        .border(0.75.dp, DarkCardBorder, RoundedCornerShape(10.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Folder,
                         contentDescription = null,
-                        tint = AccentGold,
-                        modifier = Modifier.size(22.dp)
+                        tint = AccentTitaniumWhite,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(14.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = folder.name,
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold, fontSize = 14.sp),
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.5.sp
+                        ),
                         color = TextPrimary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = "${folder.songCount} مقطع",
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
                         color = TextSecondary
                     )
                 }
+
+                IconButton(
+                    onClick = { onFolderClick(folder) },
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = "Open Folder",
+                        tint = TextSecondary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
-            HorizontalDivider(thickness = 0.5.dp, color = DarkCardBorder.copy(alpha = 0.25f))
+            HorizontalDivider(thickness = 0.5.dp, color = DarkCardBorder)
         }
     }
 }
@@ -1088,17 +1156,16 @@ private fun PlaylistsView(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(DarkSurfaceVariant)
                         .clickable { onOpenSmartPlaylist(LibraryTab.WEEKLY_ROTATION) }
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(44.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(AccentGold.copy(alpha = 0.15f))
-                            .border(1.dp, AccentGold.copy(alpha = 0.35f), RoundedCornerShape(8.dp)),
+                            .size(46.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(DarkSurfaceContainer)
+                            .border(0.75.dp, DarkCardBorder, RoundedCornerShape(10.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -1108,21 +1175,25 @@ private fun PlaylistsView(
                             modifier = Modifier.size(22.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(14.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "التدوير الأسبوعي",
-                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold, fontSize = 14.sp),
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.5.sp
+                            ),
                             color = TextPrimary
                         )
+                        Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "$weeklyRotationCount مقطع • الأكثر استماعاً خلال الأسبوع",
+                            text = "$weeklyRotationCount مقطع  •  الأكثر استماعاً خلال الأسبوع",
                             style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
                             color = TextSecondary
                         )
                     }
                 }
-                HorizontalDivider(thickness = 0.5.dp, color = DarkCardBorder.copy(alpha = 0.25f))
+                HorizontalDivider(thickness = 0.5.dp, color = DarkCardBorder)
             }
 
             // 2. Forgotten Gems
@@ -1130,17 +1201,16 @@ private fun PlaylistsView(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(DarkSurfaceVariant)
                         .clickable { onOpenSmartPlaylist(LibraryTab.FORGOTTEN_GEMS) }
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(44.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFFE57373).copy(alpha = 0.15f))
-                            .border(1.dp, Color(0xFFE57373).copy(alpha = 0.35f), RoundedCornerShape(8.dp)),
+                            .size(46.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(DarkSurfaceContainer)
+                            .border(0.75.dp, DarkCardBorder, RoundedCornerShape(10.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -1150,21 +1220,25 @@ private fun PlaylistsView(
                             modifier = Modifier.size(20.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(14.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "جواهر منسية",
-                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold, fontSize = 14.sp),
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.5.sp
+                            ),
                             color = TextPrimary
                         )
+                        Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "$forgottenGemsCount مقطع • مفضلتك التي لم تسمعها مؤخراً",
+                            text = "$forgottenGemsCount مقطع  •  مفضلتك التي لم تسمعها مؤخراً",
                             style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
                             color = TextSecondary
                         )
                     }
                 }
-                HorizontalDivider(thickness = 0.5.dp, color = DarkCardBorder.copy(alpha = 0.25f))
+                HorizontalDivider(thickness = 0.5.dp, color = DarkCardBorder)
             }
 
             // ── User Manual Playlists Section ────────────────────────
@@ -1193,39 +1267,53 @@ private fun PlaylistsView(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(DarkSurfaceVariant)
                             .combinedClickable(
                                 onClick = { onPlaylistClick(playlist) },
                                 onLongClick = { pendingDelete = playlist }
                             )
-                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(44.dp)
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(DarkSurfaceContainer),
+                                .size(46.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(DarkSurfaceContainer)
+                                .border(0.75.dp, DarkCardBorder, RoundedCornerShape(10.dp)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.QueueMusic,
                                 contentDescription = null,
-                                tint = AccentGold,
-                                modifier = Modifier.size(20.dp)
+                                tint = AccentTitaniumWhite,
+                                modifier = Modifier.size(22.dp)
                             )
                         }
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(14.dp))
                         Text(
                             text = playlist.name,
-                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold, fontSize = 14.sp),
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.5.sp
+                            ),
                             color = TextPrimary,
                             modifier = Modifier.weight(1f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
+                        IconButton(
+                            onClick = { pendingDelete = playlist },
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete Playlist",
+                                tint = TextSecondary.copy(alpha = 0.6f),
+                                modifier = Modifier.size(19.dp)
+                            )
+                        }
                     }
-                    HorizontalDivider(thickness = 0.5.dp, color = DarkCardBorder.copy(alpha = 0.25f))
+                    HorizontalDivider(thickness = 0.5.dp, color = DarkCardBorder)
                 }
             }
             item { Spacer(modifier = Modifier.height(80.dp)) }

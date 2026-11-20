@@ -1,5 +1,6 @@
 package com.otium.audio.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -111,14 +112,16 @@ fun SleepTimerDialog(
                                         Button(
                                             onClick = { onAddMinutes(5) },
                                             colors = ButtonDefaults.buttonColors(containerColor = DarkSurface),
-                                            shape = RoundedCornerShape(8.dp)
+                                            shape = RoundedCornerShape(8.dp),
+                                            border = BorderStroke(0.75.dp, DarkCardBorder)
                                         ) {
                                             Text("+5 دقائق", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = AccentGold)
                                         }
                                         Button(
                                             onClick = { onAddMinutes(15) },
                                             colors = ButtonDefaults.buttonColors(containerColor = DarkSurface),
-                                            shape = RoundedCornerShape(8.dp)
+                                            shape = RoundedCornerShape(8.dp),
+                                            border = BorderStroke(0.75.dp, DarkCardBorder)
                                         ) {
                                             Text("+15 دقيقة", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = AccentGold)
                                         }

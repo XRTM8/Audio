@@ -310,6 +310,16 @@ fun QueueSheet(
                                         modifier = Modifier.matchParentSize()
                                     )
                                 }
+                                if (isPlaying) {
+                                    Box(
+                                        modifier = Modifier
+                                            .matchParentSize()
+                                            .background(Color(0x99000000)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        MiniEqBars()
+                                    }
+                                }
                             }
 
                             Spacer(modifier = Modifier.width(12.dp))
