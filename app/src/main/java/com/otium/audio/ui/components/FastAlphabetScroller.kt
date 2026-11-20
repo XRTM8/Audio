@@ -36,6 +36,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.otium.audio.data.model.Song
 import com.otium.audio.ui.theme.DarkCardBorder
+import com.otium.audio.ui.theme.LocalOtiumColors
+import com.otium.audio.ui.theme.TextPrimary
 import com.otium.audio.ui.theme.TextSecondary
 import kotlin.math.roundToInt
 
@@ -79,6 +81,14 @@ fun FastAlphabetScroller(
     var isDragging by remember { mutableStateOf(false) }
     var selectedLetter by remember { mutableStateOf("") }
     var currentTouchY by remember { mutableFloatStateOf(0f) }
+
+    val isDark = LocalOtiumColors.current.isDark
+    val bubbleBg = if (isDark) Color.White else Color(0xFF101217)
+    val bubbleText = if (isDark) Color.Black else Color.White
+    val bubbleSpotColor = if (isDark) Color.White else Color(0x55000000)
+    val bubbleBorder = if (isDark) Color(0x33FFFFFF) else Color(0x33000000)
+    val stripBg = if (isDark) Color(0x3314141E) else Color(0x18000000)
+    val activeLetterColor = if (isDark) Color.White else Color(0xFF101217)
 
     Box(
         modifier = modifier
@@ -136,16 +146,16 @@ fun FastAlphabetScroller(
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .shadow(12.dp, CircleShape, spotColor = Color.White)
+                    .shadow(12.dp, CircleShape, spotColor = bubbleSpotColor)
                     .clip(CircleShape)
-                    .background(Color.White)
-                    .border(1.dp, Color(0x33FFFFFF), CircleShape),
+                    .background(bubbleBg)
+                    .border(1.dp, bubbleBorder, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = selectedLetter,
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black),
-                    color = Color.Black
+                    color = bubbleText
                 )
             }
         }
@@ -154,7 +164,7 @@ fun FastAlphabetScroller(
         Column(
             modifier = Modifier
                 .clip(CircleShape)
-                .background(Color(0x3314141E))
+                .background(stripBg)
                 .border(0.5.dp, DarkCardBorder, CircleShape)
                 .padding(vertical = 4.dp, horizontal = 2.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -165,7 +175,7 @@ fun FastAlphabetScroller(
                     text = letter,
                     fontSize = 9.sp,
                     fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
-                    color = if (isSel) Color.White else TextSecondary.copy(alpha = 0.5f),
+                    color = if (isSel) activeLetterColor else TextSecondary.copy(alpha = 0.5f),
                     modifier = Modifier.padding(vertical = 0.5.dp)
                 )
             }

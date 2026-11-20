@@ -24,8 +24,8 @@ android {
         applicationId = "com.otium.audio"
         minSdk = 26
         targetSdk = 35
-        versionCode = 93
-        versionName = "6.0.9"
+        versionCode = 94
+        versionName = "6.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

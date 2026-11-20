@@ -391,10 +391,12 @@ fun HomeScreen(
                                     onSongSelected(uiState.selectedArtist.songs.first(), uiState.selectedArtist.songs)
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = Color.White),
-                            shape = RoundedCornerShape(6.dp)
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = DarkSurface),
+                            shape = RoundedCornerShape(8.dp)
                         ) {
-                            Text("تشغيل الكل", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Icon(Icons.Default.PlayArrow, contentDescription = null, tint = DarkSurface, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("تشغيل الكل", fontWeight = FontWeight.Bold, color = DarkSurface, fontSize = 12.sp)
                         }
                     }
                 }
@@ -429,10 +431,12 @@ fun HomeScreen(
                                     onSongSelected(uiState.selectedAlbum.songs.first(), uiState.selectedAlbum.songs)
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = Color.White),
-                            shape = RoundedCornerShape(6.dp)
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = DarkSurface),
+                            shape = RoundedCornerShape(8.dp)
                         ) {
-                            Text("تشغيل الكل", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Icon(Icons.Default.PlayArrow, contentDescription = null, tint = DarkSurface, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("تشغيل الكل", fontWeight = FontWeight.Bold, color = DarkSurface, fontSize = 12.sp)
                         }
                     }
                 }
@@ -555,10 +559,12 @@ fun HomeScreen(
                                     onSongSelected(uiState.selectedFolder.songs.first(), uiState.selectedFolder.songs)
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = Color.White),
-                            shape = RoundedCornerShape(6.dp)
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = DarkSurface),
+                            shape = RoundedCornerShape(8.dp)
                         ) {
-                            Text("تشغيل الكل", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Icon(Icons.Default.PlayArrow, contentDescription = null, tint = DarkSurface, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("تشغيل الكل", fontWeight = FontWeight.Bold, color = DarkSurface, fontSize = 12.sp)
                         }
                     }
                 }

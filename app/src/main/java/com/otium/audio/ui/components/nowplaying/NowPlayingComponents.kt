@@ -51,6 +51,7 @@ import com.otium.audio.ui.theme.AccentGold
 import com.otium.audio.ui.theme.DarkSurfaceContainer
 import com.otium.audio.ui.theme.DarkSurfaceElevated
 import com.otium.audio.ui.theme.ErrorRed
+import com.otium.audio.ui.theme.LocalOtiumColors
 import com.otium.audio.ui.theme.TextPrimary
 import com.otium.audio.ui.theme.TextSecondary
 
@@ -148,6 +149,9 @@ fun NowPlayingControls(
     haptic: HapticFeedback,
     modifier: Modifier = Modifier
 ) {
+    val isDark = LocalOtiumColors.current.isDark
+    val effectiveAccent = if (!isDark && activeAccent.luminance() > 0.75f) Color(0xFF101217) else activeAccent
+
     val playBtnScale by animateFloatAsState(
         targetValue = if (isPlaying) 1.0f else 0.93f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
@@ -173,7 +177,7 @@ fun NowPlayingControls(
                         else -> Icons.Default.Repeat
                     },
                     contentDescription = "Repeat",
-                    tint = if (repeatMode != Player.REPEAT_MODE_OFF) activeAccent else TextSecondary.copy(alpha = 0.5f),
+                    tint = if (repeatMode != Player.REPEAT_MODE_OFF) effectiveAccent else TextSecondary.copy(alpha = 0.5f),
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -195,9 +199,13 @@ fun NowPlayingControls(
                 modifier = Modifier
                     .scale(playBtnScale)
                     .size(68.dp)
-                    .shadow(16.dp, CircleShape, spotColor = activeAccent.copy(alpha = 0.5f))
+                    .shadow(
+                        elevation = 16.dp,
+                        shape = CircleShape,
+                        spotColor = if (isDark) effectiveAccent.copy(alpha = 0.5f) else Color(0x33000000)
+                    )
                     .clip(CircleShape)
-                    .background(activeAccent)
+                    .background(effectiveAccent)
                     .clickable {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         onPlayPause()
@@ -207,7 +215,7 @@ fun NowPlayingControls(
                 Icon(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = if (isPlaying) "Pause" else "Play",
-                    tint = if (activeAccent.luminance() > 0.5f) Color.Black else Color.White,
+                    tint = if (effectiveAccent.luminance() > 0.5f) Color.Black else Color.White,
                     modifier = Modifier.size(34.dp)
                 )
             }
@@ -231,7 +239,7 @@ fun NowPlayingControls(
                 Icon(
                     imageVector = Icons.Default.Shuffle,
                     contentDescription = "Shuffle",
-                    tint = if (isShuffleEnabled) activeAccent else TextSecondary.copy(alpha = 0.5f),
+                    tint = if (isShuffleEnabled) effectiveAccent else TextSecondary.copy(alpha = 0.5f),
                     modifier = Modifier.size(22.dp)
                 )
             }

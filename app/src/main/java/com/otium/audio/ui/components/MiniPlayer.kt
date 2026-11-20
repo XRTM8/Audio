@@ -12,6 +12,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -185,9 +186,30 @@ fun MiniPlayer(
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Title & Artist
+            // Title & Artist with intuitive horizontal swipe gesture to change tracks
             Column(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .pointerInput(currentSong.id) {
+                        var totalX = 0f
+                        detectHorizontalDragGestures(
+                            onDragStart = { totalX = 0f },
+                            onHorizontalDrag = { change, dragAmount ->
+                                change.consume()
+                                totalX += dragAmount
+                            },
+                            onDragEnd = {
+                                val swipeThreshold = 36.dp.toPx()
+                                if (totalX < -swipeThreshold) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onSkipNextClick()
+                                } else if (totalX > swipeThreshold) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onSkipPreviousClick()
+                                }
+                            }
+                        )
+                    },
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(

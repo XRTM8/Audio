@@ -274,16 +274,34 @@ fun SongListItem(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 // Hi-Res / Audio Format Badge
+                val isLossless = song.audioFormatBadge == "FLAC" || song.audioFormatBadge == "WAV" || song.audioFormatBadge == "ALAC" || song.audioFormatBadge == "DSD"
+                val badgeBg = if (isDark) {
+                    if (isLossless) Color(0x33FFB800) else DarkSurfaceContainer
+                } else {
+                    if (isLossless) Color(0x22B45309) else Color(0xFFEBEEF2)
+                }
+                val badgeBorder = if (isLossless) {
+                    if (isDark) Color(0x66FFB800) else Color(0x66B45309)
+                } else {
+                    DarkCardBorder
+                }
+                val badgeTextColor = if (isLossless) {
+                    if (isDark) Color(0xFFFFC020) else Color(0xFFB45309)
+                } else {
+                    TextSecondary
+                }
+
                 Box(
                     modifier = Modifier
-                        .background(DarkSurfaceContainer, RoundedCornerShape(3.dp))
+                        .background(badgeBg, RoundedCornerShape(3.dp))
+                        .border(0.5.dp, badgeBorder, RoundedCornerShape(3.dp))
                         .padding(horizontal = 4.dp, vertical = 0.5.dp)
                 ) {
                     Text(
                         text = song.audioFormatBadge,
                         fontSize = 8.5.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (song.audioFormatBadge == "FLAC" || song.audioFormatBadge == "WAV") Color.White else TextSecondary
+                        color = badgeTextColor
                     )
                 }
 
@@ -333,7 +351,7 @@ fun SongListItem(
                         Icon(
                             imageVector = Icons.Default.Check,
                             contentDescription = "Selected",
-                            tint = Color.Black,
+                            tint = if (isDark) Color.Black else Color.White,
                             modifier = Modifier.size(16.dp)
                         )
                     }

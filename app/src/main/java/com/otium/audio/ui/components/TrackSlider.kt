@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.sp
 import com.otium.audio.ui.theme.LocalOtiumColors
 import com.otium.audio.ui.theme.DarkCardBorder
 import com.otium.audio.ui.theme.DarkSurfaceVariant
+import com.otium.audio.ui.theme.TextPrimary
 import com.otium.audio.ui.theme.TextSecondary
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.math.roundToInt
@@ -340,6 +341,12 @@ fun TrackSlider(
                 }
             }
 
+            val isDark = LocalOtiumColors.current.isDark
+            val activeTimeColor = if (isDark) Color.White else Color(0xFF101217)
+            val jumpBtnBg = if (isDark) DarkSurfaceVariant else Color(0xFFEBEEF2)
+            val jumpBtnBorder = DarkCardBorder
+            val jumpBtnTextColor = if (isDark) Color.White else Color(0xFF101217)
+
             // Time & Quick Jump Controls
             Row(
                 modifier = Modifier
@@ -354,7 +361,7 @@ fun TrackSlider(
                         fontWeight = if (isDragging) FontWeight.Bold else FontWeight.Medium,
                         fontSize = 12.sp
                     ),
-                    color = if (isDragging) Color.White else TextSecondary
+                    color = if (isDragging) activeTimeColor else TextSecondary
                 )
 
                 // Quick Seek Jump Controls: [-10 ث] and [+10 ث]
@@ -365,8 +372,8 @@ fun TrackSlider(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
-                            .background(DarkSurfaceVariant)
-                            .border(1.dp, DarkCardBorder.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                            .background(jumpBtnBg)
+                            .border(0.75.dp, jumpBtnBorder, RoundedCornerShape(12.dp))
                             .clickable {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 if (onSeekBy != null) {
@@ -383,15 +390,15 @@ fun TrackSlider(
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 11.5.sp
                             ),
-                            color = Color.White
+                            color = jumpBtnTextColor
                         )
                     }
 
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
-                            .background(DarkSurfaceVariant)
-                            .border(1.dp, DarkCardBorder.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                            .background(jumpBtnBg)
+                            .border(0.75.dp, jumpBtnBorder, RoundedCornerShape(12.dp))
                             .clickable {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 if (onSeekBy != null) {
@@ -408,7 +415,7 @@ fun TrackSlider(
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 11.5.sp
                             ),
-                            color = Color.White
+                            color = jumpBtnTextColor
                         )
                     }
                 }
