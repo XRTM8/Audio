@@ -17,10 +17,12 @@ data class Song(
     val size: Long,
     val relativePath: String,
     val dateAdded: Long,
-    val isFavorite: Boolean = false
+    val isFavorite: Boolean = false,
+    val sampleRate: Int = 0,
+    val bitrate: Int = 0
 ) {
     val formattedDuration: String = formatDurationFast(durationMs)
-    val audioFormatBadge: String = determineAudioBadgeFast(relativePath, contentUri)
+    val audioFormatBadge: String = determineAudioBadgeFast(relativePath, contentUri, sampleRate, bitrate)
     val displayTitle: String = cleanDisplayTitleFast(title)
     val indexLetter: String = extractIndexLetterFast(title)
     val subtitle: String = "$artist  ·  $formattedDuration"
@@ -114,29 +116,37 @@ data class Song(
             return "$minStr:$secStr"
         }
 
-        fun determineAudioBadgeFast(path: String, uri: Uri? = null): String {
+        fun determineAudioBadgeFast(
+            path: String,
+            uri: Uri? = null,
+            sampleRate: Int = 0,
+            bitrate: Int = 0
+        ): String {
+            if (sampleRate >= 88_200) return "HI-RES"
             val target = if (path.isNotEmpty()) path else (uri?.path ?: "")
             val dot = target.lastIndexOf('.')
-            if (dot == -1 || dot >= target.length - 1) return "HI-RES"
-            val ext = target.substring(dot + 1)
-            return when {
-                ext.equals("dsf", ignoreCase = true) || ext.equals("dff", ignoreCase = true) -> "DSD"
-                ext.equals("aiff", ignoreCase = true) || ext.equals("aif", ignoreCase = true) -> "AIFF"
-                ext.equals("alac", ignoreCase = true) -> "ALAC"
-                ext.equals("flac", ignoreCase = true) -> "FLAC"
-                ext.equals("wav", ignoreCase = true) -> "WAV"
-                ext.equals("opus", ignoreCase = true) -> "OPUS"
-                ext.equals("ogg", ignoreCase = true) -> "OGG"
-                ext.equals("m4a", ignoreCase = true) -> {
+            if (dot == -1 || dot >= target.length - 1) {
+                return if (sampleRate > 48_000) "HI-RES" else "AUDIO"
+            }
+            val ext = target.substring(dot + 1).lowercase()
+            return when (ext) {
+                "dsf", "dff" -> "DSD"
+                "flac" -> if (sampleRate > 48_000) "HI-RES" else "FLAC"
+                "wav" -> if (sampleRate > 48_000) "HI-RES" else "WAV"
+                "aiff", "aif" -> "AIFF"
+                "alac" -> "ALAC"
+                "opus" -> "OPUS"
+                "ogg" -> "OGG"
+                "m4a", "aac" -> {
                     if (target.contains("alac", ignoreCase = true) || target.contains("lossless", ignoreCase = true)) {
                         "ALAC"
                     } else {
                         "AAC"
                     }
                 }
-                ext.equals("aac", ignoreCase = true) -> "AAC"
-                ext.equals("mp3", ignoreCase = true) -> "MP3"
-                else -> "HI-RES"
+                "mp3" -> if (bitrate >= 300_000) "320K" else "MP3"
+                "wma" -> "WMA"
+                else -> if (sampleRate > 48_000) "HI-RES" else "AUDIO"
             }
         }
     }

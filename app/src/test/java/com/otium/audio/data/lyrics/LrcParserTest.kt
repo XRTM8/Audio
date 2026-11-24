@@ -48,4 +48,20 @@ class LrcParserTest {
         assertEquals(1, parsed.findActiveIndex(6_000))
         assertEquals(2, parsed.findActiveIndex(60_000))
     }
+
+    @Test
+    fun `parses multi timestamp lines and offset`() {
+        val lrc = """
+            [offset:+500]
+            [00:01.00][00:05.00]repeated chorus line
+        """.trimIndent()
+
+        val parsed = LrcParser.parse(lrc)
+        assertTrue(parsed.isSynced)
+        assertEquals(2, parsed.lines.size)
+        assertEquals(1_500L, parsed.lines[0].timeMs)
+        assertEquals(5_500L, parsed.lines[1].timeMs)
+        assertEquals("repeated chorus line", parsed.lines[0].text)
+        assertEquals("repeated chorus line", parsed.lines[1].text)
+    }
 }

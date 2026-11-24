@@ -381,7 +381,7 @@ class PlaybackService : MediaSessionService() {
                 servicePositionJob?.cancel()
                 servicePositionJob = serviceScope.launch {
                     while (isActive) {
-                        delay(2500L)
+                        delay(15_000L) // Persist position periodically without hammering disk every 2.5s
                         if (::player.isInitialized && player.isPlaying) {
                             val pos = player.currentPosition.coerceAtLeast(0L)
                             PlaybackPersistence(this@PlaybackService).savePosition(pos)

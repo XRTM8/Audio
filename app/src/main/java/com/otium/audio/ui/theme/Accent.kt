@@ -16,22 +16,31 @@ object OtiumAccent {
         internal set
 }
 
-// Default Fallback: Pure Titanium White
-val AccentFallback = Color(0xFFFFFFFF)
+// Default Fallbacks
+val AccentFallbackDark = Color(0xFFFFFFFF)
+val AccentFallbackLight = Color(0xFF0F1115)
+val AccentFallback = AccentFallbackDark
 
 /**
- * Clamps a palette colour into an elegant, legible range that stays crystal-clear on an OLED black surface.
- * Greyscale, dark, or muted artwork gracefully defaults to Titanium White.
+ * Clamps a palette colour into an elegant, legible range calibrated for contrast.
+ * In Dark Mode: calibrated for crystal-clear readability on AMOLED black surfaces.
+ * In Light Mode: calibrated with crisp contrast on studio porcelain / white surfaces.
  */
-fun Color.asReadableAccent(): Color {
+fun Color.asReadableAccent(isDark: Boolean = true): Color {
     val hsl = FloatArray(3)
     ColorUtils.colorToHSL(toArgb(), hsl)
     val saturation = hsl[1]
     val lightness = hsl[2]
 
-    if (lightness < 0.18f || saturation < 0.12f) return AccentFallback
+    if (lightness < 0.12f || lightness > 0.92f || saturation < 0.10f) {
+        return if (isDark) AccentFallbackDark else AccentFallbackLight
+    }
 
-    hsl[1] = saturation.coerceIn(0.50f, 0.85f)
-    hsl[2] = lightness.coerceIn(0.60f, 0.80f)
+    hsl[1] = saturation.coerceIn(0.45f, 0.90f)
+    hsl[2] = if (isDark) {
+        lightness.coerceIn(0.60f, 0.82f)
+    } else {
+        lightness.coerceIn(0.25f, 0.45f)
+    }
     return Color(ColorUtils.HSLToColor(hsl))
 }

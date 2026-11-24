@@ -23,6 +23,7 @@ object UpdateChecker {
     private const val GITHUB_API_URL = "https://api.github.com/repos/XRTM8/Audio/releases/latest"
 
     suspend fun checkLatestRelease(currentVersion: String): UpdateInfo? = withContext(Dispatchers.IO) {
+        if (!com.otium.audio.BuildConfig.ENABLE_SELF_UPDATE) return@withContext null
         var connection: HttpURLConnection? = null
         try {
             val url = URL(GITHUB_API_URL)

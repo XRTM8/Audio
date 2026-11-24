@@ -154,6 +154,7 @@ class AudioRepositoryImpl(
                 if (missing.isEmpty()) return@launch
 
                 val newArtworkMap = HashMap<Long, Uri>()
+                val newMetaMap = HashMap<Long, Pair<Int, Int>>()
                 withContext(Dispatchers.IO.limitedParallelism(1)) {
                     for (song in missing) {
                         if (!isActive) break
@@ -161,15 +162,29 @@ class AudioRepositoryImpl(
                         if (extracted != null) {
                             newArtworkMap[song.id] = extracted
                         }
+                        runCatching {
+                            NativeAudioDsp.readAudioMetadata(song.relativePath)?.let { details ->
+                                if (details.sampleRate > 0 || details.bitrate > 0) {
+                                    newMetaMap[song.id] = details.sampleRate to details.bitrate
+                                }
+                            }
+                        }
                         delay(12L) // Gentle yield between tracks to protect disk I/O & UI frame budget
                     }
                 }
 
-                if (newArtworkMap.isNotEmpty()) {
+                if (newArtworkMap.isNotEmpty() || newMetaMap.isNotEmpty()) {
                     val currentList = songs.value
                     val updatedList = currentList.map { s ->
                         val art = newArtworkMap[s.id]
-                        if (art != null) s.copy(albumArtUri = art) else s
+                        val meta = newMetaMap[s.id]
+                        if (art != null || meta != null) {
+                            s.copy(
+                                albumArtUri = art ?: s.albumArtUri,
+                                sampleRate = meta?.first ?: s.sampleRate,
+                                bitrate = meta?.second ?: s.bitrate
+                            )
+                        } else s
                     }
                     songs.value = updatedList
                 }
@@ -408,10 +423,11 @@ class AudioRepositoryImpl(
         artist: String,
         album: String
     ): Boolean = withContext(io) {
+        var tagWriteSuccess = false
         val song = songs.value.find { it.id == songId }
         if (song != null && NativeAudioDsp.isAvailable && song.relativePath.isNotBlank()) {
             try {
-                NativeAudioDsp.writeAudioTags(song.relativePath, title, artist, album)
+                tagWriteSuccess = NativeAudioDsp.writeAudioTags(song.relativePath, title, artist, album)
                 NativeAudioDsp.searchIndexAddOrUpdate(songId, title, artist, album)
             } catch (_: Throwable) {}
         }
@@ -421,14 +437,24 @@ class AudioRepositoryImpl(
             put(MediaStore.Audio.Media.ARTIST, artist)
             put(MediaStore.Audio.Media.ALBUM, album)
         }
-        val updated = runCatching {
-            resolver.update(ContentUris.withAppendedId(collection, songId), values, null, null) > 0
+        val uri = ContentUris.withAppendedId(collection, songId)
+        val updatedInMediaStore = runCatching {
+            resolver.update(uri, values, null, null) > 0
         }.getOrDefault(false)
 
-        if (updated) {
+        if (updatedInMediaStore || tagWriteSuccess) {
+            val currentList = songs.value
+            val updatedList = currentList.map { s ->
+                if (s.id == songId) {
+                    s.copy(title = title, artist = artist, album = album)
+                } else s
+            }
+            songs.value = updatedList
             refresh()
+            true
+        } else {
+            false
         }
-        updated
     }
 
     override fun getMinDurationSeconds(): Int =
@@ -558,6 +584,10 @@ class AudioRepositoryImpl(
                 val pathCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
                 val addedCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
 
+                val bitrateCol = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    runCatching { c.getColumnIndex(MediaStore.Audio.Media.BITRATE) }.getOrDefault(-1)
+                } else -1
+
                 while (c.moveToNext()) {
                     val path = c.getString(pathCol) ?: ""
                     val duration = c.getLong(durationCol)
@@ -590,6 +620,8 @@ class AudioRepositoryImpl(
                         old.dateAdded == added &&
                         old.albumArtUri == verifiedArtUri
 
+                    val rawBitrate = if (bitrateCol >= 0) runCatching { c.getInt(bitrateCol) }.getOrDefault(0) else 0
+
                     result += (old?.takeIf { same } ?: Song(
                         id = id,
                         title = title,
@@ -601,7 +633,9 @@ class AudioRepositoryImpl(
                         size = c.getLong(sizeCol),
                         relativePath = c.getString(pathCol) ?: "",
                         dateAdded = added,
-                        isFavorite = old?.isFavorite ?: false
+                        isFavorite = old?.isFavorite ?: false,
+                        sampleRate = old?.sampleRate ?: 0,
+                        bitrate = if (rawBitrate > 0) rawBitrate else (old?.bitrate ?: 0)
                     ))
                 }
             }

@@ -34,6 +34,9 @@ fun ReactiveWaveform(
     waveformSeed: Long = 0L,
     modifier: Modifier = Modifier
 ) {
+    val spectrumBands by VisualizerBridge.spectrumBands.collectAsState()
+    val liveEnergy by VisualizerBridge.averageEnergy.collectAsState()
+
     val transition = rememberInfiniteTransition(label = "waveform")
     val animatedPhase = if (isPlaying) {
         transition.animateFloat(
@@ -49,7 +52,6 @@ fun ReactiveWaveform(
 
     Canvas(modifier = modifier) {
         val currentProgress = progressProvider()
-        val liveEnergy = VisualizerBridge.averageEnergy.value
         val phase = animatedPhase?.value ?: 0f
         val barCount = 56
         val gap = 2.dp.toPx()
@@ -63,10 +65,18 @@ fun ReactiveWaveform(
 
         for (index in 0 until barCount) {
             val position = index / (barCount - 1f)
-            // Deterministic audio-like curve: stable between frames, breathing dynamically with Rust live energy
-            val shape = 0.28f +
-                0.46f * dynamicEnergy * abs(sin(index * 0.65f + seedOffset + phase * swing)) +
-                0.22f * abs(sin(index * 1.8f + seedOffset * 1.3f))
+
+            // Map bar to the 16 real audio spectrum bands computed by DSP
+            val bandIndex = ((index.toFloat() / barCount) * spectrumBands.size).toInt().coerceIn(0, (spectrumBands.size - 1).coerceAtLeast(0))
+            val bandMagnitude = if (spectrumBands.isNotEmpty()) spectrumBands[bandIndex] else 0f
+
+            // Blend real spectrum band magnitude with dynamic energy and phase
+            val realAudioReaction = (bandMagnitude * 0.65f + dynamicEnergy * 0.35f).coerceIn(0f, 1f)
+            val shape = if (isPlaying && (bandMagnitude > 0.01f || liveEnergy > 0.01f)) {
+                0.22f + 0.70f * realAudioReaction * abs(sin(index * 0.5f + seedOffset + phase * swing * 0.5f))
+            } else {
+                0.25f + 0.35f * dynamicEnergy * abs(sin(index * 0.65f + seedOffset))
+            }
 
             val height = (maxHeight * shape.coerceIn(0.18f, 1f))
             val left = index * (barWidth + gap)

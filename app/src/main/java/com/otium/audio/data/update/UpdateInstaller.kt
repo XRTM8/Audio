@@ -2,6 +2,7 @@ package com.otium.audio.data.update
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -128,18 +129,57 @@ object UpdateInstaller {
 
     private fun signedLikeUs(context: Context, apk: File): Boolean = runCatching {
         if (!apk.exists() || apk.length() < 1024) return false
-        val manager = context.packageManager
-        val archive = manager.getPackageArchiveInfo(apk.absolutePath, 0)
-        if (archive != null && archive.packageName.isNotBlank()) {
-            return archive.packageName == context.packageName
+        val pm = context.packageManager
+
+        // 1. Get signatures of currently installed app
+        val currentSignatures: List<ByteArray> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val packageInfo = pm.getPackageInfo(context.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
+            val signingInfo = packageInfo.signingInfo ?: return false
+            if (signingInfo.hasMultipleSigners()) {
+                signingInfo.apkContentsSigners.map { it.toByteArray() }
+            } else {
+                signingInfo.signingCertificateHistory.map { it.toByteArray() }
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            val packageInfo = pm.getPackageInfo(context.packageName, PackageManager.GET_SIGNATURES)
+            @Suppress("DEPRECATION")
+            packageInfo.signatures?.map { it.toByteArray() } ?: return false
         }
-        // Fallback: verify valid zip magic number (PK\x03\x04)
-        apk.inputStream().use { stream ->
-            val header = ByteArray(4)
-            val read = stream.read(header)
-            read == 4 && header[0] == 0x50.toByte() && header[1] == 0x4B.toByte()
+
+        if (currentSignatures.isEmpty()) return false
+
+        // 2. Get signatures of the downloaded APK archive
+        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            PackageManager.GET_SIGNING_CERTIFICATES
+        } else {
+            @Suppress("DEPRECATION")
+            PackageManager.GET_SIGNATURES
         }
-    }.getOrDefault(true)
+        val archiveInfo = pm.getPackageArchiveInfo(apk.absolutePath, flags) ?: return false
+        if (archiveInfo.packageName != context.packageName) return false
+
+        val archiveSignatures: List<ByteArray> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val signingInfo = archiveInfo.signingInfo ?: return false
+            if (signingInfo.hasMultipleSigners()) {
+                signingInfo.apkContentsSigners.map { it.toByteArray() }
+            } else {
+                signingInfo.signingCertificateHistory.map { it.toByteArray() }
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            archiveInfo.signatures?.map { it.toByteArray() } ?: return false
+        }
+
+        if (archiveSignatures.isEmpty()) return false
+
+        // 3. Verify that at least one certificate matches
+        currentSignatures.any { currentSig ->
+            archiveSignatures.any { archiveSig ->
+                currentSig.contentEquals(archiveSig)
+            }
+        }
+    }.getOrDefault(false)
 
     fun install(context: Context, apk: File): Boolean = runCatching {
         val uri = FileProvider.getUriForFile(context, context.packageName + AUTHORITY_SUFFIX, apk)

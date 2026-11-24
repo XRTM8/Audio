@@ -146,6 +146,10 @@ import com.otium.audio.ui.components.EqualizerSheet
 import com.otium.audio.ui.components.LyricsSheet
 import com.otium.audio.ui.components.QueueSheet
 import com.otium.audio.ui.components.SleepTimerDialog
+import com.otium.audio.ui.components.nowplaying.AudiophileVinylCover
+import com.otium.audio.ui.components.nowplaying.AudioInspectorDialog
+import com.otium.audio.ui.components.nowplaying.NowPlayingMoreSheet
+import com.otium.audio.ui.components.nowplaying.NowPlayingSpeedDialog
 import com.otium.audio.ui.components.TrackSlider
 import com.otium.audio.ui.theme.AccentGold
 import com.otium.audio.ui.theme.AccentGoldDim
@@ -851,180 +855,36 @@ fun NowPlayingScreen(
 
             // ── More Actions Sheet ──────────────────────────────────────────
             if (showMoreSheet) {
-                ModalBottomSheet(
-                    onDismissRequest = { showMoreSheet = false },
-                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-                    containerColor = DarkSheetBackground,
-                    scrimColor = DarkSheetScrim,
-                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 8.dp)
-                    ) {
-                        Text(
-                            text = "خيارات المقطع",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = TextPrimary,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-
-                        val actions = listOf(
-                            Triple(Icons.Default.Lyrics, if (showLyrics) "إخفاء الكلمات" else "عرض الكلمات") {
-                                showMoreSheet = false; showLyrics = !showLyrics
-                            },
-                            Triple(Icons.Default.Speed, "سرعة التشغيل (${playbackSpeed}x)") {
-                                showMoreSheet = false; showSpeedDialog = true
-                            },
-                            Triple(Icons.Default.Bedtime, if (sleepTimerState.isActive) "مؤقت النوم (${sleepTimerState.remainingSeconds} ثانية)" else "مؤقت النوم") {
-                                showMoreSheet = false; showSleepTimer = true
-                            },
-                            Triple(Icons.AutoMirrored.Filled.QueueMusic, "قائمة التشغيل الحالية (${queue.size} مقطع)") {
-                                showMoreSheet = false; showQueue = true
-                            },
-                            Triple(Icons.Default.Headphones, "مخرج الصوت (سماعات / بلوتوث)") {
-                                showMoreSheet = false
-                                try {
-                                    val intent = Intent(android.provider.Settings.ACTION_SOUND_SETTINGS).apply {
-                                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                    }
-                                    context.startActivity(intent)
-                                } catch (_: Exception) {
-                                    try {
-                                        context.startActivity(Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS).apply {
-                                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                        })
-                                    } catch (_: Exception) {}
-                                }
-                            },
-                            Triple(Icons.Default.EditNote, "تعديل بيانات المقطع الصوتي") {
-                                showMoreSheet = false; onEditTagClick()
-                            }
-                        )
-
-                        actions.forEach { (icon, label, action) ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { action() }
-                                    .padding(vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = icon,
-                                    contentDescription = null,
-                                    tint = AccentGold,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                                Spacer(modifier = Modifier.width(16.dp))
-                                Text(label, color = TextPrimary, style = MaterialTheme.typography.bodyMedium)
-                            }
-                            HorizontalDivider(thickness = 0.5.dp, color = DarkCardBorder.copy(alpha = 0.35f))
-                        }
-
-                        Spacer(modifier = Modifier.height(20.dp))
-                    }
-                }
+                NowPlayingMoreSheet(
+                    context = context,
+                    showLyrics = showLyrics,
+                    playbackSpeed = playbackSpeed,
+                    sleepTimerState = sleepTimerState,
+                    queueSize = queue.size,
+                    onToggleLyrics = { showLyrics = !showLyrics },
+                    onOpenSpeedDialog = { showSpeedDialog = true },
+                    onOpenSleepTimer = { showSleepTimer = true },
+                    onOpenQueue = { showQueue = true },
+                    onEditTagClick = onEditTagClick,
+                    onDismiss = { showMoreSheet = false }
+                )
             }
 
             // ── Speed Dialog ────────────────────────────────────────────────
             if (showSpeedDialog) {
-                ModalBottomSheet(
-                    onDismissRequest = { showSpeedDialog = false },
-                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-                    containerColor = DarkSheetBackground,
-                    scrimColor = DarkSheetScrim,
-                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            "سرعة التشغيل",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = TextPrimary
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f).forEach { speed ->
-                                FilterChip(
-                                    selected = kotlin.math.abs(playbackSpeed - speed) < 0.01f,
-                                    onClick = { onSetPlaybackSpeed(speed); showSpeedDialog = false },
-                                    label = { Text("${speed}x", fontSize = 12.sp) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = AccentGold,
-                                        selectedLabelColor = DarkSurface,
-                                        containerColor = DarkSurfaceContainer,
-                                        labelColor = TextSecondary
-                                    )
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(20.dp))
-                    }
-                }
+                NowPlayingSpeedDialog(
+                    playbackSpeed = playbackSpeed,
+                    onSetPlaybackSpeed = onSetPlaybackSpeed,
+                    onDismiss = { showSpeedDialog = false }
+                )
             }
 
             // ── Audio Inspector Dialog ─────────────────────────────────────
             if (showAudioInspector) {
-                AlertDialog(
-                    onDismissRequest = { showAudioInspector = false },
-                    title = {
-                        Text(
-                            text = "تفاصيل الملف الصوتي",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = TextPrimary
-                        )
-                    },
-                    text = {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Column {
-                                Text("العنوان", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
-                                Text(song.displayTitle, style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
-                            }
-                            Column {
-                                Text("الفنان والألبوم", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
-                                Text("${song.artist}  •  ${song.album}", style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
-                            }
-                            Column {
-                                Text("المواصفات والترميز", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
-                                Text(audioSpecs ?: song.audioFormatBadge, style = MaterialTheme.typography.bodyMedium, color = AccentGold)
-                            }
-                            Column {
-                                Text("المدة الزمنية", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
-                                Text(song.formattedDuration, style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
-                            }
-                            if (song.size > 0L) {
-                                Column {
-                                    Text("حجم الملف", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
-                                    val sizeMb = String.format(java.util.Locale.US, "%.2f MB", song.size / (1024f * 1024f))
-                                    Text(sizeMb, style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
-                                }
-                            }
-                            if (song.relativePath.isNotBlank()) {
-                                Column {
-                                    Text("المسار على الذاكرة", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
-                                    Text(song.relativePath, style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp), color = TextTertiary)
-                                }
-                            }
-                        }
-                    },
-                    confirmButton = {
-                        TextButton(onClick = { showAudioInspector = false }) {
-                            Text("إغلاق", color = AccentGold, fontWeight = FontWeight.Bold)
-                        }
-                    },
-                    containerColor = DarkSurfaceElevated,
-                    shape = RoundedCornerShape(16.dp)
+                AudioInspectorDialog(
+                    song = song,
+                    audioSpecs = audioSpecs,
+                    onDismiss = { showAudioInspector = false }
                 )
             }
 
@@ -1075,42 +935,4 @@ fun NowPlayingScreen(
                 )
             }
         }
-
-}
-
-@Composable
-private fun AudiophileVinylCover() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(DarkSurfaceVariant),
-        contentAlignment = Alignment.Center
-    ) {
-        // Outer concentric groove rings
-        listOf(0.88f, 0.74f, 0.60f, 0.46f).forEach { fraction ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize(fraction)
-                    .clip(CircleShape)
-                    .border(1.dp, DarkCardBorder.copy(alpha = 0.6f), CircleShape)
-            )
-        }
-
-        // Center Vinyl Label
-        Box(
-            modifier = Modifier
-                .fillMaxSize(0.32f)
-                .clip(CircleShape)
-                .background(AccentGoldDim)
-                .border(1.5.dp, AccentGold, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.MusicNote,
-                contentDescription = null,
-                tint = AccentGoldLight,
-                modifier = Modifier.size(28.dp)
-            )
-        }
-    }
 }

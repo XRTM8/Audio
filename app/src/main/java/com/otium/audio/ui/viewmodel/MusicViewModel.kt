@@ -121,49 +121,57 @@ class MusicViewModel(
     private fun loadLibrary() {
         viewModelScope.launch(Dispatchers.Default) {
             runCatching {
-                combine(
-                    repository.getAllSongsFlow(),
-                    repository.getFavoritesFlow(),
-                    repository.getFoldersFlow(),
-                    repository.getPlaylistsFlow()
-                ) { songs, favorites, folders, playlists ->
-                    Library(songs, favorites, folders, playlists)
-                }
-                    .combine(repository.getRecentlyPlayedFlow()) { lib, played ->
-                        lib.copy(recentlyPlayed = played)
+                    var lastSongsRef: List<Song>? = null
+                    var cachedArtists: List<AudioArtist> = emptyList()
+                    var cachedAlbums: List<AudioAlbum> = emptyList()
+
+                    combine(
+                        repository.getAllSongsFlow(),
+                        repository.getFavoritesFlow(),
+                        repository.getFoldersFlow(),
+                        repository.getPlaylistsFlow()
+                    ) { songs, favorites, folders, playlists ->
+                        Library(songs, favorites, folders, playlists)
                     }
-                    .combine(repository.getMostPlayedFlow(MOST_PLAYED_LIMIT)) { lib, top ->
-                        lib.copy(mostPlayed = top)
-                    }
-                    .combine(repository.getRecentlyAddedFlow()) { lib, added ->
-                        lib.copy(recentlyAdded = added)
-                    }
-                    .combine(repository.getWeeklyRotationFlow()) { lib, weekly ->
-                        lib.copy(weeklyRotation = weekly)
-                    }
-                    .combine(repository.getForgottenGemsFlow()) { lib, gems ->
-                        lib.copy(forgottenGems = gems)
-                    }
-                    .conflate()
-                    .collect { lib ->
-                        val extractedArtists = AudioArtist.extractArtistsFromSongs(lib.songs)
-                        val extractedAlbums = AudioAlbum.extractAlbumsFromSongs(lib.songs)
-                        _uiState.update {
-                            it.copy(
-                                songs = lib.songs,
-                                artists = extractedArtists,
-                                albums = extractedAlbums,
-                                favorites = lib.favorites,
-                                folders = lib.folders,
-                                playlists = lib.playlists,
-                                history = lib.recentlyPlayed,
-                                mostPlayed = lib.mostPlayed,
-                                recentlyAdded = lib.recentlyAdded,
-                                weeklyRotation = lib.weeklyRotation,
-                                forgottenGems = lib.forgottenGems
-                            )
+                        .combine(repository.getRecentlyPlayedFlow()) { lib, played ->
+                            lib.copy(recentlyPlayed = played)
                         }
-                    }
+                        .combine(repository.getMostPlayedFlow(MOST_PLAYED_LIMIT)) { lib, top ->
+                            lib.copy(mostPlayed = top)
+                        }
+                        .combine(repository.getRecentlyAddedFlow()) { lib, added ->
+                            lib.copy(recentlyAdded = added)
+                        }
+                        .combine(repository.getWeeklyRotationFlow()) { lib, weekly ->
+                            lib.copy(weeklyRotation = weekly)
+                        }
+                        .combine(repository.getForgottenGemsFlow()) { lib, gems ->
+                            lib.copy(forgottenGems = gems)
+                        }
+                        .conflate()
+                        .collect { lib ->
+                            // Only re-extract artist & album hierarchies when the songs list reference actually changes
+                            if (lib.songs !== lastSongsRef) {
+                                lastSongsRef = lib.songs
+                                cachedArtists = AudioArtist.extractArtistsFromSongs(lib.songs)
+                                cachedAlbums = AudioAlbum.extractAlbumsFromSongs(lib.songs)
+                            }
+                            _uiState.update {
+                                it.copy(
+                                    songs = lib.songs,
+                                    artists = cachedArtists,
+                                    albums = cachedAlbums,
+                                    favorites = lib.favorites,
+                                    folders = lib.folders,
+                                    playlists = lib.playlists,
+                                    history = lib.recentlyPlayed,
+                                    mostPlayed = lib.mostPlayed,
+                                    recentlyAdded = lib.recentlyAdded,
+                                    weeklyRotation = lib.weeklyRotation,
+                                    forgottenGems = lib.forgottenGems
+                                )
+                            }
+                        }
             }.onFailure { e ->
                 android.util.Log.e("MusicViewModel", "Error collecting library flows", e)
             }

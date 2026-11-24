@@ -82,11 +82,14 @@ class MainActivity : ComponentActivity() {
                     // One colour, taken from whatever is playing. Everything that means
                     // "this is active" reads it, everything else stays neutral.
                     val playing = uiState.playbackState.currentSong
-                    LaunchedEffect(playing?.albumArtUri) {
+                    LaunchedEffect(playing?.albumArtUri, uiState.isDarkMode) {
                         val art = playing?.albumArtUri
-                        if (art == null || art == android.net.Uri.EMPTY) return@LaunchedEffect
+                        if (art == null || art == android.net.Uri.EMPTY) {
+                            OtiumAccent.color = if (uiState.isDarkMode) com.otium.audio.ui.theme.AccentFallbackDark else com.otium.audio.ui.theme.AccentFallbackLight
+                            return@LaunchedEffect
+                        }
                         val colors = PaletteManager.extractColors(this@MainActivity, art)
-                        OtiumAccent.color = colors.vibrant.asReadableAccent()
+                        OtiumAccent.color = colors.vibrant.asReadableAccent(isDark = uiState.isDarkMode)
                     }
                     var showHomeEqualizer by remember { mutableStateOf(false) }
                     var songToDelete by remember { mutableStateOf<Song?>(null) }

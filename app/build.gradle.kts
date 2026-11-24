@@ -24,19 +24,31 @@ android {
         applicationId = "com.otium.audio"
         minSdk = 26
         targetSdk = 35
-        versionCode = 100
-        versionName = "6.2.0"
+        versionCode = 101
+        versionName = "6.3.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("github") {
+            dimension = "distribution"
+            buildConfigField("Boolean", "ENABLE_SELF_UPDATE", "true")
+        }
+        create("playstore") {
+            dimension = "distribution"
+            buildConfigField("Boolean", "ENABLE_SELF_UPDATE", "false")
+        }
     }
 
     val distributionKeystore = file("distribution.keystore")
     signingConfigs {
         create("distribution") {
             storeFile = distributionKeystore
-            storePassword = "otiummusicrelease"
-            keyAlias = "otium"
-            keyPassword = "otiummusicrelease"
+            storePassword = System.getenv("OTIUM_KEYSTORE_PASSWORD") ?: keystoreProperties.getProperty("storePassword", "otiummusicrelease")
+            keyAlias = System.getenv("OTIUM_KEY_ALIAS") ?: keystoreProperties.getProperty("keyAlias", "otium")
+            keyPassword = System.getenv("OTIUM_KEY_PASSWORD") ?: keystoreProperties.getProperty("keyPassword", "otiummusicrelease")
             enableV1Signing = true
             enableV2Signing = true
             enableV3Signing = true
@@ -76,12 +88,8 @@ android {
             }
         }
         debug {
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            isMinifyEnabled = false
+            isShrinkResources = false
             signingConfig = signingConfigs.getByName("distribution")
         }
     }

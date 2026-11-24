@@ -43,7 +43,8 @@ data class TrackLyrics(
 }
 
 object LrcParser {
-    private val LRC_PATTERN = Pattern.compile("""\[(\d{2}):(\d{2})\.(\d{2,3})](.*)""")
+    private val TIMESTAMP_PATTERN = Pattern.compile("""\[(\d{1,2}):(\d{2})[.:](\d{2,3})]""")
+    private val OFFSET_PATTERN = Pattern.compile("""\[offset:\s*([+-]?\d+)]""", Pattern.CASE_INSENSITIVE)
 
     fun parse(lrcContent: String): TrackLyrics {
         if (NativeAudioDsp.isAvailable) {
@@ -76,12 +77,34 @@ object LrcParser {
             }
         }
 
+        var offsetMs = 0L
         val lines = mutableListOf<LyricLine>()
         val rawLines = lrcContent.lines()
 
+        // 1. Extract optional [offset:+/-ms] tag
         for (rawLine in rawLines) {
-            val matcher = LRC_PATTERN.matcher(rawLine.trim())
-            if (matcher.matches()) {
+            val trimmed = rawLine.trim()
+            val offsetMatcher = OFFSET_PATTERN.matcher(trimmed)
+            if (offsetMatcher.find()) {
+                offsetMs = offsetMatcher.group(1)?.toLongOrNull() ?: 0L
+                break
+            }
+        }
+
+        // 2. Parse all timestamps and lyrics lines (supporting multi-timestamps e.g. [00:10.00][00:20.00]Lyric)
+        for (rawLine in rawLines) {
+            val trimmed = rawLine.trim()
+            if (trimmed.isEmpty() || trimmed.startsWith("[ar:") || trimmed.startsWith("[ti:") ||
+                trimmed.startsWith("[al:") || trimmed.startsWith("[by:") || trimmed.startsWith("[offset:")
+            ) {
+                continue
+            }
+
+            val matcher = TIMESTAMP_PATTERN.matcher(trimmed)
+            val timestampsInLine = mutableListOf<Long>()
+            var lastMatchEnd = 0
+
+            while (matcher.find()) {
                 val minutes = matcher.group(1)?.toLongOrNull() ?: 0L
                 val seconds = matcher.group(2)?.toLongOrNull() ?: 0L
                 val msPart = matcher.group(3) ?: "00"
@@ -90,11 +113,17 @@ object LrcParser {
                 } else {
                     msPart.toLongOrNull() ?: 0L
                 }
-                val timeMs = (minutes * 60 + seconds) * 1000 + millis
-                val text = matcher.group(4)?.trim() ?: ""
+                val timeMs = (minutes * 60 + seconds) * 1000 + millis + offsetMs
+                timestampsInLine.add(timeMs.coerceAtLeast(0L))
+                lastMatchEnd = matcher.end()
+            }
 
+            if (timestampsInLine.isNotEmpty()) {
+                val text = trimmed.substring(lastMatchEnd).trim()
                 if (text.isNotEmpty()) {
-                    lines.add(LyricLine(timeMs = timeMs, text = text))
+                    for (ts in timestampsInLine) {
+                        lines.add(LyricLine(timeMs = ts, text = text))
+                    }
                 }
             }
         }

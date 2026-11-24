@@ -92,4 +92,5 @@ jobs:
         with:
           tag_name: ${{ github.event.release.tag_name || github.ref_name }}
           files: |
+            app/build/outputs/apk/**/release/*.apk
             app/build/outputs/apk/release/*.apk
