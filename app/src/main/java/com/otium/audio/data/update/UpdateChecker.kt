@@ -73,6 +73,30 @@ object UpdateChecker {
                         releasePageUrl = htmlUrl
                     )
                 }
+            } else {
+                // Zero-rate-limit fallback via GitHub web redirect
+                val redirectConn = (URL("https://github.com/XRTM8/Audio/releases/latest").openConnection() as HttpURLConnection).apply {
+                    instanceFollowRedirects = false
+                    requestMethod = "HEAD"
+                    connectTimeout = 8_000
+                    readTimeout = 8_000
+                    setRequestProperty("User-Agent", "Otium-Audio-App")
+                }
+                try {
+                    val location = redirectConn.getHeaderField("Location").orEmpty()
+                    val tagName = location.substringAfterLast("/tag/", "").trim()
+                    if (tagName.isNotEmpty() && isNewerVersion(tagName, currentVersion)) {
+                        val releaseUrl = "https://github.com/XRTM8/Audio/releases/tag/$tagName"
+                        return@withContext UpdateInfo(
+                            versionName = if (tagName.startsWith("v")) tagName else "v$tagName",
+                            releaseNotes = "إصدار جديد متوفر على GitHub",
+                            downloadUrl = releaseUrl,
+                            releasePageUrl = releaseUrl
+                        )
+                    }
+                } finally {
+                    runCatching { redirectConn.disconnect() }
+                }
             }
         } catch (_: Exception) {
             // Silently fail if offline or network unavailable
@@ -83,9 +107,11 @@ object UpdateChecker {
     }
 
     private fun isNewerVersion(remote: String, current: String): Boolean {
-        if (remote.isBlank() || current.isBlank()) return false
-        val remoteParts = remote.split(".").mapNotNull { it.toIntOrNull() }
-        val currentParts = current.split(".").mapNotNull { it.toIntOrNull() }
+        val cleanRemote = remote.removePrefix("v").trim().substringBefore('-')
+        val cleanCurrent = current.removePrefix("v").trim().substringBefore('-')
+        if (cleanRemote.isBlank() || cleanCurrent.isBlank()) return false
+        val remoteParts = cleanRemote.split(".").mapNotNull { it.toIntOrNull() }
+        val currentParts = cleanCurrent.split(".").mapNotNull { it.toIntOrNull() }
 
         val length = maxOf(remoteParts.size, currentParts.size)
         for (i in 0 until length) {
