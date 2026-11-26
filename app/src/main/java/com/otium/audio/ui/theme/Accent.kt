@@ -16,9 +16,9 @@ object OtiumAccent {
         internal set
 }
 
-// Default Fallbacks
-val AccentFallbackDark = Color(0xFFFFFFFF)
-val AccentFallbackLight = Color(0xFF0F1115)
+// Default Fallbacks (Athar Velvet Burgundy)
+val AccentFallbackDark = BurgundyAccent
+val AccentFallbackLight = BurgundyDeep
 val AccentFallback = AccentFallbackDark
 
 /**

@@ -224,7 +224,7 @@ fun TagEditorSheet(
                     .height(52.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = AccentGold,
-                    contentColor = DarkSurface
+                    contentColor = MaterialTheme.colorScheme.onPrimary
                 ),
                 shape = RoundedCornerShape(14.dp)
             ) {

@@ -424,12 +424,12 @@ fun HomeScreen(
                                     onSongSelected(uiState.selectedArtist.songs.first(), uiState.selectedArtist.songs)
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = DarkSurface),
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = MaterialTheme.colorScheme.onPrimary),
                             shape = RoundedCornerShape(8.dp)
                         ) {
-                            Icon(Icons.Default.PlayArrow, contentDescription = null, tint = DarkSurface, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.PlayArrow, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("تشغيل الكل", fontWeight = FontWeight.Bold, color = DarkSurface, fontSize = 12.sp)
+                            Text("تشغيل الكل", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary, fontSize = 12.sp)
                         }
                     }
                 }
@@ -464,12 +464,12 @@ fun HomeScreen(
                                     onSongSelected(uiState.selectedAlbum.songs.first(), uiState.selectedAlbum.songs)
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = DarkSurface),
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = MaterialTheme.colorScheme.onPrimary),
                             shape = RoundedCornerShape(8.dp)
                         ) {
-                            Icon(Icons.Default.PlayArrow, contentDescription = null, tint = DarkSurface, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.PlayArrow, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("تشغيل الكل", fontWeight = FontWeight.Bold, color = DarkSurface, fontSize = 12.sp)
+                            Text("تشغيل الكل", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary, fontSize = 12.sp)
                         }
                     }
                 }
@@ -525,18 +525,18 @@ fun HomeScreen(
                             ) {
                                 Button(
                                     onClick = { onSongSelected(playlistSongs.first(), playlistSongs) },
-                                    colors = ButtonDefaults.buttonColors(containerColor = AccentGold),
+                                    colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = MaterialTheme.colorScheme.onPrimary),
                                     shape = RoundedCornerShape(10.dp),
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.PlayArrow,
                                         contentDescription = null,
-                                        tint = DarkSurface,
+                                        tint = MaterialTheme.colorScheme.onPrimary,
                                         modifier = Modifier.size(18.dp)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("تشغيل الكل", fontWeight = FontWeight.Bold, color = DarkSurface, fontSize = 13.sp)
+                                    Text("تشغيل الكل", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary, fontSize = 13.sp)
                                 }
 
                                 Button(
@@ -592,12 +592,12 @@ fun HomeScreen(
                                     onSongSelected(uiState.selectedFolder.songs.first(), uiState.selectedFolder.songs)
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = DarkSurface),
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = MaterialTheme.colorScheme.onPrimary),
                             shape = RoundedCornerShape(8.dp)
                         ) {
-                            Icon(Icons.Default.PlayArrow, contentDescription = null, tint = DarkSurface, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.PlayArrow, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("تشغيل الكل", fontWeight = FontWeight.Bold, color = DarkSurface, fontSize = 12.sp)
+                            Text("تشغيل الكل", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary, fontSize = 12.sp)
                         }
                     }
                 }

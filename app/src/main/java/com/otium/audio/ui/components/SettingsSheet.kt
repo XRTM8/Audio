@@ -175,9 +175,9 @@ fun SettingsSheet(
         val isDark = LocalOtiumColors.current.isDark
         val studioSwitchColors = SwitchDefaults.colors(
             checkedThumbColor = if (isDark) AccentTitaniumWhite else Color.White,
-            checkedTrackColor = if (isDark) Color(0xFF3E3E50) else Color(0xFF0F1115),
+            checkedTrackColor = AccentGold,
             uncheckedThumbColor = if (isDark) TextSecondary else Color.White,
-            uncheckedTrackColor = if (isDark) Color(0xFF1B1B24) else Color(0xFFD6DBE4),
+            uncheckedTrackColor = if (isDark) Color(0xFF1E2028) else Color(0xFFD6DBE4),
             uncheckedBorderColor = if (isDark) Color.Transparent else Color(0xFFCDD3DE)
         )
 
@@ -422,20 +422,23 @@ fun SettingsSheet(
                                             }
                                         },
                                         enabled = !isDownloading,
-                                        colors = ButtonDefaults.buttonColors(containerColor = AccentGold),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = AccentGold,
+                                            contentColor = MaterialTheme.colorScheme.onPrimary
+                                        ),
                                         shape = RoundedCornerShape(8.dp)
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.SystemUpdate,
                                             contentDescription = null,
-                                            tint = DarkSurface,
+                                            tint = MaterialTheme.colorScheme.onPrimary,
                                             modifier = Modifier.size(18.dp)
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
                                             if (isDownloading) "جاري التنزيل… $downloadProgress٪"
                                             else "تحديث الآن",
-                                            color = DarkSurface,
+                                            color = MaterialTheme.colorScheme.onPrimary,
                                             fontWeight = FontWeight.Bold
                                         )
                                     }

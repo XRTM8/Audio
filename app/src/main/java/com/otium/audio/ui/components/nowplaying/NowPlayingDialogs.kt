@@ -194,7 +194,7 @@ fun NowPlayingSpeedDialog(
                         label = { Text("${speed}x", fontSize = 12.sp) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = AccentGold,
-                            selectedLabelColor = DarkSurface,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
                             containerColor = DarkSurfaceContainer,
                             labelColor = TextSecondary
                         )

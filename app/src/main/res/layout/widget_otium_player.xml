@@ -31,7 +31,7 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:text="Otium Audio"
-            android:textColor="#E8E8ED"
+            android:textColor="#F5F6F8"
             android:textSize="15sp"
             android:textStyle="bold" />
 
@@ -43,7 +43,7 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:text="Offline High-Fidelity"
-            android:textColor="#8E8E9A"
+            android:textColor="#A1A3AF"
             android:textSize="13sp" />
     </LinearLayout>
 

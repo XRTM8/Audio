@@ -645,7 +645,7 @@ internal fun PlaylistsView(
         ) {
             Button(
                 onClick = onCreatePlaylistClick,
-                colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = DarkSurface),
+                colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = MaterialTheme.colorScheme.onPrimary),
                 shape = RoundedCornerShape(10.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -689,7 +689,7 @@ internal fun CreatePlaylistDialog(
             Button(
                 onClick = { if (name.isNotBlank()) onCreate(name.trim()) },
                 enabled = name.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = DarkSurface)
+                colors = ButtonDefaults.buttonColors(containerColor = AccentGold, contentColor = MaterialTheme.colorScheme.onPrimary)
             ) {
                 Text("إنشاء", fontWeight = FontWeight.Bold)
             }
