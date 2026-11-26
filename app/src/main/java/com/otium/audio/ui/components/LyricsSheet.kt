@@ -1,4 +1,4 @@
-package com.otium.audio.ui.components
+﻿package com.otium.audio.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -119,7 +119,7 @@ fun LyricsSheet(
                 val isActive = index == activeIndex
                 val textColor by animateColorAsState(
                     targetValue = when {
-                        isActive -> Color.White
+                        isActive -> com.otium.audio.ui.theme.LocalOtiumColors.current.textPrimary
                         index < activeIndex -> TextTertiary.copy(alpha = 0.35f)
                         else -> TextSecondary.copy(alpha = 0.55f)
                     },
@@ -128,7 +128,7 @@ fun LyricsSheet(
                 )
 
                 val lineBgColor by animateColorAsState(
-                    targetValue = if (isActive) Color(0x16FFFFFF) else Color.Transparent,
+                    targetValue = if (isActive) com.otium.audio.ui.theme.LocalOtiumColors.current.surfaceElevated else Color.Transparent,
                     animationSpec = tween(220),
                     label = "lyric_bg"
                 )

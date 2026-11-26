@@ -1,4 +1,4 @@
-package com.otium.audio.ui.screens
+﻿package com.otium.audio.ui.screens
 
 import androidx.compose.animation.animateColorAsState
 import android.content.Intent
@@ -789,7 +789,7 @@ fun NowPlayingScreen(
                                             .padding(horizontal = 4.dp, vertical = 1.dp)
                                     ) {
                                         Text(
-                                            text = "BIT-PERFECT",
+                                            text = "DSP AUDIO",
                                             style = MaterialTheme.typography.labelSmall.copy(
                                                 fontSize = 8.5.sp,
                                                 fontWeight = FontWeight.Bold,
